@@ -1,0 +1,1 @@
+{"version":3,"file":"auth.interface.d.ts","sourceRoot":"","sources":["../../../../src/app/modules/auth/auth.interface.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,WAAW,GAAG;IACrB,IAAI,EAAE,MAAM,CAAC;IACb,KAAK,EAAE,MAAM,CAAC;IACd,QAAQ,EAAE,MAAM,CAAC;IACjB,IAAI,EAAE,OAAO,GAAG,MAAM,CAAC;IACvB,SAAS,EAAE,QAAQ,GAAG,OAAO,CAAC;IAC9B,OAAO,CAAC,EAAE,MAAM,CAAA;CACpB,CAAA"}
