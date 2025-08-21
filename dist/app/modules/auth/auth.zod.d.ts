@@ -1,7 +1,8 @@
 import { z } from "zod";
 export declare const createUserValidation: z.ZodObject<{
     body: z.ZodObject<{
-        name: z.ZodString;
+        firstName: z.ZodString;
+        lastName: z.ZodString;
         email: z.ZodString;
         password: z.ZodString;
         role: z.ZodDefault<z.ZodEnum<{

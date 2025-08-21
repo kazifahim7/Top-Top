@@ -18,7 +18,8 @@ const createUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, fu
         message: "User registered successfully",
         data: {
             _id: result === null || result === void 0 ? void 0 : result._id,
-            name: result === null || result === void 0 ? void 0 : result.name,
+            firstName: result === null || result === void 0 ? void 0 : result.firstName,
+            LastName: result === null || result === void 0 ? void 0 : result.lastName,
             email: result === null || result === void 0 ? void 0 : result.email
         }
     });
@@ -29,6 +30,15 @@ const logInUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, fun
     res.status(200).json({
         success: true,
         message: "User login successfully",
+        data: result
+    });
+}));
+const resetRequest = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const data = req.body;
+    const result = yield authService.resetRequest(data);
+    res.status(200).json({
+        success: true,
+        message: "Check your Email",
         data: result
     });
 }));
@@ -70,12 +80,22 @@ const singleUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, fu
         data: result
     });
 }));
+const resetPassword = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield authService.resetPassword(req === null || req === void 0 ? void 0 : req.body);
+    res.status(200).json({
+        success: true,
+        message: "Password successfully updated ",
+        data: result
+    });
+}));
 export const authController = {
     createUser,
     logInUser,
     updateStatus,
     updateProfile,
     allUsers,
-    singleUser
+    singleUser,
+    resetRequest,
+    resetPassword
 };
 //# sourceMappingURL=auth.controller.js.map

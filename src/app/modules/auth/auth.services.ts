@@ -6,6 +6,7 @@ import type { TCreateUser } from './auth.interface.js';
 import { userModel } from './auth.model.js';
 import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
+import emailSender from '../../utils/sendEmail.js';
 
 const createUserIntoDB = async (payload: TCreateUser) => {
 
@@ -71,7 +72,7 @@ const updateStatusInDB = async (id: string, payload: Record<string, unknown>) =>
 }
 const updateProfileInDB = async (email: string, payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findOne({ email: email })
-     console.log(isUserExist)
+
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
 
@@ -92,6 +93,69 @@ const getSingleUser = async (id: string) => {
      return result
 
 }
+const resetRequest = async (payload: Record<string, unknown>) => {
+     const isUserExist = await userModel.findOne({ email: payload?.email });
+
+     if (!isUserExist) {
+          throw new AppError(404, "This user Not Found");
+     }
+
+     if (isUserExist.isBlocked === "block") {
+          throw new AppError(403, "You are not authorized");
+     }
+
+
+     const user = {
+          id: isUserExist?._id,
+          role: isUserExist?.role,
+          email: isUserExist?.email
+     }
+
+     const resetToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "30d" })
+
+     // Reset password URL
+     const resetUrl = `https://yourapp.com/reset-password?token=${resetToken}`;
+
+     // Email template
+     const emailHtml = `
+       <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+         <h2 style="color: #4CAF50;">Password Reset Request</h2>
+         <p>Hello ${isUserExist.firstName},</p>
+         <p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
+         <p>Otherwise, click the button below to reset your password:</p>
+         <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: #fff; text-decoration: none; font-weight: bold; border-radius: 5px;">
+           Reset Now
+         </a>
+         <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
+         <p>${resetUrl}</p>
+         <p>Thank you,<br>YourApp Team</p>
+       </div>
+     `;
+
+     await emailSender(payload.email as string, emailHtml, "Reset your password");
+     return {}
+};
+
+
+export const resetPassword = async (payload: {email:string,password:string}) => {
+     
+     const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
+
+     // 2️⃣ Find the user and update password
+     const updatedUser = await userModel.findOneAndUpdate(
+          { email: payload.email },
+          { $set: { password: hashedPassword } },
+          { new: true } 
+     ).select("-password"); 
+
+   
+     if (!updatedUser) {
+          throw new AppError(404, "User not found");
+     }
+
+     
+     return updatedUser;
+   };
 
 
 
@@ -102,5 +166,7 @@ export const authService = {
      updateStatusInDB,
      updateProfileInDB,
      allStudentFromDB,
-     getSingleUser
+     getSingleUser,
+     resetRequest,
+     resetPassword
 }
