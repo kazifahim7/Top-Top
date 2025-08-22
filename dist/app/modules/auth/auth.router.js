@@ -8,10 +8,10 @@ router.post("/create-user", validateRequest(createUserValidation), authControlle
 router.post("/login", validateRequest(loginUserValidation), authController.logInUser);
 router.post("/reset-request", authController.resetRequest);
 router.post("/reset-password", authController.resetPassword);
+router.get("/all-users", auth("admin"), authController.allUsers);
 // below api are not useful in future you can use it 
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus);
 router.put("/update-profile/:email", authController.updateProfile);
-router.get("/all-users", auth("admin"), authController.allUsers);
 router.get("/user/:email", authController.singleUser);
 export const authRouter = router;
 //# sourceMappingURL=auth.router.js.map
