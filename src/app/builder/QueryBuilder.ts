@@ -24,18 +24,49 @@ class QueryBuilder<T> {
      }
 
      filter() {
-          const queryObj = { ...this.query }; // copy
+          const queryObj = { ...this.query }; 
 
-          // Filtering
-          const excludeFields = ['searchTerm', 'sort', 'limit', 'page', 'fields'];
-
+          // Exclude non-filter fields
+          const excludeFields = ['searchTerm', 'sort', 'limit', 'page', 'fields', 'minPrice', 'maxPrice'];
           excludeFields.forEach((el) => delete queryObj[el]);
 
-          this.modelQuery = this.modelQuery.find(queryObj as FilterQuery<T>);
+          const filterConditions: Record<string, any> = {};
 
+         
+          Object.keys(queryObj).forEach((key) => {
+               filterConditions[key] = queryObj[key];
+          });
+
+          // ✅ Price Range Filter
+          const minPrice = Number(this.query.minPrice);
+          const maxPrice = Number(this.query.maxPrice);
+          if (!isNaN(minPrice) || !isNaN(maxPrice)) {
+               filterConditions['salesPrice'] = {};
+               if (!isNaN(minPrice)) {
+                    filterConditions['salesPrice']['$gte'] = minPrice;
+               }
+               if (!isNaN(maxPrice)) {
+                    filterConditions['salesPrice']['$lte'] = maxPrice;
+               }
+          }
+
+          // ✅ Carats Filter (Array match)
+          if (this.query.carats) {
+               const caratsArray = (this.query.carats as string).split(',');
+               filterConditions['carats'] = { $in: caratsArray };
+          }
+
+          // ✅ Size Filter (Array match)
+          if (this.query.size) {
+               const sizeArray = (this.query.size as string).split(',');
+               filterConditions['size'] = { $in: sizeArray };
+          }
+
+          this.modelQuery = this.modelQuery.find(filterConditions as FilterQuery<T>);
           return this;
      }
-
+      
+      
      sort() {
           const sort =
                (this?.query?.sort as string)?.split(',')?.join(' ') || '-createdAt';

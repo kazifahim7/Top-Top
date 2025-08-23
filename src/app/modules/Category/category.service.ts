@@ -11,14 +11,12 @@ const createCategory = async (payload: TCategory) => {
 const getAllCategory = async (query: Record<string, unknown>) => {
      const categoryQuery = new QueryBuilder(CategoryModel.find(), query).paginate().filter().search(["category"])
      const result = await categoryQuery.modelQuery
+     const meta = await categoryQuery.countTotal()
 
 
      return {
-          meta: {
-               totalData: categoryQuery.countTotal,
-               limit: 10
-          },
-          result
+          result,
+          meta
      }
 }
 
@@ -30,25 +28,25 @@ const deleteCategory = async (id: string) => {
      const result = await CategoryModel.findByIdAndDelete(id)
      return result
 }
- const updateCategory = async (id: string, payload: Partial<TCategory>) => {
-    
+const updateCategory = async (id: string, payload: Partial<TCategory>) => {
+
      const existingCategory = await CategoryModel.findById(id);
      if (!existingCategory) {
           throw new AppError(404, "This category not found");
      }
 
-    
+
      const updateData: any = {};
 
 
      if (payload.category) {
-          updateData.category = payload.category; 
+          updateData.category = payload.category;
      }
 
-    
+
      if (payload.subCategory && payload.subCategory.length > 0) {
           updateData.$addToSet = {
-               subCategory: { $each: payload.subCategory } 
+               subCategory: { $each: payload.subCategory }
           };
      }
 
@@ -60,14 +58,14 @@ const deleteCategory = async (id: string) => {
      );
 
      return updatedCategory;
-   };
+};
 
 
 
-   export const categoryService ={
+export const categoryService = {
      createCategory,
      getAllCategory,
      getSingleCategory,
      deleteCategory,
      updateCategory
-   }
+}

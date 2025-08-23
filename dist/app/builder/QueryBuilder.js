@@ -26,11 +26,37 @@ class QueryBuilder {
         return this;
     }
     filter() {
-        const queryObj = Object.assign({}, this.query); // copy
-        // Filtering
-        const excludeFields = ['searchTerm', 'sort', 'limit', 'page', 'fields'];
+        const queryObj = Object.assign({}, this.query);
+        // Exclude non-filter fields
+        const excludeFields = ['searchTerm', 'sort', 'limit', 'page', 'fields', 'minPrice', 'maxPrice'];
         excludeFields.forEach((el) => delete queryObj[el]);
-        this.modelQuery = this.modelQuery.find(queryObj);
+        const filterConditions = {};
+        Object.keys(queryObj).forEach((key) => {
+            filterConditions[key] = queryObj[key];
+        });
+        // ✅ Price Range Filter
+        const minPrice = Number(this.query.minPrice);
+        const maxPrice = Number(this.query.maxPrice);
+        if (!isNaN(minPrice) || !isNaN(maxPrice)) {
+            filterConditions['salesPrice'] = {};
+            if (!isNaN(minPrice)) {
+                filterConditions['salesPrice']['$gte'] = minPrice;
+            }
+            if (!isNaN(maxPrice)) {
+                filterConditions['salesPrice']['$lte'] = maxPrice;
+            }
+        }
+        // ✅ Carats Filter (Array match)
+        if (this.query.carats) {
+            const caratsArray = this.query.carats.split(',');
+            filterConditions['carats'] = { $in: caratsArray };
+        }
+        // ✅ Size Filter (Array match)
+        if (this.query.size) {
+            const sizeArray = this.query.size.split(',');
+            filterConditions['size'] = { $in: sizeArray };
+        }
+        this.modelQuery = this.modelQuery.find(filterConditions);
         return this;
     }
     sort() {

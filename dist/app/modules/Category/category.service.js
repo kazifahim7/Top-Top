@@ -17,12 +17,10 @@ const createCategory = (payload) => __awaiter(void 0, void 0, void 0, function* 
 const getAllCategory = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const categoryQuery = new QueryBuilder(CategoryModel.find(), query).paginate().filter().search(["category"]);
     const result = yield categoryQuery.modelQuery;
+    const meta = yield categoryQuery.countTotal();
     return {
-        meta: {
-            totalData: categoryQuery.countTotal,
-            limit: 10
-        },
-        result
+        result,
+        meta
     };
 });
 const getSingleCategory = (id) => __awaiter(void 0, void 0, void 0, function* () {

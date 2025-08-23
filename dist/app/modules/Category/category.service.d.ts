@@ -6,20 +6,17 @@ export declare const categoryService: {
         __v: number;
     }>;
     getAllCategory: (query: Record<string, unknown>) => Promise<{
-        meta: {
-            totalData: () => Promise<{
-                page: number;
-                limit: number;
-                total: number;
-                totalPage: number;
-            }>;
-            limit: number;
-        };
         result: (import("mongoose").Document<unknown, {}, TCategory, {}, {}> & TCategory & {
             _id: import("mongoose").Types.ObjectId;
         } & {
             __v: number;
         })[];
+        meta: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPage: number;
+        };
     }>;
     getSingleCategory: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCategory, {}, {}> & TCategory & {
         _id: import("mongoose").Types.ObjectId;
