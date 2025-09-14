@@ -2,7 +2,6 @@ import express from 'express';
 import auth from '../../middleware/auth.js';
 import { upload } from '../../utils/multer.js';
 import { productController } from './post.controller.js';
-import validateRequest from '../../middleware/validatonRequest.js';
 import { productSchema } from './post.validation.js';
 const router = express.Router();
 router.post("/create-product", auth("admin"), upload.fields([

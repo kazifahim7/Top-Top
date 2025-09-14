@@ -21,7 +21,7 @@ const auth = (...roles) => {
         }
         const decoded = jwt.verify(token, config.jwt_secret);
         if (!decoded) {
-            throw new AppError(401, "invalid token");
+            throw new AppError(401, "invalid token , please press logout button and login again...");
         }
         const { role, email } = decoded;
         // <- check this user exist in database

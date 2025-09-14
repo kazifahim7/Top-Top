@@ -1,9 +1,15 @@
-export type TCreateUser = {
-     firstName: string,
-     lastName:string,
+export type TCreateProfile = {
+     FullName: string,
      email: string,
      password: string,
-     role: "admin" | "user",
+     role: "admin" | "player" | "organizer",
      isBlocked: "active" | "block",
-     address?: string
+     mobile?: string,
+     socialProfile: string[],
+     imageUrl: string,
+     nationality: string,
+     dominantFoot: string,
+     playingDays: string[],
+     gameMode: string,
+     preferredAreas: string
 }

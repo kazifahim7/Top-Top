@@ -20,7 +20,7 @@ const auth = (...roles: string[]) => {
           const decoded = jwt.verify(token, config.jwt_secret as string) as JwtPayload
 
           if (!decoded) {
-               throw new AppError(401, "invalid token");
+               throw new AppError(401, "invalid token , please press logout button and login again...");
 
           }
 

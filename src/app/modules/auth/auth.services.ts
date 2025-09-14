@@ -2,32 +2,25 @@
 
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import type { TCreateUser } from './auth.interface.js';
+
 import { userModel } from './auth.model.js';
 import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
 import emailSender from '../../utils/sendEmail.js';
+import type { TCreateProfile } from './auth.interface.js';
 
-const createUserIntoDB = async (payload: TCreateUser) => {
-
+const createUserIntoDB = async (payload: TCreateProfile) => {
      const isUserAlreadyExist = await userModel.findOne({ email: payload?.email })
-
      if (isUserAlreadyExist) {
           throw new AppError(401, "This user Already exists");
 
      }
-
      payload.password = await bcrypt.hash(payload.password, Number(config.salt_round))
-
-
-
-
-
      const result = await userModel.create(payload)
      return result;
 }
 
-const loginUser = async (payload: Pick<TCreateUser, "email" | "password">) => {
+const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) => {
 
      const isUserExist = await userModel.findOne({ email: payload.email })
      if (!isUserExist) {
@@ -50,10 +43,64 @@ const loginUser = async (payload: Pick<TCreateUser, "email" | "password">) => {
           email: isUserExist?.email
      }
 
-     const token = jwt.sign(user, config.jwt_secret as string, { expiresIn: "30d" })
+     const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+     const refreshToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
 
      return {
-          token
+          accessToken,
+          refreshToken
+     }
+
+
+
+}
+const googleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
+
+
+
+
+     const result = await userModel.create(payload)
+
+     const user = {
+          id: result?._id,
+          role: result?.role,
+          email: result?.email
+     }
+
+
+     const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+     const refreshToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+
+     return {
+          result,
+          accessToken,
+          refreshToken
+     }
+
+
+
+}
+const appleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
+
+
+
+
+     const result = await userModel.create(payload)
+
+     const user = {
+          id: result?._id,
+          role: result?.role,
+          email: result?.email
+     }
+
+
+     const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+     const refreshToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+
+     return {
+          result,
+          accessToken,
+          refreshToken
      }
 
 
@@ -79,7 +126,6 @@ const updateProfileInDB = async (email: string, payload: Record<string, unknown>
      }
      const result = await userModel.findOneAndUpdate({ email: email }, payload, { new: true })
      return result
-
 }
 const allStudentFromDB = async () => {
 
@@ -103,8 +149,6 @@ const resetRequest = async (payload: Record<string, unknown>) => {
      if (isUserExist.isBlocked === "block") {
           throw new AppError(403, "You are not authorized");
      }
-
-
      const user = {
           id: isUserExist?._id,
           role: isUserExist?.role,
@@ -113,21 +157,21 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 
      const resetToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "30d" })
 
-     // Reset password URL
-     const resetUrl = `https://yourapp.com/reset-password?token=${resetToken}`;
+
+     const resetUrl = `yourapp://reset-password?token=${resetToken}`;
+
 
      // Email template
      const emailHtml = `
        <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
          <h2 style="color: #4CAF50;">Password Reset Request</h2>
-         <p>Hello ${isUserExist.firstName},</p>
+         <p>Hello ${isUserExist.FullName},</p>
          <p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
          <p>Otherwise, click the button below to reset your password:</p>
          <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: #fff; text-decoration: none; font-weight: bold; border-radius: 5px;">
            Reset Now
          </a>
          <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
-         <p>${resetUrl}</p>
          <p>Thank you,<br>YourApp Team</p>
        </div>
      `;
@@ -137,25 +181,25 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 };
 
 
-export const resetPassword = async (payload: {email:string,password:string}) => {
-     
+export const resetPassword = async (payload: { email: string, password: string }) => {
+
      const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
 
-     // 2️⃣ Find the user and update password
+
      const updatedUser = await userModel.findOneAndUpdate(
           { email: payload.email },
           { $set: { password: hashedPassword } },
-          { new: true } 
-     ).select("-password"); 
+          { new: true }
+     ).select("-password");
 
-   
+
      if (!updatedUser) {
           throw new AppError(404, "User not found");
      }
 
-     
+
      return updatedUser;
-   };
+};
 
 
 
@@ -168,5 +212,7 @@ export const authService = {
      allStudentFromDB,
      getSingleUser,
      resetRequest,
-     resetPassword
+     resetPassword,
+     googleLogin,
+     appleLogin
 }

@@ -10,16 +10,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import {} from "express";
 import catchAsync from "../../utils/catcgAsync.js";
 import { authService } from "./auth.services.js";
+import { getLocalImageURL } from "../../utils/multer.js";
 const createUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const data = req.body;
+    const imageFiles = req.files.images || [];
+    for (const file of imageFiles) {
+        const url = getLocalImageURL(file.filename);
+        data.imageUrl = url;
+    }
     const result = yield authService.createUserIntoDB(data);
     res.status(200).json({
         success: true,
-        message: "User registered successfully",
+        message: "Player registered successfully",
         data: {
             _id: result === null || result === void 0 ? void 0 : result._id,
-            firstName: result === null || result === void 0 ? void 0 : result.firstName,
-            LastName: result === null || result === void 0 ? void 0 : result.lastName,
+            fullName: result === null || result === void 0 ? void 0 : result.FullName,
             email: result === null || result === void 0 ? void 0 : result.email
         }
     });
@@ -30,6 +35,24 @@ const logInUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, fun
     res.status(200).json({
         success: true,
         message: "User login successfully",
+        data: result
+    });
+}));
+const googleLogin = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const data = req.body;
+    const result = yield authService.googleLogin(data);
+    res.status(200).json({
+        success: true,
+        message: "Google login successfully",
+        data: result
+    });
+}));
+const appleLogin = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const data = req.body;
+    const result = yield authService.appleLogin(data);
+    res.status(200).json({
+        success: true,
+        message: "Apple login successfully",
         data: result
     });
 }));
@@ -56,6 +79,11 @@ const updateProfile = catchAsync((req, res) => __awaiter(void 0, void 0, void 0,
     var _a;
     const id = (_a = req.params) === null || _a === void 0 ? void 0 : _a.email;
     const data = req.body;
+    const imageFiles = req.files.images || [];
+    for (const file of imageFiles) {
+        const url = getLocalImageURL(file.filename);
+        data.imageUrl = url;
+    }
     const result = yield authService.updateProfileInDB(id, data);
     res.status(200).json({
         success: true,
@@ -96,6 +124,8 @@ export const authController = {
     allUsers,
     singleUser,
     resetRequest,
-    resetPassword
+    resetPassword,
+    googleLogin,
+    appleLogin
 };
 //# sourceMappingURL=auth.controller.js.map

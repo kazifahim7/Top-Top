@@ -40,9 +40,41 @@ const loginUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
         role: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.role,
         email: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.email
     };
-    const token = jwt.sign(user, config.jwt_secret, { expiresIn: "30d" });
+    const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
     return {
-        token
+        accessToken,
+        refreshToken
+    };
+});
+const googleLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield userModel.create(payload);
+    const user = {
+        id: result === null || result === void 0 ? void 0 : result._id,
+        role: result === null || result === void 0 ? void 0 : result.role,
+        email: result === null || result === void 0 ? void 0 : result.email
+    };
+    const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    return {
+        result,
+        accessToken,
+        refreshToken
+    };
+});
+const appleLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield userModel.create(payload);
+    const user = {
+        id: result === null || result === void 0 ? void 0 : result._id,
+        role: result === null || result === void 0 ? void 0 : result.role,
+        email: result === null || result === void 0 ? void 0 : result.email
+    };
+    const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    return {
+        result,
+        accessToken,
+        refreshToken
     };
 });
 const updateStatusInDB = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
@@ -83,20 +115,18 @@ const resetRequest = (payload) => __awaiter(void 0, void 0, void 0, function* ()
         email: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.email
     };
     const resetToken = jwt.sign(user, config.jwt_secret, { expiresIn: "30d" });
-    // Reset password URL
-    const resetUrl = `https://yourapp.com/reset-password?token=${resetToken}`;
+    const resetUrl = `yourapp://reset-password?token=${resetToken}`;
     // Email template
     const emailHtml = `
        <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
          <h2 style="color: #4CAF50;">Password Reset Request</h2>
-         <p>Hello ${isUserExist.firstName},</p>
+         <p>Hello ${isUserExist.FullName},</p>
          <p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
          <p>Otherwise, click the button below to reset your password:</p>
          <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: #fff; text-decoration: none; font-weight: bold; border-radius: 5px;">
            Reset Now
          </a>
          <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
-         <p>${resetUrl}</p>
          <p>Thank you,<br>YourApp Team</p>
        </div>
      `;
@@ -105,7 +135,6 @@ const resetRequest = (payload) => __awaiter(void 0, void 0, void 0, function* ()
 });
 export const resetPassword = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const hashedPassword = yield bcrypt.hash(payload.password, Number(config.salt_round));
-    // 2️⃣ Find the user and update password
     const updatedUser = yield userModel.findOneAndUpdate({ email: payload.email }, { $set: { password: hashedPassword } }, { new: true }).select("-password");
     if (!updatedUser) {
         throw new AppError(404, "User not found");
@@ -120,6 +149,8 @@ export const authService = {
     allStudentFromDB,
     getSingleUser,
     resetRequest,
-    resetPassword
+    resetPassword,
+    googleLogin,
+    appleLogin
 };
 //# sourceMappingURL=auth.services.js.map
