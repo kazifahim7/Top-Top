@@ -8,6 +8,7 @@ import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
 import emailSender from '../../utils/sendEmail.js';
 import type { TCreateProfile } from './auth.interface.js';
+import QueryBuilder from '../../builder/QueryBuilder.js';
 
 const createUserIntoDB = async (payload: TCreateProfile) => {
      const isUserAlreadyExist = await userModel.findOne({ email: payload?.email })
@@ -127,9 +128,11 @@ const updateProfileInDB = async (email: string, payload: Record<string, unknown>
      const result = await userModel.findOneAndUpdate({ email: email }, payload, { new: true })
      return result
 }
-const allStudentFromDB = async () => {
+const allStudentFromDB = async (query:Record<string,unknown>) => {
 
-     const result = await userModel.find().select("-password")
+     
+     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName FullName"])
+     const result = await playerQuery.modelQuery
      return result
 
 }

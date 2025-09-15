@@ -13,6 +13,7 @@ import { userModel } from './auth.model.js';
 import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
 import emailSender from '../../utils/sendEmail.js';
+import QueryBuilder from '../../builder/QueryBuilder.js';
 const createUserIntoDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const isUserAlreadyExist = yield userModel.findOne({ email: payload === null || payload === void 0 ? void 0 : payload.email });
     if (isUserAlreadyExist) {
@@ -93,8 +94,9 @@ const updateProfileInDB = (email, payload) => __awaiter(void 0, void 0, void 0, 
     const result = yield userModel.findOneAndUpdate({ email: email }, payload, { new: true });
     return result;
 });
-const allStudentFromDB = () => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield userModel.find().select("-password");
+const allStudentFromDB = (query) => __awaiter(void 0, void 0, void 0, function* () {
+    const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName FullName"]);
+    const result = yield playerQuery.modelQuery;
     return result;
 });
 const getSingleUser = (id) => __awaiter(void 0, void 0, void 0, function* () {

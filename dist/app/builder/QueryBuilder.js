@@ -46,15 +46,13 @@ class QueryBuilder {
                 filterConditions['salesPrice']['$lte'] = maxPrice;
             }
         }
-        // ✅ Carats Filter (Array match)
-        if (this.query.carats) {
-            const caratsArray = this.query.carats.split(',');
-            filterConditions['carats'] = { $in: caratsArray };
+        if (this.query.playingDays) {
+            const playingDaysArray = this.query.playingDays.split(',');
+            filterConditions['playingDays'] = { $in: playingDaysArray };
         }
-        // ✅ Size Filter (Array match)
-        if (this.query.size) {
-            const sizeArray = this.query.size.split(',');
-            filterConditions['size'] = { $in: sizeArray };
+        if (this.query.position) {
+            const positionArray = this.query.position.split(',');
+            filterConditions['position'] = { $in: positionArray };
         }
         this.modelQuery = this.modelQuery.find(filterConditions);
         return this;

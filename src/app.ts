@@ -27,7 +27,7 @@ app.use("/api/v1", router)
 
 
 app.get('/', (req: Request, res: Response) => {
-     res.send('welcome to Zem jewellers project...')
+     res.send('Welcome  Dear...')
 })
 
 

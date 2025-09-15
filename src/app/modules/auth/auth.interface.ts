@@ -11,5 +11,8 @@ export type TCreateProfile = {
      dominantFoot: string,
      playingDays: string[],
      gameMode: string,
-     preferredAreas: string
+     preferredAreas: string,
+     age:string,
+     position:string[],
+     userName:string
 }

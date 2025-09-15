@@ -16,7 +16,7 @@ app.use(cors({
 // api 
 app.use("/api/v1", router);
 app.get('/', (req, res) => {
-    res.send('welcome to Zem jewellers project...');
+    res.send('Welcome  Dear...');
 });
 app.use(notFound);
 app.use(globalErrorHandler);

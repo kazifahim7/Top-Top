@@ -27,7 +27,41 @@ export declare const authService: {
     } & {
         __v: number;
     }) | null>;
-    allStudentFromDB: () => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+    allStudentFromDB: (query: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, {
+        FullName?: any;
+        email?: any;
+        password?: any;
+        role?: any;
+        isBlocked?: any;
+        mobile?: any;
+        socialProfile?: any;
+        imageUrl?: any;
+        nationality?: any;
+        dominantFoot?: any;
+        playingDays?: any;
+        gameMode?: any;
+        preferredAreas?: any;
+        age?: any;
+        position?: any;
+        userName?: any;
+    }, {}, {}> & {
+        FullName?: any;
+        email?: any;
+        password?: any;
+        role?: any;
+        isBlocked?: any;
+        mobile?: any;
+        socialProfile?: any;
+        imageUrl?: any;
+        nationality?: any;
+        dominantFoot?: any;
+        playingDays?: any;
+        gameMode?: any;
+        preferredAreas?: any;
+        age?: any;
+        position?: any;
+        userName?: any;
+    } & {
         _id: import("mongoose").Types.ObjectId;
     } & {
         __v: number;

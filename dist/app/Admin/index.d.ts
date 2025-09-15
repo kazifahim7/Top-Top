@@ -12,5 +12,6 @@ export declare const TAdmin: {
     playingDays: never[];
     gameMode: string;
     preferredAreas: string;
+    age: string;
 };
 //# sourceMappingURL=index.d.ts.map

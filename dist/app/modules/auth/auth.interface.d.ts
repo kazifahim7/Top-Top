@@ -12,5 +12,8 @@ export type TCreateProfile = {
     playingDays: string[];
     gameMode: string;
     preferredAreas: string;
+    age: string;
+    position: string[];
+    userName: string;
 };
 //# sourceMappingURL=auth.interface.d.ts.map

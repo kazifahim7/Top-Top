@@ -107,7 +107,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
 })
 const allUsers = catchAsync(async (req: Request, res: Response) => {
 
-     const result = await authService.allStudentFromDB()
+     const result = await authService.allStudentFromDB(req.query)
 
      res.status(200).json({
           success: true,

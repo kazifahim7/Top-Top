@@ -1,6 +1,7 @@
 import { model, Schema } from "mongoose";
 const ProfileSchema = new Schema({
     FullName: { type: String, required: true },
+    userName: { type: String, default: "N/A" },
     email: { type: String, required: true, unique: true },
     password: { type: String },
     role: { type: String, enum: ['admin', 'player', 'organizer'], required: true, default: "player" },
@@ -12,7 +13,9 @@ const ProfileSchema = new Schema({
     preferredAreas: { type: String, default: "N/A" },
     socialProfile: { type: [String], default: [] },
     playingDays: { type: [String], default: [] },
+    position: { type: [String], default: [] },
     imageUrl: { type: String, required: true },
+    age: { type: String, default: "18" },
 }, {
     timestamps: true,
 });

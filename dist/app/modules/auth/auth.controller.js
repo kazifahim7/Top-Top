@@ -92,7 +92,7 @@ const updateProfile = catchAsync((req, res) => __awaiter(void 0, void 0, void 0,
     });
 }));
 const allUsers = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield authService.allStudentFromDB();
+    const result = yield authService.allStudentFromDB(req.query);
     res.status(200).json({
         success: true,
         message: "User is retrieved successfully ",

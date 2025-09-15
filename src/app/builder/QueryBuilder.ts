@@ -50,16 +50,16 @@ class QueryBuilder<T> {
                }
           }
 
-          // ✅ Carats Filter (Array match)
-          if (this.query.carats) {
-               const caratsArray = (this.query.carats as string).split(',');
-               filterConditions['carats'] = { $in: caratsArray };
+          
+          if (this.query.playingDays) {
+               const playingDaysArray = (this.query.playingDays as string).split(',');
+               filterConditions['playingDays'] = { $in: playingDaysArray };
           }
 
-          // ✅ Size Filter (Array match)
-          if (this.query.size) {
-               const sizeArray = (this.query.size as string).split(',');
-               filterConditions['size'] = { $in: sizeArray };
+        
+          if (this.query.position) {
+               const positionArray = (this.query.position as string).split(',');
+               filterConditions['position'] = { $in: positionArray };
           }
 
           this.modelQuery = this.modelQuery.find(filterConditions as FilterQuery<T>);

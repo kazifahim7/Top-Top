@@ -11,6 +11,7 @@ export const TAdmin = {
     "dominantFoot": "N/A",
     "playingDays": [],
     "gameMode": "N/A",
-    "preferredAreas": "London"
+    "preferredAreas": "London",
+    "age": "18"
 };
 //# sourceMappingURL=index.js.map
