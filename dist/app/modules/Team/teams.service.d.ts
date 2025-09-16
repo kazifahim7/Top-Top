@@ -31,5 +31,25 @@ export declare const teamsService: {
     } & {
         __v: number;
     }) | null>;
+    invitePlayer: (ownerId: string, teamId: string, playerId: string, message: string) => Promise<import("mongoose").Document<unknown, {}, import("../Notification/notification.interface.js").TInvite, {}, {}> & import("../Notification/notification.interface.js").TInvite & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }>;
+    acceptInvite: (inviteId: string) => Promise<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }>;
+    rejectInvite: (inviteId: string) => Promise<(import("mongoose").Document<unknown, {}, import("../Notification/notification.interface.js").TInvite, {}, {}> & import("../Notification/notification.interface.js").TInvite & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }) | null>;
+    myRequest: (userId: string) => Promise<(import("mongoose").Document<unknown, {}, import("../Notification/notification.interface.js").TInvite, {}, {}> & import("../Notification/notification.interface.js").TInvite & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    })[]>;
 };
 //# sourceMappingURL=teams.service.d.ts.map

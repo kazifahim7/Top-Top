@@ -35,5 +35,10 @@ router.get("/my-team", auth("player"), TeamController.myTeam);
 // assign captain in a team
 router.put("/:teamId/assign-captain", auth("player"), TeamController.assignCaptain);
 router.put("/:teamId/remove-player", auth("player"), TeamController.removePlayer);
+// ! notification api is below ->
+router.post("/:teamId/invite", auth("player"), TeamController.invitePlayer);
+router.post("/accept-invite/:inviteId", TeamController.acceptInvite);
+router.put("/reject-invite/:inviteId", TeamController.rejectInvite);
+router.get("/my-request", auth("player"), TeamController.myRequest);
 export const teamsRouter = router;
 //# sourceMappingURL=team.router.js.map

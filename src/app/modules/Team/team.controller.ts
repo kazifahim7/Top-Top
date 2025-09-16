@@ -97,6 +97,49 @@ const removePlayer = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const invitePlayer = catchAsync(async (req: Request, res: Response) => {
+     const ownerId = req.user.id
+     const teamId = req.params?.teamId 
+     const { playerId , message} = req?.body
+ 
+    
+     const result = await teamsService.invitePlayer(ownerId, teamId!, playerId, message)
+
+     res.status(200).json({
+          success: true,
+          message: "player invite request send successfully",
+          data: result
+     })
+
+
+})
+const acceptInvite = catchAsync(async (req: Request, res: Response) => {
+     const inviteId = req.params?.inviteId 
+     const result = await teamsService.acceptInvite(inviteId!)
+     res.status(200).json({
+          success: true,
+          message: "Request accept successfully",
+          data: result
+     })
+})
+const rejectInvite = catchAsync(async (req: Request, res: Response) => {
+     const inviteId = req.params?.inviteId 
+     const result = await teamsService.rejectInvite(inviteId!)
+     res.status(200).json({
+          success: true,
+          message: "Request Reject successfully",
+          data: result
+     })
+})
+const myRequest = catchAsync(async (req: Request, res: Response) => {
+     const userId = req.user.id
+     const result = await teamsService.myRequest(userId!)
+     res.status(200).json({
+          success: true,
+          message: "All request  are landed successfully",
+          data: result
+     })
+})
 
 
 export const TeamController ={
@@ -105,5 +148,9 @@ export const TeamController ={
      allTeams,
      myTeam,
      assignCaptain,
-     removePlayer
+     removePlayer,
+     invitePlayer,
+     acceptInvite,
+     rejectInvite,
+     myRequest
 }

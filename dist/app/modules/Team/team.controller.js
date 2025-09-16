@@ -83,12 +83,57 @@ const removePlayer = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, 
         data: result
     });
 }));
+const invitePlayer = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const ownerId = req.user.id;
+    const teamId = (_a = req.params) === null || _a === void 0 ? void 0 : _a.teamId;
+    const { playerId, message } = req === null || req === void 0 ? void 0 : req.body;
+    const result = yield teamsService.invitePlayer(ownerId, teamId, playerId, message);
+    res.status(200).json({
+        success: true,
+        message: "player invite request send successfully",
+        data: result
+    });
+}));
+const acceptInvite = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const inviteId = (_a = req.params) === null || _a === void 0 ? void 0 : _a.inviteId;
+    const result = yield teamsService.acceptInvite(inviteId);
+    res.status(200).json({
+        success: true,
+        message: "Request accept successfully",
+        data: result
+    });
+}));
+const rejectInvite = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const inviteId = (_a = req.params) === null || _a === void 0 ? void 0 : _a.inviteId;
+    const result = yield teamsService.rejectInvite(inviteId);
+    res.status(200).json({
+        success: true,
+        message: "Request Reject successfully",
+        data: result
+    });
+}));
+const myRequest = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.user.id;
+    const result = yield teamsService.myRequest(userId);
+    res.status(200).json({
+        success: true,
+        message: "All request  are landed successfully",
+        data: result
+    });
+}));
 export const TeamController = {
     createTeam,
     updateTeam,
     allTeams,
     myTeam,
     assignCaptain,
-    removePlayer
+    removePlayer,
+    invitePlayer,
+    acceptInvite,
+    rejectInvite,
+    myRequest
 };
 //# sourceMappingURL=team.controller.js.map
