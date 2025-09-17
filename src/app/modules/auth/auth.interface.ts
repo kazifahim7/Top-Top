@@ -14,5 +14,15 @@ export type TCreateProfile = {
      preferredAreas: string,
      age:string,
      position:string[],
-     userName:string
+     userName:string,
+     //if player played then this static can updated
+     matchPosition?: string
+     redCard: number;
+     yellowCard: number;
+     substitution: number;
+     assists: number;
+     goal: number;
+     tackle: number;
+     save: number;
+     rating: number;
 }

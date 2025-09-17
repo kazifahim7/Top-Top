@@ -36,11 +36,11 @@ export declare const teamsService: {
     } & {
         __v: number;
     }>;
-    acceptInvite: (inviteId: string) => Promise<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+    acceptInvite: (inviteId: string) => Promise<Omit<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;
     } & {
         __v: number;
-    }>;
+    }, never>>;
     rejectInvite: (inviteId: string) => Promise<(import("mongoose").Document<unknown, {}, import("../Notification/notification.interface.js").TInvite, {}, {}> & import("../Notification/notification.interface.js").TInvite & {
         _id: Types.ObjectId;
     } & {

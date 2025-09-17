@@ -37,6 +37,26 @@ class QueryBuilder<T> {
                filterConditions[key] = queryObj[key];
           });
 
+          if (this.query.playerId) {
+               filterConditions.$or = [
+                    { 'team1.players.playerId': this.query.playerId },
+                    { 'team2.players.playerId': this.query.playerId }
+               ];
+          }
+
+          if (this.query.organizer) {
+               filterConditions['organizer'] = this.query.organizer;
+          }
+
+          if (this.query.teamId) {
+               filterConditions.$or = [
+                    { 'team1.teamId': this.query.teamId },
+                    { 'team2.teamId': this.query.teamId }
+               ];
+          }
+
+
+
           // ✅ Price Range Filter
           const minPrice = Number(this.query.minPrice);
           const maxPrice = Number(this.query.maxPrice);

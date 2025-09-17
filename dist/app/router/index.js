@@ -1,6 +1,7 @@
 import express from 'express';
 import { authRouter } from '../modules/auth/auth.router.js';
 import { teamsRouter } from '../modules/Team/team.router.js';
+import { lobbyRouter } from '../modules/Lobby/lobby.router.js';
 const router = express.Router();
 const moduleRouter = [
     {
@@ -10,6 +11,10 @@ const moduleRouter = [
     {
         path: "/team",
         route: teamsRouter
+    },
+    {
+        path: "/lobby",
+        route: lobbyRouter
     },
 ];
 moduleRouter.forEach((route) => router.use(route.path, route.route));

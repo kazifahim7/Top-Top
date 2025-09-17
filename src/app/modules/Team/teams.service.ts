@@ -167,25 +167,51 @@ const invitePlayer = async (ownerId: string, teamId: string, playerId: string,me
 
 }
 
-const acceptInvite = async (inviteId:string)=>{
-
-     const isRequestIsExist = await InviteModel.findById(inviteId)
-     if(!isRequestIsExist){
-          throw new AppError(404,"This request not found"); 
+const acceptInvite = async (inviteId: string) => {
+     const invite = await InviteModel.findById(inviteId);
+     if (!invite) {
+          throw new AppError(404, "This request not found");
      }
-     const team = await TeamModel.findById(isRequestIsExist.team)
 
+     const team = await TeamModel.findById(invite.team);
      if (!team) {
           throw new AppError(404, "Team not found");
      }
 
-     team.players.push(new Types.ObjectId(isRequestIsExist.receiver));
-    const result = await team.save();
-    if(result){
-         await InviteModel.findByIdAndUpdate(inviteId, { status:"accepted"},{new:true})
-    }
-    return result;
-}
+     
+     const playerTeams = await TeamModel.find({
+          players: invite.receiver,
+     });
+
+     if (playerTeams.length >= 2) {
+          throw new AppError(
+               400,
+               "This player already belongs to 2 teams. Cannot join more."
+          );
+     }
+
+     
+     const alreadyInTeam = team.players.some(
+          (p) => p.toString() === invite.receiver.toString()
+     );
+
+     if (alreadyInTeam) {
+          throw new AppError(400, "This player is already in this team");
+     }
+
+
+     team.players.push(new Types.ObjectId(invite.receiver));
+     const result = await team.save();
+
+     await InviteModel.findByIdAndUpdate(
+          inviteId,
+          { status: "accepted" },
+          { new: true }
+     );
+
+  
+     return await result.populate("players teamOwner teamCaptain"); }
+
 const rejectInvite = async (inviteId:string)=>{
 
      const isRequestIsExist = await InviteModel.findById(inviteId)

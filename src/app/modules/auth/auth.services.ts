@@ -129,19 +129,17 @@ const updateProfileInDB = async (email: string, payload: Record<string, unknown>
      return result
 }
 const allStudentFromDB = async (query:Record<string,unknown>) => {
-
-     
-     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName FullName"])
+     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName","FullName"]).sort()
      const result = await playerQuery.modelQuery
-     return result
+     return result;
 
 }
+
 const getSingleUser = async (id: string) => {
-
      const result = await userModel.findOne({ email: id }).select("-password")
-     return result
-
+     return result;
 }
+
 const resetRequest = async (payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findOne({ email: payload?.email });
 
@@ -162,8 +160,6 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 
 
      const resetUrl = `yourapp://reset-password?token=${resetToken}`;
-
-
      // Email template
      const emailHtml = `
        <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
@@ -175,7 +171,7 @@ const resetRequest = async (payload: Record<string, unknown>) => {
            Reset Now
          </a>
          <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
-         <p>Thank you,<br>YourApp Team</p>
+         <p>Thank you,<br>Top Top Team</p>
        </div>
      `;
 

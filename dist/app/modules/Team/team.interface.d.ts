@@ -10,5 +10,7 @@ export type TTeam = {
     players: Types.ObjectId[];
     teamOwner: Types.ObjectId;
     teamCaptain: Types.ObjectId[];
+    goal: number;
+    carryGoal: number;
 };
 //# sourceMappingURL=team.interface.d.ts.map

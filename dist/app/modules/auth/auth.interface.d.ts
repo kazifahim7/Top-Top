@@ -15,5 +15,14 @@ export type TCreateProfile = {
     age: string;
     position: string[];
     userName: string;
+    matchPosition?: string;
+    redCard: number;
+    yellowCard: number;
+    substitution: number;
+    assists: number;
+    goal: number;
+    tackle: number;
+    save: number;
+    rating: number;
 };
 //# sourceMappingURL=auth.interface.d.ts.map

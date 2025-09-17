@@ -44,6 +44,15 @@ export declare const authService: {
         age?: any;
         position?: any;
         userName?: any;
+        matchPosition?: any;
+        redCard?: any;
+        yellowCard?: any;
+        substitution?: any;
+        assists?: any;
+        goal?: any;
+        tackle?: any;
+        save?: any;
+        rating?: any;
     }, {}, {}> & {
         FullName?: any;
         email?: any;
@@ -61,6 +70,15 @@ export declare const authService: {
         age?: any;
         position?: any;
         userName?: any;
+        matchPosition?: any;
+        redCard?: any;
+        yellowCard?: any;
+        substitution?: any;
+        assists?: any;
+        goal?: any;
+        tackle?: any;
+        save?: any;
+        rating?: any;
     } & {
         _id: import("mongoose").Types.ObjectId;
     } & {

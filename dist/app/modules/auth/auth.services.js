@@ -95,7 +95,7 @@ const updateProfileInDB = (email, payload) => __awaiter(void 0, void 0, void 0, 
     return result;
 });
 const allStudentFromDB = (query) => __awaiter(void 0, void 0, void 0, function* () {
-    const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName FullName"]);
+    const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName", "FullName"]).sort();
     const result = yield playerQuery.modelQuery;
     return result;
 });
@@ -129,7 +129,7 @@ const resetRequest = (payload) => __awaiter(void 0, void 0, void 0, function* ()
            Reset Now
          </a>
          <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
-         <p>Thank you,<br>YourApp Team</p>
+         <p>Thank you,<br>Top Top Team</p>
        </div>
      `;
     yield emailSender(payload.email, emailHtml, "Reset your password");

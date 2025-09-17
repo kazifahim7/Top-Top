@@ -16,6 +16,15 @@ const ProfileSchema = new Schema({
     position: { type: [String], default: [] },
     imageUrl: { type: String, required: true },
     age: { type: String, default: "18" },
+    redCard: { type: Number, default: 0 },
+    yellowCard: { type: Number, default: 0 },
+    substitution: { type: Number, default: 0 },
+    assists: { type: Number, default: 0 },
+    goal: { type: Number, default: 0 },
+    tackle: { type: Number, default: 0 },
+    save: { type: Number, default: 0 },
+    rating: { type: Number, default: 0 },
+    matchPosition: { type: String },
 }, {
     timestamps: true,
 });

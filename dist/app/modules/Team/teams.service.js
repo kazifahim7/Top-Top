@@ -127,20 +127,28 @@ const invitePlayer = (ownerId, teamId, playerId, message) => __awaiter(void 0, v
     return invite;
 });
 const acceptInvite = (inviteId) => __awaiter(void 0, void 0, void 0, function* () {
-    const isRequestIsExist = yield InviteModel.findById(inviteId);
-    if (!isRequestIsExist) {
+    const invite = yield InviteModel.findById(inviteId);
+    if (!invite) {
         throw new AppError(404, "This request not found");
     }
-    const team = yield TeamModel.findById(isRequestIsExist.team);
+    const team = yield TeamModel.findById(invite.team);
     if (!team) {
         throw new AppError(404, "Team not found");
     }
-    team.players.push(new Types.ObjectId(isRequestIsExist.receiver));
-    const result = yield team.save();
-    if (result) {
-        yield InviteModel.findByIdAndUpdate(inviteId, { status: "accepted" }, { new: true });
+    const playerTeams = yield TeamModel.find({
+        players: invite.receiver,
+    });
+    if (playerTeams.length >= 2) {
+        throw new AppError(400, "This player already belongs to 2 teams. Cannot join more.");
     }
-    return result;
+    const alreadyInTeam = team.players.some((p) => p.toString() === invite.receiver.toString());
+    if (alreadyInTeam) {
+        throw new AppError(400, "This player is already in this team");
+    }
+    team.players.push(new Types.ObjectId(invite.receiver));
+    const result = yield team.save();
+    yield InviteModel.findByIdAndUpdate(inviteId, { status: "accepted" }, { new: true });
+    return yield result.populate("players teamOwner teamCaptain");
 });
 const rejectInvite = (inviteId) => __awaiter(void 0, void 0, void 0, function* () {
     const isRequestIsExist = yield InviteModel.findById(inviteId);

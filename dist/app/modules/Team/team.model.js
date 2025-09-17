@@ -7,6 +7,8 @@ const teamSchema = new Schema({
     win: { type: Number, default: 0 },
     draw: { type: Number, default: 0 },
     loss: { type: Number, default: 0 },
+    goal: { type: Number, default: 0 },
+    carryGoal: { type: Number, default: 0 },
     players: [
         {
             type: Schema.Types.ObjectId,

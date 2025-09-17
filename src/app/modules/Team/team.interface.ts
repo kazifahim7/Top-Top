@@ -10,5 +10,7 @@ export type TTeam = {
      loss: number;
      players: Types.ObjectId[]; 
      teamOwner:Types.ObjectId,
-     teamCaptain: Types.ObjectId[]
+     teamCaptain: Types.ObjectId[],
+     goal:number,
+     carryGoal:number
 };

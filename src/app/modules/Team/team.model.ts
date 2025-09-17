@@ -10,6 +10,8 @@ const teamSchema = new Schema<TTeam>(
           win: { type: Number, default: 0 },
           draw: { type: Number, default: 0 },
           loss: { type: Number, default: 0 },
+          goal: { type: Number, default: 0 },
+          carryGoal: { type: Number, default: 0 },
 
           players: [
                {
