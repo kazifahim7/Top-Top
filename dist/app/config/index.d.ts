@@ -5,6 +5,7 @@ declare const _default: {
     salt_round: string | undefined;
     jwt_secret: string | undefined;
     email_pass: string | undefined;
+    sk_key: string | undefined;
 };
 export default _default;
 //# sourceMappingURL=index.d.ts.map

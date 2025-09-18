@@ -2,7 +2,7 @@ import { Schema, model, Document, Types } from "mongoose";
 
 export interface PlayerStats {
      playerId: Types.ObjectId;
-     matchPosition?:string
+     matchPosition?: string
      redCard: number;
      yellowCard: number;
      substitution: number;
@@ -16,11 +16,13 @@ export interface PlayerStats {
 export interface Team {
      teamId: Types.ObjectId;
      players: PlayerStats[];
+     matchFormat?: string
 }
 
- export interface DefaultTeam {
+export interface DefaultTeam {
      teamName: string;
      players: PlayerStats[];
+     matchFormat?: string
 }
 
 

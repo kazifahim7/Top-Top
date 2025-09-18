@@ -2,6 +2,7 @@ import express from 'express'
 import { authRouter } from '../modules/auth/auth.router.js'
 import { teamsRouter } from '../modules/Team/team.router.js'
 import { lobbyRouter } from '../modules/Lobby/lobby.router.js'
+import { paymentRouter } from '../modules/Payment/payment.router.js'
 
 
 const router = express.Router()
@@ -18,6 +19,10 @@ const moduleRouter = [
      {
           path: "/lobby",
           route: lobbyRouter
+     },
+     {
+          path: "/payment",
+          route: paymentRouter
      },
     
      

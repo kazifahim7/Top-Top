@@ -17,12 +17,14 @@ const PlayerStatsSchema = new Schema<PlayerStats>({
 const TeamSchema = new Schema<Team>({
      teamId: { type: Schema.Types.ObjectId, ref: "Team", required: true },
      players: { type: [PlayerStatsSchema], default: [] },
+     matchFormat:  { type: String},
      
 });
 
 const DefaultTeamSchema = new Schema<DefaultTeam>({
      teamName: { type: String, required: true },
      players: { type: [PlayerStatsSchema], default: [] },
+     matchFormat: { type: String },
 });
 
 const LocationSchema = new Schema<GeoLocation>({

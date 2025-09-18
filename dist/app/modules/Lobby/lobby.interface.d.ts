@@ -14,10 +14,12 @@ export interface PlayerStats {
 export interface Team {
     teamId: Types.ObjectId;
     players: PlayerStats[];
+    matchFormat?: string;
 }
 export interface DefaultTeam {
     teamName: string;
     players: PlayerStats[];
+    matchFormat?: string;
 }
 export interface GeoLocation {
     lat: number;
