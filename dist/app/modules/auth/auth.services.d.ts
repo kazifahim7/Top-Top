@@ -7,6 +7,14 @@ export declare const resetPassword: (payload: {
 } & {
     __v: number;
 }>;
+export declare const changePassword: (payload: {
+    oldPassword: string;
+    newPassword: string;
+}, userId: string) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+    _id: import("mongoose").Types.ObjectId;
+} & {
+    __v: number;
+}>;
 export declare const authService: {
     createUserIntoDB: (payload: TCreateProfile) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;
@@ -47,12 +55,13 @@ export declare const authService: {
         matchPosition?: any;
         redCard?: any;
         yellowCard?: any;
-        substitution?: any;
+        contribution?: any;
         assists?: any;
         goal?: any;
         tackle?: any;
         save?: any;
         rating?: any;
+        match?: any;
     }, {}, {}> & {
         FullName?: any;
         email?: any;
@@ -73,12 +82,13 @@ export declare const authService: {
         matchPosition?: any;
         redCard?: any;
         yellowCard?: any;
-        substitution?: any;
+        contribution?: any;
         assists?: any;
         goal?: any;
         tackle?: any;
         save?: any;
         rating?: any;
+        match?: any;
     } & {
         _id: import("mongoose").Types.ObjectId;
     } & {
@@ -115,6 +125,26 @@ export declare const authService: {
         };
         accessToken: string;
         refreshToken: string;
+    }>;
+    changePassword: (payload: {
+        oldPassword: string;
+        newPassword: string;
+    }, userId: string) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: import("mongoose").Types.ObjectId;
+    } & {
+        __v: number;
+    }>;
+    playerProfile: (id: string) => Promise<{
+        result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+            _id: import("mongoose").Types.ObjectId;
+        } & {
+            __v: number;
+        }) | null;
+        allLobbies: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
+            _id: unknown;
+        }> & {
+            __v: number;
+        })[];
     }>;
 };
 //# sourceMappingURL=auth.services.d.ts.map

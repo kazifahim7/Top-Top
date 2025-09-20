@@ -8,5 +8,6 @@ export interface Payment {
     status: "pending" | "success" | "failed";
     stripePaymentIntentId?: string;
     defaultTeam?: string;
+    method?: string;
 }
 //# sourceMappingURL=payment.interface.d.ts.map

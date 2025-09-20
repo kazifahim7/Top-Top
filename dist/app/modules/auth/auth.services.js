@@ -14,6 +14,7 @@ import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
 import emailSender from '../../utils/sendEmail.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
+import { LobbyModel } from '../Lobby/lobby.model.js';
 const createUserIntoDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const isUserAlreadyExist = yield userModel.findOne({ email: payload === null || payload === void 0 ? void 0 : payload.email });
     if (isUserAlreadyExist) {
@@ -143,6 +144,38 @@ export const resetPassword = (payload) => __awaiter(void 0, void 0, void 0, func
     }
     return updatedUser;
 });
+export const changePassword = (payload, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const isUserExist = yield userModel.findById(userId);
+    if (!isUserExist) {
+        throw new AppError(404, "This user Not Found");
+    }
+    const isPassIsOk = yield bcrypt.compare(payload === null || payload === void 0 ? void 0 : payload.oldPassword, isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.password);
+    if (!isPassIsOk) {
+        throw new AppError(401, "This password  is invalid");
+    }
+    const hashedPassword = yield bcrypt.hash(payload.newPassword, Number(config.salt_round));
+    const updatedUser = yield userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true });
+    if (!updatedUser) {
+        throw new AppError(404, "User not found");
+    }
+    return updatedUser;
+});
+const playerProfile = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield userModel.findById(id);
+    const allLobbies = yield LobbyModel.find({
+        $or: [
+            { "team1.players.playerId": id },
+            { "team2.players.playerId": id },
+            { "defaultTeam1.players.playerId": id },
+            { "defaultTeam2.players.playerId": id },
+        ],
+    }).populate("team1.teamId")
+        .populate("team2.teamId");
+    return {
+        result,
+        allLobbies
+    };
+});
 export const authService = {
     createUserIntoDB,
     loginUser,
@@ -153,6 +186,8 @@ export const authService = {
     resetRequest,
     resetPassword,
     googleLogin,
-    appleLogin
+    appleLogin,
+    changePassword,
+    playerProfile
 };
 //# sourceMappingURL=auth.services.js.map

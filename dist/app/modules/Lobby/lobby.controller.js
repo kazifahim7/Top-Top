@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import catchAsync from "../../utils/catcgAsync.js";
 import { lobbyService } from "./lobby.services.js";
+import { getLocalImageURL } from "../../utils/multer.js";
 const createMatch = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const data = req.body;
@@ -29,8 +30,37 @@ const allMatch = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, func
         data: result
     });
 }));
+const updatePlayerState = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const data = req.body;
+    data.lobbyId = (_a = req.params) === null || _a === void 0 ? void 0 : _a.lobbyId;
+    const result = yield lobbyService.updatePlayerStats(data);
+    res.status(200).json({
+        success: true,
+        message: "updated successfully",
+        data: result
+    });
+}));
+const lobbyInFo = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const id = (_a = req.params) === null || _a === void 0 ? void 0 : _a.lobbyId;
+    const data = req.body;
+    const imageFiles = req.files.images || [];
+    for (const file of imageFiles) {
+        const url = getLocalImageURL(file.filename);
+        data.media = url;
+    }
+    const result = yield lobbyService.updateLobbyInfo(id, data);
+    res.status(200).json({
+        success: true,
+        message: "lobby  update successfully ",
+        data: result
+    });
+}));
 export const lobbyController = {
     createMatch,
-    allMatch
+    allMatch,
+    updatePlayerState,
+    lobbyInFo
 };
 //# sourceMappingURL=lobby.controller.js.map

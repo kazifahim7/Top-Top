@@ -18,14 +18,15 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
      position: { type: [String], default: [] },
      imageUrl: { type: String, required: true },
      age: { type: String, default:"18" },
+     //future update is below
      redCard: { type: Number, default: 0 },
      yellowCard: { type: Number, default: 0 },
-     substitution: { type: Number, default: 0 },
+     contribution: { type: Number, default: 0 },
      assists: { type: Number, default: 0 },
      goal: { type: Number, default: 0 },
      tackle: { type: Number, default: 0 },
      save: { type: Number, default: 0 },
-     rating: { type: Number, default: 0 },
+     rating: { type: Number, default: 6.5 },
      matchPosition: { type: String },
 }, {
      timestamps: true,

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import catchAsync from "../../utils/catcgAsync.js";
 import { lobbyService } from "./lobby.services.js";
+import { getLocalImageURL } from "../../utils/multer.js";
 
 const createMatch = catchAsync(async (req: Request, res: Response) => {
      const data = req.body;
@@ -22,11 +23,45 @@ const allMatch = catchAsync(async (req: Request, res: Response) => {
           data: result
      })
 })
+const updatePlayerState = catchAsync(async (req: Request, res: Response) => {
+   
+     const data = req.body
+     data.lobbyId = req.params?.lobbyId
+     const result = await lobbyService.updatePlayerStats(data)
+     res.status(200).json({
+          success: true,
+          message: "updated successfully",
+          data: result
+     })
+})
+
+
+const lobbyInFo = catchAsync(async (req: Request, res: Response) => {
+     const id = req.params?.lobbyId;
+     const data = req.body
+
+     const imageFiles = (req.files as any).images || [];
+     for (const file of imageFiles) {
+          const url = getLocalImageURL(file.filename);
+          data.media = url
+     }
+     const result = await lobbyService.updateLobbyInfo(id!, data)
+
+     res.status(200).json({
+          success: true,
+          message: "lobby  update successfully ",
+          data: result
+     })
+
+
+})
 
 
 
 
 export const lobbyController={
      createMatch,
-     allMatch
+     allMatch,
+     updatePlayerState,
+     lobbyInFo
 }

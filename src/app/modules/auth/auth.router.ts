@@ -28,6 +28,8 @@ router.get("/all-player", authController.allUsers)
 
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus)
 
+router.post('/change-password',auth("player"),authController.changePassword)
+
 router.put("/update-profile/:email", upload.fields([
      { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
@@ -43,6 +45,10 @@ router.put("/update-profile/:email", upload.fields([
 
 
 router.get("/user/:email", authController.singleUser)
+
+// single player 
+
+router.get('/player-profile',auth("player"),authController.playerProfile)
 
 
 

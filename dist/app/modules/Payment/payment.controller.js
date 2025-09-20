@@ -12,22 +12,25 @@ import { PaymentModel } from "./payment.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { Types } from "mongoose";
 import config from "../../config/index.js";
+import catchAsync from "../../utils/catcgAsync.js";
+import QueryBuilder from "../../builder/QueryBuilder.js";
+import { userModel } from "../auth/auth.model.js";
 const stripe = new Stripe(config.sk_key, { apiVersion: "2025-08-27.basil" });
-// 1️⃣ Create Checkout Session
 export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e;
     try {
-        const { lobbyId, playerId, teamId, defaultTeam, matchPosition, price, matchFormat } = req.body;
+        const playerId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.id;
+        const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method } = req.body;
         const lobby = yield LobbyModel.findById(lobbyId);
         if (!lobby)
             return res.status(404).json({ message: "Lobby not found" });
         const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
         const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
         // Duplicate & slot check
-        const isDuplicate = ((_a = lobby.team1) === null || _a === void 0 ? void 0 : _a.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
-            ((_b = lobby.team2) === null || _b === void 0 ? void 0 : _b.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
-            ((_c = lobby.defaultTeam1) === null || _c === void 0 ? void 0 : _c.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
-            ((_d = lobby.defaultTeam2) === null || _d === void 0 ? void 0 : _d.players.some(p => p.playerId.toString() === playerObjectId.toString()));
+        const isDuplicate = ((_b = lobby.team1) === null || _b === void 0 ? void 0 : _b.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
+            ((_c = lobby.team2) === null || _c === void 0 ? void 0 : _c.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
+            ((_d = lobby.defaultTeam1) === null || _d === void 0 ? void 0 : _d.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
+            ((_e = lobby.defaultTeam2) === null || _e === void 0 ? void 0 : _e.players.some(p => p.playerId.toString() === playerObjectId.toString()));
         if (isDuplicate)
             return res.status(400).json({ message: "Player already joined this lobby" });
         if (lobby.team1.players.length >= lobby.maxSlot && lobby.team2.players.length >= lobby.maxSlot) {
@@ -40,10 +43,20 @@ export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, functio
             teamId: teamObjectId,
             price,
             status: "pending",
+            method,
+            matchPosition
         });
-        // Stripe Checkout Session
+        if (method === "cash") {
+            const result = yield payment.save();
+            return res.json({
+                success: true,
+                message: "Cash request successFully sended and wait for the admin",
+                data: result
+            });
+        }
+        // Stripe Checkout Session (expand payment_intent)
         const session = yield stripe.checkout.sessions.create({
-            payment_method_types: ["card"], // Only card (Apple Pay, Google Pay enabled automatically if device supports)
+            payment_method_types: ["card"],
             line_items: [{
                     price_data: {
                         currency: "usd",
@@ -53,7 +66,6 @@ export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, functio
                     quantity: 1,
                 }],
             mode: "payment",
-            // **Flutter app will handle these URLs via API**
             success_url: `http://localhost:5000/api/v1/payment/payment-success?paymentId=${payment._id}`,
             cancel_url: `http://localhost:5000/api/v1/payment/payment-cancel?paymentId=${payment._id}`,
             metadata: {
@@ -64,20 +76,22 @@ export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 matchPosition: matchPosition || "",
                 defaultTeam: defaultTeam || "",
                 matchFormat: matchFormat || "",
+                method
             },
+            expand: ["payment_intent"]
         });
-        payment.stripePaymentIntentId = (_f = (_e = session.payment_intent) === null || _e === void 0 ? void 0 : _e.toString()) !== null && _f !== void 0 ? _f : "";
+        // Save PaymentIntent ID properly
+        payment.stripePaymentIntentId = session.id || "";
         yield payment.save();
-        return res.json({ sessionId: session.id }); // Flutter app uses sessionId
+        return res.json({ sessionId: session.id });
     }
     catch (err) {
         console.error(err);
         return res.status(500).json({ message: "Internal server error" });
     }
 });
-// 2️⃣ Success API (webhook এর বদলে)
 export const paymentSuccess = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
         const { paymentId } = req.query;
         if (!paymentId)
@@ -85,10 +99,15 @@ export const paymentSuccess = (req, res) => __awaiter(void 0, void 0, void 0, fu
         const payment = yield PaymentModel.findById(paymentId);
         if (!payment)
             return res.status(404).json({ message: "Payment not found" });
-        // Retrieve PaymentIntent from Stripe
-        const intent = yield stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
-        if (intent.status !== "succeeded")
-            return res.status(400).json({ message: "Payment not successful" });
+        if (payment.method !== "cash") {
+            // Retrieve PaymentIntent from Stripe
+            const session = yield stripe.checkout.sessions.retrieve(payment.stripePaymentIntentId, {
+                expand: ["payment_intent"],
+            });
+            if (((_a = session.payment_intent) === null || _a === void 0 ? void 0 : _a.status) !== "succeeded") {
+                return res.status(400).json({ message: "Payment not successful" });
+            }
+        }
         payment.status = "success";
         yield payment.save();
         // Add player to lobby
@@ -117,19 +136,27 @@ export const paymentSuccess = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 lobby.defaultTeam2.players.push(playerData);
         }
         else {
-            const team = ((_a = payment.teamId) === null || _a === void 0 ? void 0 : _a.toString()) === lobby.team1.teamId.toString() ? lobby.team1 : lobby.team2;
+            const team = ((_b = payment.teamId) === null || _b === void 0 ? void 0 : _b.toString()) === lobby.team1.teamId.toString() ? lobby.team1 : lobby.team2;
             //@ts-ignore
             team.players.push(playerData);
         }
+        const profile = yield userModel.findById(payment.playerId);
+        if (profile) {
+            // Increment match count
+            profile.match = (profile.match || 0) + 1;
+            yield profile.save();
+        }
         yield lobby.save();
-        res.json({ message: "Payment success and player added" });
+        res.json({
+            success: true,
+            message: "Payment success and player added"
+        });
     }
     catch (err) {
         console.error(err);
         res.status(500).json({ message: "Internal server error" });
     }
 });
-// 3️⃣ Cancel API
 export const paymentCancel = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { paymentId } = req.query;
@@ -147,4 +174,13 @@ export const paymentCancel = (req, res) => __awaiter(void 0, void 0, void 0, fun
         res.status(500).json({ message: "Internal server error" });
     }
 });
+export const allPaymentHistory = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId teamId playerId").select("-stripePaymentIntentId"), req.query).filter().search(["status", "method"]).sort();
+    const result = yield paymentQuery.modelQuery;
+    res.status(200).json({
+        success: true,
+        message: "all payment data retrieved successfully",
+        data: result
+    });
+}));
 //# sourceMappingURL=payment.controller.js.map

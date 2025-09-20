@@ -24,6 +24,7 @@ router.post("/reset-request", authController.resetRequest);
 router.post("/reset-password", authController.resetPassword);
 router.get("/all-player", authController.allUsers);
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus);
+router.post('/change-password', auth("player"), authController.changePassword);
 router.put("/update-profile/:email", upload.fields([
     { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
@@ -38,5 +39,7 @@ router.put("/update-profile/:email", upload.fields([
     next();
 }, authController.updateProfile);
 router.get("/user/:email", authController.singleUser);
+// single player 
+router.get('/player-profile', auth("player"), authController.playerProfile);
 export const authRouter = router;
 //# sourceMappingURL=auth.router.js.map

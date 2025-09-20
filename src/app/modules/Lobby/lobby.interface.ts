@@ -5,12 +5,14 @@ export interface PlayerStats {
      matchPosition?: string
      redCard: number;
      yellowCard: number;
-     substitution: number;
+     contribution: number;
      assists: number;
      goal: number;
      tackle: number;
      save: number;
      rating: number;
+     goodMoment:number,
+     veryGoodMoment:number
 }
 
 export interface Team {

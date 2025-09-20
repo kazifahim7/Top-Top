@@ -4,13 +4,17 @@ import { LobbyModel } from "../Lobby/lobby.model.js";
 import { Types } from "mongoose";
 import type { Request, Response } from "express";
 import config from "../../config/index.js";
+import catchAsync from "../../utils/catcgAsync.js";
+import QueryBuilder from "../../builder/QueryBuilder.js";
+import { userModel } from "../auth/auth.model.js";
 
 const stripe = new Stripe(config.sk_key!, { apiVersion: "2025-08-27.basil" as any });
 
-// 1️⃣ Create Checkout Session
+
 export const joinLobby = async (req: Request, res: Response) => {
      try {
-          const { lobbyId, playerId, teamId, defaultTeam, matchPosition, price, matchFormat } = req.body;
+          const playerId = req?.user?.id;
+          const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method } = req.body;
 
           const lobby = await LobbyModel.findById(lobbyId);
           if (!lobby) return res.status(404).json({ message: "Lobby not found" });
@@ -38,11 +42,22 @@ export const joinLobby = async (req: Request, res: Response) => {
                teamId: teamObjectId,
                price,
                status: "pending",
+               method,
+               matchPosition
           });
 
-          // Stripe Checkout Session
+          if(method==="cash"){
+               const result = await payment.save();
+               return res.json({ 
+                    success:true,
+                    message:"Cash request successFully sended and wait for the admin",
+                    data: result
+                })
+          }
+
+          // Stripe Checkout Session (expand payment_intent)
           const session = await stripe.checkout.sessions.create({
-               payment_method_types: ["card"], // Only card (Apple Pay, Google Pay enabled automatically if device supports)
+               payment_method_types: ["card"],
                line_items: [{
                     price_data: {
                          currency: "usd",
@@ -52,7 +67,6 @@ export const joinLobby = async (req: Request, res: Response) => {
                     quantity: 1,
                }],
                mode: "payment",
-               // **Flutter app will handle these URLs via API**
                success_url: `http://localhost:5000/api/v1/payment/payment-success?paymentId=${payment._id}`,
                cancel_url: `http://localhost:5000/api/v1/payment/payment-cancel?paymentId=${payment._id}`,
                metadata: {
@@ -63,19 +77,23 @@ export const joinLobby = async (req: Request, res: Response) => {
                     matchPosition: matchPosition || "",
                     defaultTeam: defaultTeam || "",
                     matchFormat: matchFormat || "",
+                    method
                },
+               expand: ["payment_intent"]
           });
-          payment.stripePaymentIntentId = session.payment_intent?.toString() ?? "";
+
+          // Save PaymentIntent ID properly
+          payment.stripePaymentIntentId = session.id || "";
           await payment.save();
 
-          return res.json({ sessionId: session.id }); // Flutter app uses sessionId
+          return res.json({ sessionId: session.id });
      } catch (err) {
           console.error(err);
           return res.status(500).json({ message: "Internal server error" });
      }
 };
 
-// 2️⃣ Success API (webhook এর বদলে)
+
 export const paymentSuccess = async (req: Request, res: Response) => {
      try {
           const { paymentId } = req.query;
@@ -84,10 +102,19 @@ export const paymentSuccess = async (req: Request, res: Response) => {
           const payment = await PaymentModel.findById(paymentId);
           if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-          // Retrieve PaymentIntent from Stripe
-          const intent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId!);
+          if(payment.method !== "cash"){
+               // Retrieve PaymentIntent from Stripe
+               const session = await stripe.checkout.sessions.retrieve(payment.stripePaymentIntentId!, {
+                    expand: ["payment_intent"],
+               });
 
-          if (intent.status !== "succeeded") return res.status(400).json({ message: "Payment not successful" });
+               if ((session.payment_intent as any)?.status !== "succeeded") {
+                    return res.status(400).json({ message: "Payment not successful" });
+               }
+
+          }
+
+         
 
           payment.status = "success";
           await payment.save();
@@ -119,18 +146,28 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                const team = payment.teamId?.toString() === lobby.team1!.teamId.toString() ? lobby.team1 : lobby.team2;
                //@ts-ignore
                team!.players.push(playerData);
+
+
+          }
+          const profile = await userModel.findById(payment.playerId);
+          if (profile) {
+               // Increment match count
+               profile.match = (profile.match || 0) + 1;
+               await profile.save();
           }
 
-          await lobby.save();
+               await lobby.save();
 
-          res.json({ message: "Payment success and player added" });
+          res.json({ 
+               success:true,
+               message: "Payment success and player added" });
      } catch (err) {
           console.error(err);
           res.status(500).json({ message: "Internal server error" });
      }
 };
 
-// 3️⃣ Cancel API
+
 export const paymentCancel = async (req: Request, res: Response) => {
      try {
           const { paymentId } = req.query;
@@ -148,3 +185,15 @@ export const paymentCancel = async (req: Request, res: Response) => {
           res.status(500).json({ message: "Internal server error" });
      }
 };
+
+
+export const allPaymentHistory = catchAsync(async (req, res) => {
+     const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId teamId playerId").select("-stripePaymentIntentId"), req.query).filter().search(["status","method"]).sort()
+     const result = await paymentQuery.modelQuery
+
+     res.status(200).json({
+          success: true,
+          message: "all payment data retrieved successfully",
+          data: result
+     })
+})

@@ -18,11 +18,12 @@ export type TCreateProfile = {
     matchPosition?: string;
     redCard: number;
     yellowCard: number;
-    substitution: number;
+    contribution: number;
     assists: number;
     goal: number;
     tackle: number;
     save: number;
     rating: number;
+    match: number;
 };
 //# sourceMappingURL=auth.interface.d.ts.map

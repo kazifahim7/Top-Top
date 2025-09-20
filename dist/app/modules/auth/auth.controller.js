@@ -116,6 +116,24 @@ const resetPassword = catchAsync((req, res) => __awaiter(void 0, void 0, void 0,
         data: result
     });
 }));
+const changePassword = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.user.id;
+    const result = yield authService.changePassword(req === null || req === void 0 ? void 0 : req.body, userId);
+    res.status(200).json({
+        success: true,
+        message: "Password successfully updated ",
+        data: result
+    });
+}));
+const playerProfile = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.user.id;
+    const result = yield authService.playerProfile(userId);
+    res.status(200).json({
+        success: true,
+        message: "Player data retrieved successfully ",
+        data: result
+    });
+}));
 export const authController = {
     createUser,
     logInUser,
@@ -126,6 +144,8 @@ export const authController = {
     resetRequest,
     resetPassword,
     googleLogin,
-    appleLogin
+    appleLogin,
+    changePassword,
+    playerProfile
 };
 //# sourceMappingURL=auth.controller.js.map

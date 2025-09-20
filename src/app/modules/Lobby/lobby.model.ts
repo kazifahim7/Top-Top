@@ -5,12 +5,14 @@ const PlayerStatsSchema = new Schema<PlayerStats>({
      playerId: { type: Schema.Types.ObjectId, ref: "Player", required: true },
      redCard: { type: Number, default: 0 },
      yellowCard: { type: Number, default: 0 },
-     substitution: { type: Number, default: 0 },
+     contribution: { type: Number, default: 0 },
      assists: { type: Number, default: 0 },
      goal: { type: Number, default: 0 },
      tackle: { type: Number, default: 0 },
      save: { type: Number, default: 0 },
-     rating: { type: Number, default: 0 },
+     goodMoment: { type: Number, default: 0 },
+     veryGoodMoment: { type: Number, default: 0 },
+     rating: { type: Number, default: 6.5 },
      matchPosition: { type: String},
 });
 

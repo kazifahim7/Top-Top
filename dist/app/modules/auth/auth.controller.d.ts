@@ -10,5 +10,7 @@ export declare const authController: {
     resetPassword: (req: Request, res: Response, next: import("express").NextFunction) => void;
     googleLogin: (req: Request, res: Response, next: import("express").NextFunction) => void;
     appleLogin: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    changePassword: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    playerProfile: (req: Request, res: Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=auth.controller.d.ts.map

@@ -8,5 +8,6 @@ export interface Payment {
      matchPosition?: string;
      status: "pending" | "success" | "failed";
      stripePaymentIntentId?: string;
-     defaultTeam?:string
+     defaultTeam?:string,
+     method?:string
 }

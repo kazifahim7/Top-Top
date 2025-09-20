@@ -141,6 +141,31 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+     const userId = req.user.id
+
+     const result = await authService.changePassword(req?.body, userId)
+
+     res.status(200).json({
+          success: true,
+          message: "Password successfully updated ",
+          data: result
+     })
+
+
+})
+
+const playerProfile = catchAsync(async (req: Request, res: Response) => {
+     const userId = req.user.id
+     const result = await authService.playerProfile(userId)
+     res.status(200).json({
+          success: true,
+          message: "Player data retrieved successfully ",
+          data: result
+     })
+
+
+})
 
 
 
@@ -154,5 +179,7 @@ export const authController = {
      resetRequest,
      resetPassword,
      googleLogin,
-     appleLogin
+     appleLogin,
+     changePassword,
+     playerProfile
 }

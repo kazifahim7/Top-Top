@@ -9,6 +9,7 @@ import config from '../../config/index.js';
 import emailSender from '../../utils/sendEmail.js';
 import type { TCreateProfile } from './auth.interface.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
+import { LobbyModel } from '../Lobby/lobby.model.js';
 
 const createUserIntoDB = async (payload: TCreateProfile) => {
      const isUserAlreadyExist = await userModel.findOne({ email: payload?.email })
@@ -180,7 +181,7 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 };
 
 
-export const resetPassword = async (payload: { email: string, password: string }) => {
+export const resetPassword = async (payload: { email: string, password: string  }) => {
 
      const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
 
@@ -199,6 +200,54 @@ export const resetPassword = async (payload: { email: string, password: string }
 
      return updatedUser;
 };
+export const changePassword = async (payload: { oldPassword: string, newPassword: string }, userId:string) => {
+     
+
+     const isUserExist = await userModel.findById(userId)
+     if (!isUserExist) {
+          throw new AppError(404, "This user Not Found");
+
+     }
+
+     const isPassIsOk = await bcrypt.compare(payload?.oldPassword, isUserExist?.password)
+
+     if (!isPassIsOk) {
+          throw new AppError(401, "This password  is invalid");
+     }
+
+     const hashedPassword = await bcrypt.hash(payload.newPassword, Number(config.salt_round));
+
+
+     const updatedUser = await userModel.findByIdAndUpdate(userId,{password:hashedPassword},{new:true})
+
+
+     if (!updatedUser) {
+          throw new AppError(404, "User not found");
+     }
+
+
+     return updatedUser;
+};
+
+
+const playerProfile =async(id:string)=>{
+     const result = await userModel.findById(id) 
+     const allLobbies = await LobbyModel.find({
+          $or: [
+               { "team1.players.playerId": id },
+               { "team2.players.playerId": id },
+               { "defaultTeam1.players.playerId": id },
+               { "defaultTeam2.players.playerId": id },
+          ],
+     }).populate("team1.teamId")
+     .populate("team2.teamId") 
+
+     
+     return {
+          result ,
+          allLobbies
+     }
+}
 
 
 
@@ -213,5 +262,7 @@ export const authService = {
      resetRequest,
      resetPassword,
      googleLogin,
-     appleLogin
+     appleLogin,
+     changePassword,
+     playerProfile
 }
