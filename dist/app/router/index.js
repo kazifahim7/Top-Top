@@ -3,6 +3,7 @@ import { authRouter } from '../modules/auth/auth.router.js';
 import { teamsRouter } from '../modules/Team/team.router.js';
 import { lobbyRouter } from '../modules/Lobby/lobby.router.js';
 import { paymentRouter } from '../modules/Payment/payment.router.js';
+import { rankingRouter } from '../modules/Ranking/ranking.router.js';
 const router = express.Router();
 const moduleRouter = [
     {
@@ -20,6 +21,10 @@ const moduleRouter = [
     {
         path: "/payment",
         route: paymentRouter
+    },
+    {
+        path: "/ranking",
+        route: rankingRouter
     },
 ];
 moduleRouter.forEach((route) => router.use(route.path, route.route));
