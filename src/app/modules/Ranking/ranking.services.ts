@@ -1,26 +1,82 @@
 import { userModel } from "../auth/auth.model.js"
 import { TeamModel } from "../Team/team.model.js";
 
-const playerRanking = async () => {
+interface RankingOptions {
+     filterBy?: "weekly" | "monthly" | "all";
+     sortField?: string;          
+     sortOrder?: "asc" | "desc";  
+     matchField?: string;         
+     matchValue?: any;            
+}
+
+const playerRanking = async (options: RankingOptions) => {
+     const { filterBy = "all", sortField = "rating", sortOrder = "desc", matchField, matchValue } = options;
+
+     const now = new Date();
+     let startDate: Date | undefined;
+
+     if (filterBy === "weekly") {
+          startDate = new Date();
+          startDate.setDate(now.getDate() - 7);
+     } else if (filterBy === "monthly") {
+          startDate = new Date();
+          startDate.setMonth(now.getMonth() - 1);
+     }
+
+ 
+     const matchStage: any = {
+          match: { $gte: 2 } 
+     };
+
+     // date filter
+     if (filterBy !== "all" && startDate) {
+          matchStage.createdAt = { $gte: startDate, $lte: now };
+     }
+
+     
+     if (matchField && matchValue !== undefined) {
+          matchStage[matchField] = matchValue;
+     }
+
+     // sort order
+     const sortDirection = sortOrder === "asc" ? 1 : -1;
+
      const result = await userModel.aggregate([
-          {
-               $match: {
-                    match: { $gte: 2 }   
-               }
-          },
-          {
-               $sort: {
-                    rating: -1           
-               }
-          }
+          { $match: matchStage },
+          { $sort: { [sortField]: sortDirection } }
      ]);
 
      return result;
 };
 
-const teamRanking = async () => {
+const teamRanking = async (options: RankingOptions) => {
+     const { filterBy = "all", sortField = "avgRating", sortOrder = "desc", matchField, matchValue } = options;
+
+     const now = new Date();
+     let startDate: Date | undefined;
+
+     if (filterBy === "weekly") {
+          startDate = new Date();
+          startDate.setDate(now.getDate() - 7);
+     } else if (filterBy === "monthly") {
+          startDate = new Date();
+          startDate.setMonth(now.getMonth() - 1);
+     }
+
+     const matchStage: any = {};
+
+     if (filterBy !== "all" && startDate) {
+          matchStage.createdAt = { $gte: startDate, $lte: now };
+     }
+
+ 
+     if (matchField && matchValue !== undefined) {
+          matchStage[matchField] = matchValue;
+     }
+
+     const sortDirection = sortOrder === "asc" ? 1 : -1;
+
      const result = await TeamModel.aggregate([
-     
           {
                $lookup: {
                     from: "players",
@@ -29,28 +85,20 @@ const teamRanking = async () => {
                     as: "playersData"
                }
           },
-
-     
           {
                $match: {
-                    "playersData.0": { $exists: true }
+                    "playersData.0": { $exists: true },
+                    ...matchStage
                }
           },
-          
-
           {
                $addFields: {
                     avgRating: { $avg: "$playersData.rating" }
                }
           },
-
-
           {
-               $sort: {
-                    avgRating: -1
-               }
+               $sort: { [sortField]: sortDirection }
           }
-
      ]);
 
      return result;
