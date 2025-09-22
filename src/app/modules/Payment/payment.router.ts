@@ -7,6 +7,6 @@ const router = express.Router();
 router.post("/join-lobby", auth("player","organizer"), joinLobby);
 router.post("/payment-success", paymentSuccess);
 router.post("/payment-cancel", paymentCancel);
-router.get("/all-payment" , allPaymentHistory)
+router.get("/all-payment" ,auth("admin"), allPaymentHistory)
 
 export const paymentRouter = router;

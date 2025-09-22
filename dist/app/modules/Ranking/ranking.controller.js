@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 import catchAsync from "../../utils/catcgAsync.js";
 import { playerRankingService } from "./ranking.services.js";
 const playerRanking = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield playerRankingService.playerRanking();
+    const result = yield playerRankingService.playerRanking(req.body);
     res.status(200).json({
         success: true,
         message: "Player Ranking retrieved successfully ",
@@ -18,7 +18,7 @@ const playerRanking = catchAsync((req, res) => __awaiter(void 0, void 0, void 0,
     });
 }));
 const teamRanking = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield playerRankingService.teamRanking();
+    const result = yield playerRankingService.teamRanking(req.body);
     res.status(200).json({
         success: true,
         message: "Team Ranking retrieved successfully ",

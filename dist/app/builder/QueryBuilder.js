@@ -49,7 +49,6 @@ class QueryBuilder {
                 { 'team2.teamId': this.query.teamId }
             ];
         }
-        // ✅ Price Range Filter
         const minPrice = Number(this.query.minPrice);
         const maxPrice = Number(this.query.maxPrice);
         if (!isNaN(minPrice) || !isNaN(maxPrice)) {

@@ -5,7 +5,7 @@ const PaymentSchema = new Schema({
     teamId: { type: Schema.Types.ObjectId, ref: "Team" },
     price: { type: Number, required: true },
     matchPosition: { type: String },
-    status: { type: String, enum: ["pending", "success", "failed"], default: "pending" },
+    status: { type: String, enum: ["pending", "success", "failed", "refund"], default: "pending" },
     stripePaymentIntentId: { type: String },
     defaultTeam: { type: String },
     method: { type: String },
