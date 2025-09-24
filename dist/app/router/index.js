@@ -5,6 +5,8 @@ import { lobbyRouter } from '../modules/Lobby/lobby.router.js';
 import { paymentRouter } from '../modules/Payment/payment.router.js';
 import { rankingRouter } from '../modules/Ranking/ranking.router.js';
 import { refundRouter } from '../modules/Refund/refund.router.js';
+import { adminRouter } from '../modules/Admin/admin.router.js';
+import { goalRouter } from '../modules/FeatureGoal/goal.router.js';
 const router = express.Router();
 const moduleRouter = [
     {
@@ -30,6 +32,14 @@ const moduleRouter = [
     {
         path: "/refund",
         route: refundRouter
+    },
+    {
+        path: "/admin",
+        route: adminRouter
+    },
+    {
+        path: "/goal",
+        route: goalRouter
     },
 ];
 moduleRouter.forEach((route) => router.use(route.path, route.route));

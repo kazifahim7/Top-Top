@@ -26,6 +26,7 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
      goal: { type: Number, default: 0 },
      tackle: { type: Number, default: 0 },
      save: { type: Number, default: 0 },
+     match: { type: Number, default: 0 },
      rating: { type: Number, default: 6.5 },
      matchPosition: { type: String },
 }, {
