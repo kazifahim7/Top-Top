@@ -5,9 +5,12 @@ import { PaymentModel } from "../Payment/payment.model.js";
 const adminData = async () => {
      const totalRevenue = await PaymentModel.aggregate([
           {
+               $match: { status:"success"}
+          },
+          {
                $group: {
                     _id: null,
-                    total: { $sum: "$amount" }
+                    total: { $sum: "$price" }
                }
           }
      ]);
@@ -16,9 +19,12 @@ const adminData = async () => {
      const activePlayers = await userModel.countDocuments({ isBlocked: "active" });
      const revenueGraph = await PaymentModel.aggregate([
           {
+               $match: { status: "success" }
+          },
+          {
                $group: {
                     _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
-                    total: { $sum: "$amount" }
+                    total: { $sum: "$price" }
                }
           },
           { $sort: { "_id.year": 1, "_id.month": 1 } }
@@ -26,21 +32,36 @@ const adminData = async () => {
 
      const recentTransactions = await PaymentModel.find()
           .sort({ createdAt: -1 })
-          .limit(5);
+          .limit(5).select("-stripePaymentIntentId");
 
 
      const trafficByCountry = await userModel.aggregate([
           {
                $group: {
-                    _id: "$country",
+                    _id: "$nationality",
                     count: { $sum: 1 }
                }
           },
           {
+               $group: {
+                    _id: null,
+                    countries: { $push: { country: "$_id", count: "$count" } },
+                    total: { $sum: "$count" }
+               }
+          },
+          {
+               $unwind: "$countries"
+          },
+          {
                $project: {
-                    country: "$_id",
+                    _id: 0,
+                    country: "$countries.country",
+                    count: "$countries.count",
                     percentage: {
-                         $multiply: [{ $divide: ["$count", { $sum: "$count" }] }, 100]
+                         $multiply: [
+                              { $divide: ["$countries.count", "$total"] },
+                              100
+                         ]
                     }
                }
           }
@@ -68,14 +89,14 @@ const adminData = async () => {
 
      // Current month revenue
      const currentRevenue = await PaymentModel.aggregate([
-          { $match: { createdAt: { $gte: startOfThisMonth } } },
-          { $group: { _id: null, total: { $sum: "$amount" } } }
+          { $match: { createdAt: { $gte: startOfThisMonth }, status:"success"} },
+          { $group: { _id: null, total: { $sum: "$price" } } }
      ]);
 
      // Last month revenue
      const lastRevenue = await PaymentModel.aggregate([
-          { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } } },
-          { $group: { _id: null, total: { $sum: "$amount" } } }
+          { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }, status: "success" } },
+          { $group: { _id: null, total: { $sum: "$price" } } }
      ]);
 
      const revenueGrowth = lastRevenue[0]?.total
@@ -119,7 +140,7 @@ const adminData = async () => {
 
 
      return {
-          totalRevenue,
+          totalRevenue: totalRevenue[0]?.total || 0,
           revenueGrowth,
           activePlayers,
           playerGrowth,

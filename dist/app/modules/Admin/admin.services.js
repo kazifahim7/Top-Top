@@ -11,12 +11,15 @@ import { userModel } from "../auth/auth.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { PaymentModel } from "../Payment/payment.model.js";
 const adminData = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const totalRevenue = yield PaymentModel.aggregate([
+        {
+            $match: { status: "success" }
+        },
         {
             $group: {
                 _id: null,
-                total: { $sum: "$amount" }
+                total: { $sum: "$price" }
             }
         }
     ]);
@@ -24,28 +27,46 @@ const adminData = () => __awaiter(void 0, void 0, void 0, function* () {
     const activePlayers = yield userModel.countDocuments({ isBlocked: "active" });
     const revenueGraph = yield PaymentModel.aggregate([
         {
+            $match: { status: "success" }
+        },
+        {
             $group: {
                 _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
-                total: { $sum: "$amount" }
+                total: { $sum: "$price" }
             }
         },
         { $sort: { "_id.year": 1, "_id.month": 1 } }
     ]);
     const recentTransactions = yield PaymentModel.find()
         .sort({ createdAt: -1 })
-        .limit(5);
+        .limit(5).select("-stripePaymentIntentId");
     const trafficByCountry = yield userModel.aggregate([
         {
             $group: {
-                _id: "$country",
+                _id: "$nationality",
                 count: { $sum: 1 }
             }
         },
         {
+            $group: {
+                _id: null,
+                countries: { $push: { country: "$_id", count: "$count" } },
+                total: { $sum: "$count" }
+            }
+        },
+        {
+            $unwind: "$countries"
+        },
+        {
             $project: {
-                country: "$_id",
+                _id: 0,
+                country: "$countries.country",
+                count: "$countries.count",
                 percentage: {
-                    $multiply: [{ $divide: ["$count", { $sum: "$count" }] }, 100]
+                    $multiply: [
+                        { $divide: ["$countries.count", "$total"] },
+                        100
+                    ]
                 }
             }
         }
@@ -66,13 +87,13 @@ const adminData = () => __awaiter(void 0, void 0, void 0, function* () {
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
     // Current month revenue
     const currentRevenue = yield PaymentModel.aggregate([
-        { $match: { createdAt: { $gte: startOfThisMonth } } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
+        { $match: { createdAt: { $gte: startOfThisMonth }, status: "success" } },
+        { $group: { _id: null, total: { $sum: "$price" } } }
     ]);
     // Last month revenue
     const lastRevenue = yield PaymentModel.aggregate([
-        { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
+        { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }, status: "success" } },
+        { $group: { _id: null, total: { $sum: "$price" } } }
     ]);
     const revenueGrowth = ((_b = lastRevenue[0]) === null || _b === void 0 ? void 0 : _b.total)
         ? ((((_c = currentRevenue[0]) === null || _c === void 0 ? void 0 : _c.total) || 0) - lastRevenue[0].total) / lastRevenue[0].total * 100
@@ -100,7 +121,7 @@ const adminData = () => __awaiter(void 0, void 0, void 0, function* () {
         ? ((currentLobbies - lastLobbies) / lastLobbies) * 100
         : 0;
     return {
-        totalRevenue,
+        totalRevenue: ((_f = totalRevenue[0]) === null || _f === void 0 ? void 0 : _f.total) || 0,
         revenueGrowth,
         activePlayers,
         playerGrowth,

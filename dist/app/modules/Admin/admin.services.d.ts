@@ -1,6 +1,6 @@
 export declare const adminService: {
     adminData: () => Promise<{
-        totalRevenue: any[];
+        totalRevenue: any;
         revenueGrowth: number;
         activePlayers: number;
         playerGrowth: number;

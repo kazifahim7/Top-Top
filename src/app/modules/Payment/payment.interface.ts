@@ -6,7 +6,7 @@ export interface Payment {
      teamId?: Schema.Types.ObjectId;
      price: number;
      matchPosition?: string;
-     status: "pending" | "success" | "failed";
+     status: "pending" | "success" | "failed" | "refund";
      stripePaymentIntentId?: string;
      defaultTeam?: string,
      method?: string,
