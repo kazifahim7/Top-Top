@@ -1,6 +1,8 @@
 export declare const adminService: {
     adminData: () => Promise<{
         totalRevenue: any;
+        revenueBarGraph: any[];
+        organizerPieUsage: any[];
         revenueGrowth: number;
         activePlayers: number;
         playerGrowth: number;
@@ -15,6 +17,7 @@ export declare const adminService: {
             __v: number;
         })[];
         trafficByCountry: any[];
+        MatchesPlayedVsAvailable: any[];
     }>;
 };
 //# sourceMappingURL=admin.services.d.ts.map

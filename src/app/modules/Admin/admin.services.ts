@@ -139,8 +139,81 @@ const adminData = async () => {
           : 0;
 
 
+     const revenueBarGraph = await PaymentModel.aggregate([
+          { $match: { status: "success" } },
+          {
+               $group: {
+                    _id: { hour: { $hour: "$createdAt" }, day: { $dayOfMonth: "$createdAt" } },
+                    total: { $sum: "$price" }
+               }
+          },
+          { $sort: { "_id.day": 1, "_id.hour": 1 } }
+     ]);
+
+     const organizerPieUsage = await userModel.aggregate([
+          {
+               $group: {
+                    _id: "$role",     
+                    count: { $sum: 1 } 
+               }
+          },
+          {
+               $project: {
+                    _id: 0,
+                    role: "$_id",
+                    count: 1
+               }
+          }
+     ]);
+
+
+     const startOfToday = new Date();
+     startOfToday.setHours(0, 0, 0, 0);
+
+     const endOfToday = new Date();
+     endOfToday.setHours(23, 59, 59, 999);
+
+     const MatchesPlayedVsAvailable = await userModel.aggregate([
+          {
+               $match: {
+                    role: "player",
+                    isBlocked: "active",
+                    updatedAt: { $gte: startOfToday, $lte: endOfToday }
+               }
+          },
+          {
+               $group: {
+                    _id: { hour: { $hour: "$updatedAt" } },
+                    played: {
+                         $sum: {
+                              $cond: [{ $gt: ["$match", 0] }, 1, 0]   
+                         }
+                    },
+                    available: {
+                         $sum: {
+                              $cond: [{ $eq: ["$match", 0] }, 1, 0]   
+                         }
+                    }
+               }
+          },
+          {
+               $project: {
+                    _id: 0,
+                    hour: "$_id.hour",
+                    played: 1,
+                    available: 1
+               }
+          },
+          { $sort: { hour: 1 } }
+     ]);
+
+
+
+
      return {
           totalRevenue: totalRevenue[0]?.total || 0,
+          revenueBarGraph,
+          organizerPieUsage,
           revenueGrowth,
           activePlayers,
           playerGrowth,
@@ -150,7 +223,8 @@ const adminData = async () => {
           matchGrowth,
           revenueGraph,
           recentTransactions,
-          trafficByCountry
+          trafficByCountry,
+          MatchesPlayedVsAvailable
           
 
      }

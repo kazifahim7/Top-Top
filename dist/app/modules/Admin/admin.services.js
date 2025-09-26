@@ -120,8 +120,72 @@ const adminData = () => __awaiter(void 0, void 0, void 0, function* () {
     const lobbyGrowth = lastLobbies
         ? ((currentLobbies - lastLobbies) / lastLobbies) * 100
         : 0;
+    const revenueBarGraph = yield PaymentModel.aggregate([
+        { $match: { status: "success" } },
+        {
+            $group: {
+                _id: { hour: { $hour: "$createdAt" }, day: { $dayOfMonth: "$createdAt" } },
+                total: { $sum: "$price" }
+            }
+        },
+        { $sort: { "_id.day": 1, "_id.hour": 1 } }
+    ]);
+    const organizerPieUsage = yield userModel.aggregate([
+        {
+            $group: {
+                _id: "$role",
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                role: "$_id",
+                count: 1
+            }
+        }
+    ]);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    const MatchesPlayedVsAvailable = yield userModel.aggregate([
+        {
+            $match: {
+                role: "player",
+                isBlocked: "active",
+                updatedAt: { $gte: startOfToday, $lte: endOfToday }
+            }
+        },
+        {
+            $group: {
+                _id: { hour: { $hour: "$updatedAt" } },
+                played: {
+                    $sum: {
+                        $cond: [{ $gt: ["$match", 0] }, 1, 0]
+                    }
+                },
+                available: {
+                    $sum: {
+                        $cond: [{ $eq: ["$match", 0] }, 1, 0]
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                hour: "$_id.hour",
+                played: 1,
+                available: 1
+            }
+        },
+        { $sort: { hour: 1 } }
+    ]);
     return {
         totalRevenue: ((_f = totalRevenue[0]) === null || _f === void 0 ? void 0 : _f.total) || 0,
+        revenueBarGraph,
+        organizerPieUsage,
         revenueGrowth,
         activePlayers,
         playerGrowth,
@@ -131,7 +195,8 @@ const adminData = () => __awaiter(void 0, void 0, void 0, function* () {
         matchGrowth,
         revenueGraph,
         recentTransactions,
-        trafficByCountry
+        trafficByCountry,
+        MatchesPlayedVsAvailable
     };
 });
 export const adminService = {
