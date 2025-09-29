@@ -9,13 +9,13 @@ const createTournament = async (payload: ITournament) => {
 
 
 const singleTournament = async (id: string) => {
-     const result = await TournamentModel.findById(id).populate("Team")
+     const result = await TournamentModel.findById(id).populate("winner qualifiedTeams teams")
      return result
 
 }
 
 const allTournament = async () => {
-     const result = await TournamentModel.find().populate("Team")
+     const result = await TournamentModel.find().populate("winner qualifiedTeams teams")
      return result
 }
 

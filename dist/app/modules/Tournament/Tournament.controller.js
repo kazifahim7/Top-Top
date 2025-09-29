@@ -59,7 +59,7 @@ const deleteTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void
     res.status(200).json({
         success: true,
         message: "Tournament deleted successfully",
-        data: result
+        data: {}
     });
 }));
 export const TournamentController = {

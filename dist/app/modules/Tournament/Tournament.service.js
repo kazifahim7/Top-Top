@@ -14,11 +14,11 @@ const createTournament = (payload) => __awaiter(void 0, void 0, void 0, function
     return result;
 });
 const singleTournament = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentModel.findById(id).populate("Team");
+    const result = yield TournamentModel.findById(id).populate("winner qualifiedTeams teams");
     return result;
 });
 const allTournament = () => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentModel.find().populate("Team");
+    const result = yield TournamentModel.find().populate("winner qualifiedTeams teams");
     return result;
 });
 const updateTournament = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {

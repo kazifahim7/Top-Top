@@ -19,8 +19,20 @@ router.post("/create-tournament", upload.fields([
 
 router.get('/single-tournament/:id',TournamentController.singleTournament)
 router.get('/all-tournament',TournamentController.allTournament)
-router.patch('/update-tournament/:id',TournamentController.updateTournament)
-router.delete('/delete-tournament/:id',TournamentController.updateTournament)
+router.patch('/update-tournament/:id', upload.fields([
+     { name: "images", maxCount: 6 }
+]), (req, _res, next) => {
+     if (req.body.data) {
+          try {
+               req.body = { ...JSON.parse(req.body.data) };
+          } catch (err) {
+               return next(new Error("Invalid JSON in 'data' field"));
+          }
+     }
+     next();
+},TournamentController.updateTournament)
+
+router.delete('/delete-tournament/:id',TournamentController.deleteTournament)
 
 
 

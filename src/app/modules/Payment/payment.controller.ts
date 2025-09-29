@@ -7,6 +7,10 @@ import config from "../../config/index.js";
 import catchAsync from "../../utils/catcgAsync.js";
 import QueryBuilder from "../../builder/QueryBuilder.js";
 import { userModel } from "../auth/auth.model.js";
+import { TournamentModel } from "../Tournament/Tournament.model.js";
+import AppError from "../../Error/AppError.js";
+import { TeamModel } from "../Team/team.model.js";
+import { StandingModel } from "../PointTable/pointtable.model.js";
 
 const stripe = new Stripe(config.sk_key!, { apiVersion: "2025-08-27.basil" as any });
 
@@ -14,82 +18,159 @@ const stripe = new Stripe(config.sk_key!, { apiVersion: "2025-08-27.basil" as an
 export const joinLobby = async (req: Request, res: Response) => {
      try {
           const playerId = req?.user?.id;
-          const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method } = req.body;
+          const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType } = req.body;
 
-          const lobby = await LobbyModel.findById(lobbyId);
-          if (!lobby) return res.status(404).json({ message: "Lobby not found" });
+          if (paymentType === "team fee") {
+               const lobby = await LobbyModel.findById(lobbyId);
+               if (!lobby) return res.status(404).json({ message: "Lobby not found" });
 
-          const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
-          const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
+               const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
+               const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
 
-          // Duplicate & slot check
-          const isDuplicate =
-               lobby.team1?.players.some(p => p.playerId.toString() === playerObjectId.toString()) ||
-               lobby.team2?.players.some(p => p.playerId.toString() === playerObjectId.toString()) ||
-               lobby.defaultTeam1?.players.some(p => p.playerId.toString() === playerObjectId.toString()) ||
-               lobby.defaultTeam2?.players.some(p => p.playerId.toString() === playerObjectId.toString());
+               // Duplicate & slot check
+               const isDuplicate =
+                    lobby.team1?.players.some(p => p.playerId.toString() === playerObjectId.toString()) ||
+                    lobby.team2?.players.some(p => p.playerId.toString() === playerObjectId.toString()) ||
+                    lobby.defaultTeam1?.players.some(p => p.playerId.toString() === playerObjectId.toString()) ||
+                    lobby.defaultTeam2?.players.some(p => p.playerId.toString() === playerObjectId.toString());
 
-          if (isDuplicate) return res.status(400).json({ message: "Player already joined this lobby" });
+               if (isDuplicate) return res.status(400).json({ message: "Player already joined this lobby" });
 
-          if (lobby.team1!.players.length >= lobby.maxSlot && lobby.team2!.players.length >= lobby.maxSlot) {
-               return res.status(400).json({ message: "Both teams are full" });
-          }
+               if (lobby.team1!.players.length >= lobby.maxSlot && lobby.team2!.players.length >= lobby.maxSlot) {
+                    return res.status(400).json({ message: "Both teams are full" });
+               }
 
-          // Create Payment Record (pending)
-          const payment = await PaymentModel.create({
-               lobbyId,
-               playerId: playerObjectId,
-               teamId: teamObjectId,
-               price,
-               status: "pending",
-               method,
-               matchPosition
-          });
+               // Create Payment Record (pending)
+               const payment = await PaymentModel.create({
+                    lobbyId,
+                    playerId: playerObjectId,
+                    teamId: teamObjectId,
+                    price,
+                    status: "pending",
+                    method,
+                    matchPosition
+               });
 
-          if(method==="cash"){
-               const result = await payment.save();
-               return res.json({ 
-                    success:true,
-                    message:"Cash request successFully sended and wait for the admin",
-                    data: result
-                })
-          }
+               if (method === "cash") {
+                    const result = await payment.save();
+                    return res.json({
+                         success: true,
+                         message: "Cash request successFully sended and wait for the admin",
+                         data: result
+                    })
+               }
 
-          // Stripe Checkout Session (expand payment_intent)
-          const session = await stripe.checkout.sessions.create({
-               payment_method_types: ["card"],
-               line_items: [{
-                    price_data: {
-                         currency: "usd",
-                         product_data: { name: "Lobby Join Fee" },
-                         unit_amount: price * 100,
+               // Stripe Checkout Session (expand payment_intent)
+               const session = await stripe.checkout.sessions.create({
+                    payment_method_types: ["card"],
+                    line_items: [{
+                         price_data: {
+                              currency: "usd",
+                              product_data: { name: "Lobby Join Fee" },
+                              unit_amount: price * 100,
+                         },
+                         quantity: 1,
+                    }],
+                    mode: "payment",
+                    success_url: `http://localhost:5000/api/v1/payment/payment-success?paymentId=${payment._id}`,
+                    cancel_url: `http://localhost:5000/api/v1/payment/payment-cancel?paymentId=${payment._id}`,
+                    metadata: {
+                         paymentId: payment._id.toString(),
+                         lobbyId: lobbyId.toString(),
+                         playerId: playerObjectId.toString(),
+                         teamId: teamObjectId?.toString() || "",
+                         matchPosition: matchPosition || "",
+                         defaultTeam: defaultTeam || "",
+                         matchFormat: matchFormat || "",
+                         method
                     },
-                    quantity: 1,
-               }],
-               mode: "payment",
-               success_url: `http://localhost:5000/api/v1/payment/payment-success?paymentId=${payment._id}`,
-               cancel_url: `http://localhost:5000/api/v1/payment/payment-cancel?paymentId=${payment._id}`,
-               metadata: {
-                    paymentId: payment._id.toString(),
-                    lobbyId: lobbyId.toString(),
-                    playerId: playerObjectId.toString(),
-                    teamId: teamObjectId?.toString() || "",
-                    matchPosition: matchPosition || "",
-                    defaultTeam: defaultTeam || "",
-                    matchFormat: matchFormat || "",
-                    method
-               },
-               expand: ["payment_intent"]
-          });
+                    expand: ["payment_intent"]
+               });
 
-          // Save PaymentIntent ID properly
-          payment.stripePaymentIntentId = session.id || "";
-          await payment.save();
+               // Save PaymentIntent ID properly
 
-          return res.json({ sessionId: session.id });
-     } catch (err) {
+               payment.stripePaymentIntentId = session.id || "";
+               await payment.save();
+
+               return res.json({ sessionId: session.id, paymentId: payment._id, url: session.url });
+          }
+
+          if (paymentType === "tournament fee") {
+               const isTournamentIsExists = await TournamentModel.findById(tournamentId)
+               if (!isTournamentIsExists) {
+                    throw new AppError(404, "Tournament Not Found");
+
+               }
+               if (isTournamentIsExists.teams.length >= isTournamentIsExists.maxTeam) {
+                    throw new AppError(403, "Team is full");
+               }
+               const findTeam = await TeamModel.findOne({ teamOwner: playerId })
+               if (!findTeam) {
+                    throw new AppError(404, "Team not Found");
+               }
+
+               if (isTournamentIsExists.teams.some(t => t.toString() === teamId.toString())) {
+                    throw new AppError(400, "Team already exists");
+               }
+
+
+               const payment = await PaymentModel.create({
+                    tournamentId,
+                    teamId: findTeam._id,
+                    price,
+                    status: "pending",
+                    method,
+                    paymentType
+
+               });
+
+               if (method === "cash") {
+                    const result = await payment.save();
+                    return res.json({
+                         success: true,
+                         message: "Cash request successFully sended and wait for the admin",
+                         data: result
+                    })
+               }
+
+               // Stripe Checkout Session (expand payment_intent)
+               const session = await stripe.checkout.sessions.create({
+                    payment_method_types: ["card"],
+                    line_items: [{
+                         price_data: {
+                              currency: "usd",
+                              product_data: { name: "Tournament Join Fee" },
+                              unit_amount: price * 100,
+                         },
+                         quantity: 1,
+                    }],
+                    mode: "payment",
+                    success_url: `http://localhost:5000/api/v1/payment/payment-success?paymentId=${payment._id}`,
+                    cancel_url: `http://localhost:5000/api/v1/payment/payment-cancel?paymentId=${payment._id}`,
+                    metadata: {
+                         paymentId: payment._id.toString(),
+                         tournamentId,
+                         teamId: findTeam._id.toString(),
+                         price,
+                         status: "pending",
+                         method,
+                         paymentType
+                    },
+                    expand: ["payment_intent"]
+               });
+
+               // Save PaymentIntent ID properly
+
+               payment.stripePaymentIntentId = session.id || "";
+               await payment.save();
+               return res.json({ sessionId: session.id, paymentId: payment._id, url: session.url });
+
+          }
+
+
+     } catch (err:any) {
           console.error(err);
-          return res.status(500).json({ message: "Internal server error" });
+          return res.status(500).json({ message: err.message  });
      }
 };
 
@@ -102,65 +183,103 @@ export const paymentSuccess = async (req: Request, res: Response) => {
           const payment = await PaymentModel.findById(paymentId);
           if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-          if(payment.method !== "cash"){
-               // Retrieve PaymentIntent from Stripe
-               const session = await stripe.checkout.sessions.retrieve(payment.stripePaymentIntentId!, {
-                    expand: ["payment_intent"],
-               });
+          if (payment.paymentType === "team fee") {
+               if (payment.method !== "cash") {
+                    // Retrieve PaymentIntent from Stripe
+                    const session = await stripe.checkout.sessions.retrieve(payment.stripePaymentIntentId!, {
+                         expand: ["payment_intent"],
+                    });
 
-               if ((session.payment_intent as any)?.status !== "succeeded") {
-                    return res.status(400).json({ message: "Payment not successful" });
+                    if ((session.payment_intent as any)?.status !== "succeeded") {
+                         return res.status(400).json({ message: "Payment not successful" });
+                    }
+
+               }
+
+
+
+               payment.status = "success";
+               await payment.save();
+
+               // Add player to lobby
+               const lobby = await LobbyModel.findById(payment.lobbyId);
+               if (!lobby) return res.status(404).json({ message: "Lobby not found" });
+
+               const playerData = {
+                    playerId: payment.playerId,
+                    matchPosition: payment.matchPosition || "",
+                    redCard: 0,
+                    yellowCard: 0,
+                    substitution: 0,
+                    assists: 0,
+                    goal: 0,
+                    tackle: 0,
+                    save: 0,
+                    rating: 0,
+               };
+
+               if (lobby.matchType === "solo") {
+                    const targetTeam = payment.defaultTeam;
+                    //@ts-ignore
+                    if (targetTeam === "defaultTeam1") lobby.defaultTeam1!.players.push(playerData);
+                    //@ts-ignore
+                    else if (targetTeam === "defaultTeam2") lobby.defaultTeam2!.players.push(playerData);
+               } else {
+                    const team = payment.teamId?.toString() === lobby.team1!.teamId.toString() ? lobby.team1 : lobby.team2;
+                    //@ts-ignore
+                    team!.players.push(playerData);
+
+
+               }
+               const profile = await userModel.findById(payment.playerId);
+               if (profile) {
+                    // Increment match count
+                    profile.match = (profile.match || 0) + 1;
+                    await profile.save();
+               }
+
+               await lobby.save();
+
+               res.json({
+                    success: true,
+                    message: "Payment success and player added"
+               });
+          }
+
+          if (payment.paymentType === "tournament fee") {
+
+               if (payment.method !== "cash") {
+                    // Retrieve PaymentIntent from Stripe
+                    const session = await stripe.checkout.sessions.retrieve(payment.stripePaymentIntentId!, {
+                         expand: ["payment_intent"],
+                    });
+
+                    if ((session.payment_intent as any)?.status !== "succeeded") {
+                         return res.status(400).json({ message: "Payment not successful" });
+                    }
+
+               }
+
+
+
+               payment.status = "success";
+               await payment.save();
+               const findTournament = await TournamentModel.findById(payment.tournamentId)
+               if (findTournament) {
+                    // team enter the tournament kaka
+                    const result = await TournamentModel.findByIdAndUpdate(payment.tournamentId, { $addToSet: { teams: payment.teamId } }, { new: true })
+                    // standing model created
+                    await StandingModel.create({ tournament: findTournament._id, team: payment.teamId })
+                    res.json({
+                         success: true,
+                         message: "Payment success and team added in Tournament",
+                         data: result
+                    });
                }
 
           }
 
-         
 
-          payment.status = "success";
-          await payment.save();
-
-          // Add player to lobby
-          const lobby = await LobbyModel.findById(payment.lobbyId);
-          if (!lobby) return res.status(404).json({ message: "Lobby not found" });
-
-          const playerData = {
-               playerId: payment.playerId,
-               matchPosition: payment.matchPosition || "",
-               redCard: 0,
-               yellowCard: 0,
-               substitution: 0,
-               assists: 0,
-               goal: 0,
-               tackle: 0,
-               save: 0,
-               rating: 0,
-          };
-
-          if (lobby.matchType === "solo") {
-               const targetTeam = payment.defaultTeam;
-               //@ts-ignore
-               if (targetTeam === "defaultTeam1") lobby.defaultTeam1!.players.push(playerData);
-               //@ts-ignore
-               else if (targetTeam === "defaultTeam2") lobby.defaultTeam2!.players.push(playerData);
-          } else {
-               const team = payment.teamId?.toString() === lobby.team1!.teamId.toString() ? lobby.team1 : lobby.team2;
-               //@ts-ignore
-               team!.players.push(playerData);
-
-
-          }
-          const profile = await userModel.findById(payment.playerId);
-          if (profile) {
-               // Increment match count
-               profile.match = (profile.match || 0) + 1;
-               await profile.save();
-          }
-
-               await lobby.save();
-
-          res.json({ 
-               success:true,
-               message: "Payment success and player added" });
      } catch (err) {
           console.error(err);
           res.status(500).json({ message: "Internal server error" });
@@ -188,7 +307,7 @@ export const paymentCancel = async (req: Request, res: Response) => {
 
 
 export const allPaymentHistory = catchAsync(async (req, res) => {
-     const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId teamId playerId").select("-stripePaymentIntentId"), req.query).filter().search(["status","method"]).sort()
+     const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId teamId playerId tournamentId").select("-stripePaymentIntentId"), req.query).filter().search(["status", "method"]).sort()
      const result = await paymentQuery.modelQuery
 
      res.status(200).json({

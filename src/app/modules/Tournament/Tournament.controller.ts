@@ -55,7 +55,7 @@ const deleteTournament = catchAsync(async (req, res) => {
      res.status(200).json({
           success: true,
           message: "Tournament deleted successfully",
-          data: result
+          data: {}
      })
 })
 

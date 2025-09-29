@@ -8,6 +8,7 @@ import { refundRouter } from '../modules/Refund/refund.router.js'
 import { adminRouter } from '../modules/Admin/admin.router.js'
 import { goalRouter } from '../modules/FeatureGoal/goal.router.js'
 import { tournamentRouter } from '../modules/Tournament/Tournament.router.js'
+import { pointTableRouter } from '../modules/PointTable/pointable.router.js'
 
 
 const router = express.Router()
@@ -50,6 +51,10 @@ const moduleRouter = [
      {
           path: "/tournament",
           route: tournamentRouter
+     },
+     {
+          path: "/pointTable",
+          route: pointTableRouter
      },
 
 
