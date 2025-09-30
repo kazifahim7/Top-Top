@@ -25,12 +25,13 @@ export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, functio
     try {
         const playerId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.id;
         const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType } = req.body;
+        const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
+        const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
+        let payment;
         if (paymentType === "team fee") {
             const lobby = yield LobbyModel.findById(lobbyId);
             if (!lobby)
                 return res.status(404).json({ message: "Lobby not found" });
-            const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
-            const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
             // Duplicate & slot check
             const isDuplicate = ((_b = lobby.team1) === null || _b === void 0 ? void 0 : _b.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
                 ((_c = lobby.team2) === null || _c === void 0 ? void 0 : _c.players.some(p => p.playerId.toString() === playerObjectId.toString())) ||
@@ -38,74 +39,33 @@ export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 ((_e = lobby.defaultTeam2) === null || _e === void 0 ? void 0 : _e.players.some(p => p.playerId.toString() === playerObjectId.toString()));
             if (isDuplicate)
                 return res.status(400).json({ message: "Player already joined this lobby" });
-            if (lobby.team1.players.length >= lobby.maxSlot && lobby.team2.players.length >= lobby.maxSlot) {
+            if (lobby.team1.players.length >= lobby.maxSlot && lobby.team2.players.length >= lobby.maxSlot)
                 return res.status(400).json({ message: "Both teams are full" });
-            }
             // Create Payment Record (pending)
-            const payment = yield PaymentModel.create({
+            payment = yield PaymentModel.create({
                 lobbyId,
                 playerId: playerObjectId,
                 teamId: teamObjectId,
                 price,
                 status: "pending",
                 method,
-                matchPosition
+                matchPosition,
+                paymentType
             });
-            if (method === "cash") {
-                const result = yield payment.save();
-                return res.json({
-                    success: true,
-                    message: "Cash request successFully sended and wait for the admin",
-                    data: result
-                });
-            }
-            // Stripe Checkout Session (expand payment_intent)
-            const session = yield stripe.checkout.sessions.create({
-                payment_method_types: ["card"],
-                line_items: [{
-                        price_data: {
-                            currency: "usd",
-                            product_data: { name: "Lobby Join Fee" },
-                            unit_amount: price * 100,
-                        },
-                        quantity: 1,
-                    }],
-                mode: "payment",
-                success_url: `http://localhost:5000/api/v1/payment/payment-success?paymentId=${payment._id}`,
-                cancel_url: `http://localhost:5000/api/v1/payment/payment-cancel?paymentId=${payment._id}`,
-                metadata: {
-                    paymentId: payment._id.toString(),
-                    lobbyId: lobbyId.toString(),
-                    playerId: playerObjectId.toString(),
-                    teamId: (teamObjectId === null || teamObjectId === void 0 ? void 0 : teamObjectId.toString()) || "",
-                    matchPosition: matchPosition || "",
-                    defaultTeam: defaultTeam || "",
-                    matchFormat: matchFormat || "",
-                    method
-                },
-                expand: ["payment_intent"]
-            });
-            // Save PaymentIntent ID properly
-            payment.stripePaymentIntentId = session.id || "";
-            yield payment.save();
-            return res.json({ sessionId: session.id, paymentId: payment._id, url: session.url });
         }
-        if (paymentType === "tournament fee") {
-            const isTournamentIsExists = yield TournamentModel.findById(tournamentId);
-            if (!isTournamentIsExists) {
+        else if (paymentType === "tournament fee") {
+            const tournament = yield TournamentModel.findById(tournamentId);
+            if (!tournament)
                 throw new AppError(404, "Tournament Not Found");
-            }
-            if (isTournamentIsExists.teams.length >= isTournamentIsExists.maxTeam) {
+            if (tournament.teams.length >= tournament.maxTeam)
                 throw new AppError(403, "Team is full");
-            }
             const findTeam = yield TeamModel.findOne({ teamOwner: playerId });
-            if (!findTeam) {
+            if (!findTeam)
                 throw new AppError(404, "Team not Found");
-            }
-            if (isTournamentIsExists.teams.some(t => t.toString() === teamId.toString())) {
+            if (tournament.teams.some(t => t.toString() === findTeam._id.toString()))
                 throw new AppError(400, "Team already exists");
-            }
-            const payment = yield PaymentModel.create({
+            // Create Payment Record (pending)
+            payment = yield PaymentModel.create({
                 tournamentId,
                 teamId: findTeam._id,
                 price,
@@ -113,44 +73,40 @@ export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 method,
                 paymentType
             });
-            if (method === "cash") {
-                const result = yield payment.save();
-                return res.json({
-                    success: true,
-                    message: "Cash request successFully sended and wait for the admin",
-                    data: result
-                });
-            }
-            // Stripe Checkout Session (expand payment_intent)
-            const session = yield stripe.checkout.sessions.create({
-                payment_method_types: ["card"],
-                line_items: [{
-                        price_data: {
-                            currency: "usd",
-                            product_data: { name: "Tournament Join Fee" },
-                            unit_amount: price * 100,
-                        },
-                        quantity: 1,
-                    }],
-                mode: "payment",
-                success_url: `http://localhost:5000/api/v1/payment/payment-success?paymentId=${payment._id}`,
-                cancel_url: `http://localhost:5000/api/v1/payment/payment-cancel?paymentId=${payment._id}`,
-                metadata: {
-                    paymentId: payment._id.toString(),
-                    tournamentId,
-                    teamId: findTeam._id.toString(),
-                    price,
-                    status: "pending",
-                    method,
-                    paymentType
-                },
-                expand: ["payment_intent"]
-            });
-            // Save PaymentIntent ID properly
-            payment.stripePaymentIntentId = session.id || "";
-            yield payment.save();
-            return res.json({ sessionId: session.id, paymentId: payment._id, url: session.url });
         }
+        // Cash payment handling
+        if (method === "cash") {
+            const result = yield payment.save();
+            return res.json({
+                success: true,
+                message: "Cash request successfully sent. Wait for the admin.",
+                data: result
+            });
+        }
+        // 💳 Stripe PaymentIntent for Flutter PaymentSheet
+        const paymentIntent = yield stripe.paymentIntents.create({
+            amount: price * 100,
+            currency: "usd",
+            metadata: {
+                paymentId: payment._id.toString(),
+                lobbyId: (lobbyId === null || lobbyId === void 0 ? void 0 : lobbyId.toString()) || "",
+                tournamentId: (tournamentId === null || tournamentId === void 0 ? void 0 : tournamentId.toString()) || "",
+                teamId: (teamObjectId === null || teamObjectId === void 0 ? void 0 : teamObjectId.toString()) || "",
+                matchPosition: matchPosition || "",
+                defaultTeam: defaultTeam || "",
+                matchFormat: matchFormat || "",
+                method
+            }
+        });
+        // Save PaymentIntent ID
+        payment.stripePaymentIntentId = paymentIntent.id;
+        yield payment.save();
+        // Return client_secret to Flutter
+        return res.json({
+            success: true,
+            paymentId: payment._id,
+            clientSecret: paymentIntent.client_secret
+        });
     }
     catch (err) {
         console.error(err);
@@ -158,7 +114,7 @@ export const joinLobby = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 export const paymentSuccess = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a;
     try {
         const { paymentId } = req.query;
         if (!paymentId)
@@ -166,19 +122,22 @@ export const paymentSuccess = (req, res) => __awaiter(void 0, void 0, void 0, fu
         const payment = yield PaymentModel.findById(paymentId);
         if (!payment)
             return res.status(404).json({ message: "Payment not found" });
-        if (payment.paymentType === "team fee") {
-            if (payment.method !== "cash") {
-                // Retrieve PaymentIntent from Stripe
-                const session = yield stripe.checkout.sessions.retrieve(payment.stripePaymentIntentId, {
-                    expand: ["payment_intent"],
-                });
-                if (((_a = session.payment_intent) === null || _a === void 0 ? void 0 : _a.status) !== "succeeded") {
-                    return res.status(400).json({ message: "Payment not successful" });
-                }
+        // Cash payments directly success
+        if (payment.method === "cash") {
+            payment.status = "success";
+            yield payment.save();
+        }
+        else {
+            // Stripe PaymentIntent verification
+            const intent = yield stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
+            if (intent.status !== "succeeded") {
+                return res.status(400).json({ message: "Payment not successful" });
             }
             payment.status = "success";
             yield payment.save();
-            // Add player to lobby
+        }
+        // Post-payment actions
+        if (payment.paymentType === "team fee") {
             const lobby = yield LobbyModel.findById(payment.lobbyId);
             if (!lobby)
                 return res.status(404).json({ message: "Lobby not found" });
@@ -204,46 +163,31 @@ export const paymentSuccess = (req, res) => __awaiter(void 0, void 0, void 0, fu
                     lobby.defaultTeam2.players.push(playerData);
             }
             else {
-                const team = ((_b = payment.teamId) === null || _b === void 0 ? void 0 : _b.toString()) === lobby.team1.teamId.toString() ? lobby.team1 : lobby.team2;
+                const team = ((_a = payment.teamId) === null || _a === void 0 ? void 0 : _a.toString()) === lobby.team1.teamId.toString() ? lobby.team1 : lobby.team2;
                 //@ts-ignore
                 team.players.push(playerData);
             }
             const profile = yield userModel.findById(payment.playerId);
             if (profile) {
-                // Increment match count
                 profile.match = (profile.match || 0) + 1;
                 yield profile.save();
             }
             yield lobby.save();
-            res.json({
-                success: true,
-                message: "Payment success and player added"
-            });
+            return res.json({ success: true, message: "Payment successful and player added" });
         }
         if (payment.paymentType === "tournament fee") {
-            if (payment.method !== "cash") {
-                // Retrieve PaymentIntent from Stripe
-                const session = yield stripe.checkout.sessions.retrieve(payment.stripePaymentIntentId, {
-                    expand: ["payment_intent"],
-                });
-                if (((_c = session.payment_intent) === null || _c === void 0 ? void 0 : _c.status) !== "succeeded") {
-                    return res.status(400).json({ message: "Payment not successful" });
-                }
-            }
-            payment.status = "success";
-            yield payment.save();
-            const findTournament = yield TournamentModel.findById(payment.tournamentId);
-            if (findTournament) {
-                // team enter the tournament kaka
-                const result = yield TournamentModel.findByIdAndUpdate(payment.tournamentId, { $addToSet: { teams: payment.teamId } }, { new: true });
-                // standing model created
-                yield StandingModel.create({ tournament: findTournament._id, team: payment.teamId });
-                res.json({
-                    success: true,
-                    message: "Payment success and team added in Tournament",
-                    data: result
-                });
-            }
+            const tournament = yield TournamentModel.findById(payment.tournamentId);
+            if (!tournament)
+                return res.status(404).json({ message: "Tournament not found" });
+            // Add team to tournament
+            const result = yield TournamentModel.findByIdAndUpdate(payment.tournamentId, { $addToSet: { teams: payment.teamId } }, { new: true });
+            // Create standing for the team
+            yield StandingModel.create({ tournament: tournament._id, team: payment.teamId });
+            return res.json({
+                success: true,
+                message: "Payment successful and team added to tournament",
+                data: result
+            });
         }
     }
     catch (err) {

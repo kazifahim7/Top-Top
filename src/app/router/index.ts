@@ -9,6 +9,7 @@ import { adminRouter } from '../modules/Admin/admin.router.js'
 import { goalRouter } from '../modules/FeatureGoal/goal.router.js'
 import { tournamentRouter } from '../modules/Tournament/Tournament.router.js'
 import { pointTableRouter } from '../modules/PointTable/pointable.router.js'
+import { tournamentMatch } from '../modules/TournamentMatch/match.router.js'
 
 
 const router = express.Router()
@@ -55,6 +56,10 @@ const moduleRouter = [
      {
           path: "/pointTable",
           route: pointTableRouter
+     },
+     {
+          path: "/match",
+          route: tournamentMatch
      },
 
 

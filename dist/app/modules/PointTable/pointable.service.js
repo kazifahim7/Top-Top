@@ -7,9 +7,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { TournamentModel } from "../Tournament/Tournament.model.js";
+import { StandingModel } from "./pointtable.model.js";
 const getPointTable = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentModel.findById(id);
+    const result = yield StandingModel.find({ tournament: id }).populate("team tournament");
     return result;
 });
 export const pointTableService = {
