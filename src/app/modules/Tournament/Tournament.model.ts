@@ -11,11 +11,12 @@ const tournamentSchema = new Schema<ITournament>({
      },
      startDate: { type: Date, required: true },
      duration: { type: Number, required: true },
-     fieldSize: { type: Number, enum: [5, 7, 11], default: 5 },
+     fieldSize: { type: Number, enum: [5,8, 7,9, 11], default: 5 },
      teams: [{ type: Schema.Types.ObjectId, ref: "Team" }],
      qualifiedTeams: [{ type: Schema.Types.ObjectId, ref: "Team" }],
      winner: { type: Schema.Types.ObjectId, ref: "Team", default: null },
      maxTeam: { type: Number, default: 16 },
+     
      imageUrl: { type: String }
 
 });

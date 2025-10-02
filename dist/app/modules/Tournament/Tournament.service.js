@@ -7,6 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+import { Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import { TournamentModel } from "./Tournament.model.js";
 const createTournament = (payload) => __awaiter(void 0, void 0, void 0, function* () {
@@ -37,11 +38,26 @@ const deleteTournament = (id) => __awaiter(void 0, void 0, void 0, function* () 
     const result = yield TournamentModel.findByIdAndDelete(id);
     return result;
 });
+const qualifyTeamsService = (tournamentId, teamIds) => __awaiter(void 0, void 0, void 0, function* () {
+    const tournament = yield TournamentModel.findById(tournamentId);
+    if (!tournament) {
+        throw new Error("Tournament not found");
+    }
+    const currentQualified = tournament.qualifiedTeams.map((id) => id.toString());
+    const uniqueTeams = teamIds.filter((id) => !currentQualified.includes(id.toString()));
+    if (uniqueTeams.length === 0) {
+        throw new Error("All teams already qualified or invalid");
+    }
+    tournament.qualifiedTeams.push(...uniqueTeams.map((id) => new Types.ObjectId(id)));
+    yield tournament.save();
+    return tournament;
+});
 export const TournamentService = {
     createTournament,
     singleTournament,
     allTournament,
     updateTournament,
-    deleteTournament
+    deleteTournament,
+    qualifyTeamsService
 };
 //# sourceMappingURL=Tournament.service.js.map

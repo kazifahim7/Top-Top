@@ -33,12 +33,28 @@ const deleteMatch =catchAsync(async(req,res)=>{
           data:{}
      })
 })
+const updateMatch =catchAsync(async(req,res)=>{
+     const { matchId } = req.params;
+     const { scoreA, scoreB } = req.body;
+
+     if (typeof scoreA !== "number" || typeof scoreB !== "number") {
+          return res.status(400).json({ success: false, message: "Invalid scores" });
+     }
+
+     const updatedMatch = await tournamentMatchService.updateMatchAndStanding(matchId!, scoreA, scoreB);
+     res.status(200).json({
+          success:true, 
+          message:" match are updated  successfully",
+          data: updatedMatch
+     })
+})
 
 
 export const tournamentMatchController ={
      createMatch,
      deleteMatch,
      allMatch,
-     singleMatch
+     singleMatch,
+     updateMatch
      
 }

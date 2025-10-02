@@ -1,14 +1,8 @@
 export declare const pointTableService: {
     getPointTable: (id: string) => Promise<(import("mongoose").Document<unknown, {}, {
-        tournament: {
-            prototype?: import("mongoose").Types.ObjectId | null;
-            cacheHexString?: unknown;
-            generate?: {} | null;
-            createFromTime?: {} | null;
-            createFromHexString?: {} | null;
-            createFromBase64?: {} | null;
-            isValid?: {} | null;
-        };
+        win: number;
+        draw: number;
+        loss: number;
         team: {
             prototype?: import("mongoose").Types.ObjectId | null;
             cacheHexString?: unknown;
@@ -18,23 +12,23 @@ export declare const pointTableService: {
             createFromBase64?: {} | null;
             isValid?: {} | null;
         };
+        tournament: {
+            prototype?: import("mongoose").Types.ObjectId | null;
+            cacheHexString?: unknown;
+            generate?: {} | null;
+            createFromTime?: {} | null;
+            createFromHexString?: {} | null;
+            createFromBase64?: {} | null;
+            isValid?: {} | null;
+        };
         played: number;
-        win: number;
-        draw: number;
-        loss: number;
         goalsFor: number;
         goalsAgainst: number;
         points: number;
     }, {}, import("mongoose").DefaultSchemaOptions> & {
-        tournament: {
-            prototype?: import("mongoose").Types.ObjectId | null;
-            cacheHexString?: unknown;
-            generate?: {} | null;
-            createFromTime?: {} | null;
-            createFromHexString?: {} | null;
-            createFromBase64?: {} | null;
-            isValid?: {} | null;
-        };
+        win: number;
+        draw: number;
+        loss: number;
         team: {
             prototype?: import("mongoose").Types.ObjectId | null;
             cacheHexString?: unknown;
@@ -44,10 +38,16 @@ export declare const pointTableService: {
             createFromBase64?: {} | null;
             isValid?: {} | null;
         };
+        tournament: {
+            prototype?: import("mongoose").Types.ObjectId | null;
+            cacheHexString?: unknown;
+            generate?: {} | null;
+            createFromTime?: {} | null;
+            createFromHexString?: {} | null;
+            createFromBase64?: {} | null;
+            isValid?: {} | null;
+        };
         played: number;
-        win: number;
-        draw: number;
-        loss: number;
         goalsFor: number;
         goalsAgainst: number;
         points: number;

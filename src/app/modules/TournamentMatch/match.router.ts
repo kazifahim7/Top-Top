@@ -7,6 +7,8 @@ router.post('/create-tournamentMatch',tournamentMatchController.createMatch)
 router.get('/all-tournamentMatch',tournamentMatchController.allMatch)
 router.get('/all-tournamentMatch/:id',tournamentMatchController.singleMatch)
 router.delete('/delete-tournamentMatch/:id',tournamentMatchController.deleteMatch)
+// match id dite hbe
+router.patch('/update-tournamentMatch/:id',tournamentMatchController.updateMatch)
 
 
 

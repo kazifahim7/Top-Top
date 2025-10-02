@@ -41,10 +41,24 @@ const deleteMatch = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, f
         data: {}
     });
 }));
+const updateMatch = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { matchId } = req.params;
+    const { scoreA, scoreB } = req.body;
+    if (typeof scoreA !== "number" || typeof scoreB !== "number") {
+        return res.status(400).json({ success: false, message: "Invalid scores" });
+    }
+    const updatedMatch = yield tournamentMatchService.updateMatchAndStanding(matchId, scoreA, scoreB);
+    res.status(200).json({
+        success: true,
+        message: " match are updated  successfully",
+        data: updatedMatch
+    });
+}));
 export const tournamentMatchController = {
     createMatch,
     deleteMatch,
     allMatch,
-    singleMatch
+    singleMatch,
+    updateMatch
 };
 //# sourceMappingURL=match.controller.js.map

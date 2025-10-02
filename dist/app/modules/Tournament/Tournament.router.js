@@ -31,5 +31,6 @@ router.patch('/update-tournament/:id', upload.fields([
     next();
 }, TournamentController.updateTournament);
 router.delete('/delete-tournament/:id', TournamentController.deleteTournament);
+router.post("/:tournamentId/qualify", TournamentController.qualifyTeamsController);
 export const tournamentRouter = router;
 //# sourceMappingURL=Tournament.router.js.map

@@ -62,11 +62,25 @@ const deleteTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void
         data: {}
     });
 }));
+const qualifyTeamsController = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { tournamentId } = req.params;
+    const { teamIds } = req.body;
+    if (!teamIds || !Array.isArray(teamIds)) {
+        return res.status(400).json({ message: "teamIds must be an array" });
+    }
+    const result = yield TournamentService.qualifyTeamsService(tournamentId, teamIds);
+    res.status(200).json({
+        success: true,
+        message: "Tournament deleted successfully",
+        data: {}
+    });
+}));
 export const TournamentController = {
     createTournament,
     singleTournament,
     updateTournament,
     deleteTournament,
-    allTournament
+    allTournament,
+    qualifyTeamsController
 };
 //# sourceMappingURL=Tournament.controller.js.map

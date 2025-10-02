@@ -34,6 +34,8 @@ router.patch('/update-tournament/:id', upload.fields([
 
 router.delete('/delete-tournament/:id',TournamentController.deleteTournament)
 
+router.post("/:tournamentId/qualify", TournamentController.qualifyTeamsController);
+
 
 
 

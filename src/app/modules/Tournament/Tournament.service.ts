@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import type { ITournament } from "./Tournament.interface.js";
 import { TournamentModel } from "./Tournament.model.js";
@@ -39,13 +40,38 @@ const deleteTournament = async (id: string) => {
      const result = await TournamentModel.findByIdAndDelete(id)
      return result;
 }
+ const qualifyTeamsService = async (tournamentId: string, teamIds: string[]) => {
+   
+     const tournament = await TournamentModel.findById(tournamentId);
+     if (!tournament) {
+          throw new Error("Tournament not found");
+     }
 
+     
+     const currentQualified = tournament.qualifiedTeams.map((id) => id.toString());
+
+     const uniqueTeams = teamIds.filter(
+          (id) => !currentQualified.includes(id.toString())
+     );
+
+     if (uniqueTeams.length === 0) {
+          throw new Error("All teams already qualified or invalid");
+     }
+
+  
+     tournament.qualifiedTeams.push(...uniqueTeams.map((id) => new Types.ObjectId(id)));
+
+     await tournament.save();
+
+     return tournament;
+};
 
 export const TournamentService = {
      createTournament,
      singleTournament,
      allTournament,
      updateTournament,
-     deleteTournament
+     deleteTournament,
+     qualifyTeamsService
 }
 
