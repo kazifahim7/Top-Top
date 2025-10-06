@@ -66,12 +66,49 @@ const deleteTournament = async (id: string) => {
      return tournament;
 };
 
+
+const getTopPlayers = async (tournamentId:string)=>{
+
+     const tournament = await TournamentModel.findById(tournamentId)
+          .populate({
+               path: "teams",
+               populate: {
+                    path: "players",
+                    model: "Players", 
+               },
+          })
+          .lean();
+
+     if (!tournament) {
+          throw new AppError(404,"Tournament not found");
+     }
+
+     // allPlayers বের করা
+     let allPlayers: any[] = [];
+     (tournament.teams as any[]).forEach((team: any) => {
+          if (team.players && Array.isArray(team.players)) {
+               allPlayers = [...allPlayers, ...team.players];
+          }
+     });
+
+     // rating অনুযায়ী sort
+     const sortedPlayers = allPlayers
+          .filter((p) => p.rating > 0)
+          .sort((a, b) => b.rating - a.rating);
+
+     return {
+          tournament: tournament.name,
+          topPlayers: sortedPlayers,
+     };
+}
+
 export const TournamentService = {
      createTournament,
      singleTournament,
      allTournament,
      updateTournament,
      deleteTournament,
-     qualifyTeamsService
+     qualifyTeamsService,
+     getTopPlayers
 }
 

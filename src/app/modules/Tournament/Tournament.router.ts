@@ -37,6 +37,6 @@ router.delete('/delete-tournament/:id',TournamentController.deleteTournament)
 router.post("/:tournamentId/qualify", TournamentController.qualifyTeamsController);
 
 
-
+router.get("/:tournamentId/top-players", TournamentController.getTopPlayers);
 
 export const tournamentRouter = router

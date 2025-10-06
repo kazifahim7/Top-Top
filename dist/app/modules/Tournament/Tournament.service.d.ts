@@ -31,5 +31,9 @@ export declare const TournamentService: {
     } & {
         __v: number;
     }>;
+    getTopPlayers: (tournamentId: string) => Promise<{
+        tournament: string;
+        topPlayers: any[];
+    }>;
 };
 //# sourceMappingURL=Tournament.service.d.ts.map

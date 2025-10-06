@@ -1,5 +1,6 @@
 import catchAsync from "../../utils/catcgAsync.js";
 import { getLocalImageURL } from "../../utils/multer.js";
+import { TournamentModel } from "./Tournament.model.js";
 import { TournamentService } from "./Tournament.service.js";
 
 const createTournament = catchAsync(async (req, res) => {
@@ -75,6 +76,18 @@ const qualifyTeamsController = catchAsync(async (req, res) => {
           data: {}
      })
 })
+const getTopPlayers = catchAsync(async (req, res) => {
+
+     const { tournamentId } = req.params;
+     const result = await TournamentService.getTopPlayers(tournamentId!)
+     res.status(200).json({
+          success: true,
+          message: "Tournament Top player coming successfully",
+          data: {}
+     })
+})
+
+
 
 
 
@@ -87,7 +100,8 @@ export const TournamentController = {
      updateTournament,
      deleteTournament,
      allTournament,
-     qualifyTeamsController
+     qualifyTeamsController,
+     getTopPlayers
 }
 
 

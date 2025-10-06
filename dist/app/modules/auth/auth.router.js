@@ -40,6 +40,6 @@ router.put("/update-profile/:email", upload.fields([
 }, authController.updateProfile);
 router.get("/user/:email", authController.singleUser);
 // single player 
-router.get('/player-profile', auth("player"), authController.playerProfile);
+router.get('/player-profile/:id', authController.playerProfile);
 export const authRouter = router;
 //# sourceMappingURL=auth.router.js.map

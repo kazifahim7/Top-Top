@@ -48,7 +48,7 @@ router.get("/user/:email", authController.singleUser)
 
 // single player 
 
-router.get('/player-profile',auth("player"),authController.playerProfile)
+router.get('/player-profile/:id',authController.playerProfile)
 
 
 

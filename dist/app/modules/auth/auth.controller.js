@@ -126,7 +126,7 @@ const changePassword = catchAsync((req, res) => __awaiter(void 0, void 0, void 0
     });
 }));
 const playerProfile = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userId = req.user.id;
+    const userId = req.params.id;
     const result = yield authService.playerProfile(userId);
     res.status(200).json({
         success: true,

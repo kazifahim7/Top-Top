@@ -156,8 +156,8 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 })
 
 const playerProfile = catchAsync(async (req: Request, res: Response) => {
-     const userId = req.user.id
-     const result = await authService.playerProfile(userId)
+     const userId = req.params.id
+     const result = await authService.playerProfile(userId!)
      res.status(200).json({
           success: true,
           message: "Player data retrieved successfully ",

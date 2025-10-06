@@ -10,6 +10,7 @@ import emailSender from '../../utils/sendEmail.js';
 import type { TCreateProfile } from './auth.interface.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
 import { LobbyModel } from '../Lobby/lobby.model.js';
+import { email } from 'zod';
 
 const createUserIntoDB = async (payload: TCreateProfile) => {
      const isUserAlreadyExist = await userModel.findOne({ email: payload?.email })
@@ -182,6 +183,11 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 
 
 export const resetPassword = async (payload: { email: string, password: string  }) => {
+
+     const isPlayerIsExist = await userModel.findOne({email:payload.email})
+     if (!isPlayerIsExist) {
+          throw new AppError(404, "User not found");
+     }
 
      const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
 

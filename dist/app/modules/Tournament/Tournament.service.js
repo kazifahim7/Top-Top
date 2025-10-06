@@ -52,12 +52,42 @@ const qualifyTeamsService = (tournamentId, teamIds) => __awaiter(void 0, void 0,
     yield tournament.save();
     return tournament;
 });
+const getTopPlayers = (tournamentId) => __awaiter(void 0, void 0, void 0, function* () {
+    const tournament = yield TournamentModel.findById(tournamentId)
+        .populate({
+        path: "teams",
+        populate: {
+            path: "players",
+            model: "Players",
+        },
+    })
+        .lean();
+    if (!tournament) {
+        throw new AppError(404, "Tournament not found");
+    }
+    // allPlayers বের করা
+    let allPlayers = [];
+    tournament.teams.forEach((team) => {
+        if (team.players && Array.isArray(team.players)) {
+            allPlayers = [...allPlayers, ...team.players];
+        }
+    });
+    // rating অনুযায়ী sort
+    const sortedPlayers = allPlayers
+        .filter((p) => p.rating > 0)
+        .sort((a, b) => b.rating - a.rating);
+    return {
+        tournament: tournament.name,
+        topPlayers: sortedPlayers,
+    };
+});
 export const TournamentService = {
     createTournament,
     singleTournament,
     allTournament,
     updateTournament,
     deleteTournament,
-    qualifyTeamsService
+    qualifyTeamsService,
+    getTopPlayers
 };
 //# sourceMappingURL=Tournament.service.js.map

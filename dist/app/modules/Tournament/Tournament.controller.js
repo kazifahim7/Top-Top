@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import catchAsync from "../../utils/catcgAsync.js";
 import { getLocalImageURL } from "../../utils/multer.js";
+import { TournamentModel } from "./Tournament.model.js";
 import { TournamentService } from "./Tournament.service.js";
 const createTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const data = req.body;
@@ -75,12 +76,22 @@ const qualifyTeamsController = catchAsync((req, res) => __awaiter(void 0, void 0
         data: {}
     });
 }));
+const getTopPlayers = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { tournamentId } = req.params;
+    const result = yield TournamentService.getTopPlayers(tournamentId);
+    res.status(200).json({
+        success: true,
+        message: "Tournament Top player coming successfully",
+        data: {}
+    });
+}));
 export const TournamentController = {
     createTournament,
     singleTournament,
     updateTournament,
     deleteTournament,
     allTournament,
-    qualifyTeamsController
+    qualifyTeamsController,
+    getTopPlayers
 };
 //# sourceMappingURL=Tournament.controller.js.map

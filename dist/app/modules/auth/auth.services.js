@@ -15,6 +15,7 @@ import config from '../../config/index.js';
 import emailSender from '../../utils/sendEmail.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
 import { LobbyModel } from '../Lobby/lobby.model.js';
+import { email } from 'zod';
 const createUserIntoDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const isUserAlreadyExist = yield userModel.findOne({ email: payload === null || payload === void 0 ? void 0 : payload.email });
     if (isUserAlreadyExist) {
@@ -137,6 +138,10 @@ const resetRequest = (payload) => __awaiter(void 0, void 0, void 0, function* ()
     return {};
 });
 export const resetPassword = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const isPlayerIsExist = yield userModel.findOne({ email: payload.email });
+    if (!isPlayerIsExist) {
+        throw new AppError(404, "User not found");
+    }
     const hashedPassword = yield bcrypt.hash(payload.password, Number(config.salt_round));
     const updatedUser = yield userModel.findOneAndUpdate({ email: payload.email }, { $set: { password: hashedPassword } }, { new: true }).select("-password");
     if (!updatedUser) {
