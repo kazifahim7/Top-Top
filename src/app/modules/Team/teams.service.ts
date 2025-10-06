@@ -3,6 +3,8 @@ import AppError from "../../Error/AppError.js";
 import type { TTeam } from "./team.interface.js";
 import { TeamModel } from "./team.model.js";
 import { InviteModel } from "../Notification/notification.model.js";
+import { LobbyModel } from "../Lobby/lobby.model.js";
+import { MatchModel } from "../TournamentMatch/match.model.js";
 
 const createTeam = async (payload: TTeam, owner: any) => {
      const isTeamOwnerHasATeam = await TeamModel.findOne({ teamOwner: owner })
@@ -35,13 +37,47 @@ const allTeams = async () => {
 }
 const myTeam = async (id: string) => {
 
-     const result = await TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
+     const myTeam = await TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
           .populate("players")
           .populate("teamOwner")
           .populate("teamCaptain");
 
 
-     return result;
+     const upcomingMatch = await LobbyModel.find({
+          $or: [
+               { "team1.teamId": id },
+               { "team2.teamId": id },
+          ],
+          lobbyStatus: "ongoing",
+     });
+
+     const completeMatch = await LobbyModel.find({
+          $or: [
+               { "team1.teamId": id },
+               { "team2.teamId": id },
+          ],
+          lobbyStatus: "completed",
+     });
+     const upcomingMatchTournament = await MatchModel.find({
+          $or: [{ teamA: id }, { teamB: id }],
+          status: "Pending"
+     });
+
+   
+     const completeMatchTournament = await MatchModel.find({
+          $or: [{ teamA: id }, { teamB: id }],
+          status: "Completed"
+     });
+
+     return {
+          myTeam,
+          upcomingMatch,
+          upcomingMatchTournament,
+          completeMatch,
+          completeMatchTournament
+     }
+          
+    
 };
 const assignCaptain = async (ownerId: string, teamId: string, captainId: string) => {
 

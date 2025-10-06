@@ -16,11 +16,33 @@ export declare const teamsService: {
     } & {
         __v: number;
     })[]>;
-    myTeam: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
-        _id: Types.ObjectId;
-    } & {
-        __v: number;
-    }) | null>;
+    myTeam: (id: string) => Promise<{
+        myTeam: (import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+            _id: Types.ObjectId;
+        } & {
+            __v: number;
+        }) | null;
+        upcomingMatch: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
+            _id: unknown;
+        }> & {
+            __v: number;
+        })[];
+        upcomingMatchTournament: (import("mongoose").Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, import("mongoose").DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
+            _id: Types.ObjectId;
+        } & {
+            __v: number;
+        })[];
+        completeMatch: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
+            _id: unknown;
+        }> & {
+            __v: number;
+        })[];
+        completeMatchTournament: (import("mongoose").Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, import("mongoose").DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
+            _id: Types.ObjectId;
+        } & {
+            __v: number;
+        })[];
+    }>;
     assignCaptain: (ownerId: string, teamId: string, captainId: string) => Promise<Omit<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;
     } & {

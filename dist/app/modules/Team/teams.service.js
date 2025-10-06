@@ -11,6 +11,8 @@ import { Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "./team.model.js";
 import { InviteModel } from "../Notification/notification.model.js";
+import { LobbyModel } from "../Lobby/lobby.model.js";
+import { MatchModel } from "../TournamentMatch/match.model.js";
 const createTeam = (payload, owner) => __awaiter(void 0, void 0, void 0, function* () {
     const isTeamOwnerHasATeam = yield TeamModel.findOne({ teamOwner: owner });
     if (isTeamOwnerHasATeam) {
@@ -35,11 +37,39 @@ const allTeams = () => __awaiter(void 0, void 0, void 0, function* () {
     return result;
 });
 const myTeam = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
+    const myTeam = yield TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
         .populate("players")
         .populate("teamOwner")
         .populate("teamCaptain");
-    return result;
+    const upcomingMatch = yield LobbyModel.find({
+        $or: [
+            { "team1.teamId": id },
+            { "team2.teamId": id },
+        ],
+        lobbyStatus: "ongoing",
+    });
+    const completeMatch = yield LobbyModel.find({
+        $or: [
+            { "team1.teamId": id },
+            { "team2.teamId": id },
+        ],
+        lobbyStatus: "completed",
+    });
+    const upcomingMatchTournament = yield MatchModel.find({
+        $or: [{ teamA: id }, { teamB: id }],
+        status: "Pending"
+    });
+    const completeMatchTournament = yield MatchModel.find({
+        $or: [{ teamA: id }, { teamB: id }],
+        status: "Completed"
+    });
+    return {
+        myTeam,
+        upcomingMatch,
+        upcomingMatchTournament,
+        completeMatch,
+        completeMatchTournament
+    };
 });
 const assignCaptain = (ownerId, teamId, captainId) => __awaiter(void 0, void 0, void 0, function* () {
     try {
