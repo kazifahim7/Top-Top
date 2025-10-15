@@ -1,30 +1,39 @@
-import express, { type Application, type Request, type Response } from 'express'
-import cors from 'cors'
-
+import express, { type Application, type Request, type Response } from 'express';
+import cors from 'cors';
 import cron from "node-cron";
-import notFound from './app/middleware/notFound.js'
-import globalErrorHandler from './app/middleware/globalErrorHandler.js'
-import router from './app/router/index.js'
+import notFound from './app/middleware/notFound.js';
+import globalErrorHandler from './app/middleware/globalErrorHandler.js';
+import router from './app/router/index.js';
 import path from "path";
+import fs from "fs";
 import { GoalModel } from './app/modules/FeatureGoal/goal.model.js';
 
-
-const app: Application = express()
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+const app: Application = express();
 
 
-// parser 
-app.use(express.json())
+const uploadsPath = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsPath)) {
+     fs.mkdirSync(uploadsPath, { recursive: true });
+     console.log("📁 'uploads' folder created successfully!");
+} else {
+     console.log("✅ 'uploads' folder already exists.");
+}
+
+// Serve static uploads folder
+app.use("/uploads", express.static(uploadsPath));
+
+// Parser
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
      origin: '*',
      credentials: true
 }));
 
-
+// Cron job
 cron.schedule("* * * * *", async () => {
      const now = new Date();
-     console.log("hi")
+     console.log("⏰ Cron running...");
      const goals = await GoalModel.find({
           isScheduled: true,
           status: "pending",
@@ -40,21 +49,15 @@ cron.schedule("* * * * *", async () => {
      }
 });
 
-   
-
-// api 
-
-app.use("/api/v1", router)
-
+// API routes
+app.use("/api/v1", router);
 
 app.get('/', (req: Request, res: Response) => {
-     res.send('Welcome  Dear...')
-})
+     res.send('Welcome Dear... hi all done and safe');
+});
 
+// Error handling
+app.use(notFound);
+app.use(globalErrorHandler);
 
-
-app.use(notFound)
-
-app.use(globalErrorHandler)
-
-export default app
+export default app;
