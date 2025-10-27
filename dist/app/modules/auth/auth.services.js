@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { userModel } from './auth.model.js';
@@ -16,17 +7,17 @@ import emailSender from '../../utils/sendEmail.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
 import { LobbyModel } from '../Lobby/lobby.model.js';
 import { email } from 'zod';
-const createUserIntoDB = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isUserAlreadyExist = yield userModel.findOne({ email: payload === null || payload === void 0 ? void 0 : payload.email });
+const createUserIntoDB = async (payload) => {
+    const isUserAlreadyExist = await userModel.findOne({ email: payload?.email });
     if (isUserAlreadyExist) {
         throw new AppError(401, "This user Already exists");
     }
-    payload.password = yield bcrypt.hash(payload.password, Number(config.salt_round));
-    const result = yield userModel.create(payload);
+    payload.password = await bcrypt.hash(payload.password, Number(config.salt_round));
+    const result = await userModel.create(payload);
     return result;
-});
-const loginUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isUserExist = yield userModel.findOne({ email: payload.email });
+};
+const loginUser = async (payload) => {
+    const isUserExist = await userModel.findOne({ email: payload.email });
     if (!isUserExist) {
         throw new AppError(404, "This user Not Found");
     }
@@ -34,14 +25,14 @@ const loginUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
         throw new AppError(403, "This User is blocked");
     }
     // <- check the  password ok or not ->
-    const isPassIsOk = yield bcrypt.compare(payload === null || payload === void 0 ? void 0 : payload.password, isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.password);
+    const isPassIsOk = await bcrypt.compare(payload?.password, isUserExist?.password);
     if (!isPassIsOk) {
         throw new AppError(401, "This password  is invalid");
     }
     const user = {
-        id: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist._id,
-        role: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.role,
-        email: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.email
+        id: isUserExist?._id,
+        role: isUserExist?.role,
+        email: isUserExist?.email
     };
     const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
     const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
@@ -49,13 +40,13 @@ const loginUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
         accessToken,
         refreshToken
     };
-});
-const googleLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield userModel.create(payload);
+};
+const googleLogin = async (payload) => {
+    const result = await userModel.create(payload);
     const user = {
-        id: result === null || result === void 0 ? void 0 : result._id,
-        role: result === null || result === void 0 ? void 0 : result.role,
-        email: result === null || result === void 0 ? void 0 : result.email
+        id: result?._id,
+        role: result?.role,
+        email: result?.email
     };
     const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
     const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
@@ -64,13 +55,13 @@ const googleLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () 
         accessToken,
         refreshToken
     };
-});
-const appleLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield userModel.create(payload);
+};
+const appleLogin = async (payload) => {
+    const result = await userModel.create(payload);
     const user = {
-        id: result === null || result === void 0 ? void 0 : result._id,
-        role: result === null || result === void 0 ? void 0 : result.role,
-        email: result === null || result === void 0 ? void 0 : result.email
+        id: result?._id,
+        role: result?.role,
+        email: result?.email
     };
     const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
     const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
@@ -79,34 +70,42 @@ const appleLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
         accessToken,
         refreshToken
     };
-});
-const updateStatusInDB = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isUserExist = yield userModel.findById(id);
+};
+const updateStatusInDB = async (id, payload) => {
+    const isUserExist = await userModel.findById(id);
     if (!isUserExist) {
         throw new AppError(404, "This user Not Found");
     }
-    const result = yield userModel.findByIdAndUpdate(id, payload, { new: true });
+    const result = await userModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
-});
-const updateProfileInDB = (email, payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isUserExist = yield userModel.findOne({ email: email });
+};
+const deletePlayerFromDB = async (id) => {
+    const isUserExist = await userModel.findById(id);
     if (!isUserExist) {
         throw new AppError(404, "This user Not Found");
     }
-    const result = yield userModel.findOneAndUpdate({ email: email }, payload, { new: true });
+    const result = await userModel.findByIdAndDelete(id, { new: true });
     return result;
-});
-const allStudentFromDB = (query) => __awaiter(void 0, void 0, void 0, function* () {
+};
+const updateProfileInDB = async (email, payload) => {
+    const isUserExist = await userModel.findOne({ email: email });
+    if (!isUserExist) {
+        throw new AppError(404, "This user Not Found");
+    }
+    const result = await userModel.findOneAndUpdate({ email: email }, payload, { new: true });
+    return result;
+};
+const allStudentFromDB = async (query) => {
     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName", "FullName"]).sort();
-    const result = yield playerQuery.modelQuery;
+    const result = await playerQuery.modelQuery;
     return result;
-});
-const getSingleUser = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield userModel.findOne({ email: id }).select("-password");
+};
+const getSingleUser = async (id) => {
+    const result = await userModel.findOne({ email: id }).select("-password");
     return result;
-});
-const resetRequest = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isUserExist = yield userModel.findOne({ email: payload === null || payload === void 0 ? void 0 : payload.email });
+};
+const resetRequest = async (payload) => {
+    const isUserExist = await userModel.findOne({ email: payload?.email });
     if (!isUserExist) {
         throw new AppError(404, "This user Not Found");
     }
@@ -114,9 +113,9 @@ const resetRequest = (payload) => __awaiter(void 0, void 0, void 0, function* ()
         throw new AppError(403, "You are not authorized");
     }
     const user = {
-        id: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist._id,
-        role: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.role,
-        email: isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.email
+        id: isUserExist?._id,
+        role: isUserExist?.role,
+        email: isUserExist?.email
     };
     const resetToken = jwt.sign(user, config.jwt_secret, { expiresIn: "30d" });
     const resetUrl = `yourapp://reset-password?token=${resetToken}`;
@@ -134,40 +133,40 @@ const resetRequest = (payload) => __awaiter(void 0, void 0, void 0, function* ()
          <p>Thank you,<br>Top Top Team</p>
        </div>
      `;
-    yield emailSender(payload.email, emailHtml, "Reset your password");
+    await emailSender(payload.email, emailHtml, "Reset your password");
     return {};
-});
-export const resetPassword = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isPlayerIsExist = yield userModel.findOne({ email: payload.email });
+};
+export const resetPassword = async (payload) => {
+    const isPlayerIsExist = await userModel.findOne({ email: payload.email });
     if (!isPlayerIsExist) {
         throw new AppError(404, "User not found");
     }
-    const hashedPassword = yield bcrypt.hash(payload.password, Number(config.salt_round));
-    const updatedUser = yield userModel.findOneAndUpdate({ email: payload.email }, { $set: { password: hashedPassword } }, { new: true }).select("-password");
+    const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
+    const updatedUser = await userModel.findOneAndUpdate({ email: payload.email }, { $set: { password: hashedPassword } }, { new: true }).select("-password");
     if (!updatedUser) {
         throw new AppError(404, "User not found");
     }
     return updatedUser;
-});
-export const changePassword = (payload, userId) => __awaiter(void 0, void 0, void 0, function* () {
-    const isUserExist = yield userModel.findById(userId);
+};
+export const changePassword = async (payload, userId) => {
+    const isUserExist = await userModel.findById(userId);
     if (!isUserExist) {
         throw new AppError(404, "This user Not Found");
     }
-    const isPassIsOk = yield bcrypt.compare(payload === null || payload === void 0 ? void 0 : payload.oldPassword, isUserExist === null || isUserExist === void 0 ? void 0 : isUserExist.password);
+    const isPassIsOk = await bcrypt.compare(payload?.oldPassword, isUserExist?.password);
     if (!isPassIsOk) {
         throw new AppError(401, "This password  is invalid");
     }
-    const hashedPassword = yield bcrypt.hash(payload.newPassword, Number(config.salt_round));
-    const updatedUser = yield userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true });
+    const hashedPassword = await bcrypt.hash(payload.newPassword, Number(config.salt_round));
+    const updatedUser = await userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true });
     if (!updatedUser) {
         throw new AppError(404, "User not found");
     }
     return updatedUser;
-});
-const playerProfile = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield userModel.findById(id);
-    const allLobbies = yield LobbyModel.find({
+};
+const playerProfile = async (id) => {
+    const result = await userModel.findById(id);
+    const allLobbies = await LobbyModel.find({
         $or: [
             { "team1.players.playerId": id },
             { "team2.players.playerId": id },
@@ -180,7 +179,7 @@ const playerProfile = (id) => __awaiter(void 0, void 0, void 0, function* () {
         result,
         allLobbies
     };
-});
+};
 export const authService = {
     createUserIntoDB,
     loginUser,
@@ -193,6 +192,7 @@ export const authService = {
     googleLogin,
     appleLogin,
     changePassword,
-    playerProfile
+    playerProfile,
+    deletePlayerFromDB
 };
 //# sourceMappingURL=auth.services.js.map

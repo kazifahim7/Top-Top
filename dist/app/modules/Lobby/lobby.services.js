@@ -1,29 +1,20 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { Types } from "mongoose";
 import { LobbyModel } from "./lobby.model.js";
 import QueryBuilder from "../../builder/QueryBuilder.js";
 import { userModel } from "../auth/auth.model.js";
 import AppError from "../../Error/AppError.js";
-const createMatch = (payload, id) => __awaiter(void 0, void 0, void 0, function* () {
+const createMatch = async (payload, id) => {
     if (payload.matchType === "solo") {
         payload.defaultTeam1.teamName = "Team X";
         payload.defaultTeam2.teamName = "Team Y";
     }
     payload.organizer = new Types.ObjectId(id);
-    const result = yield LobbyModel.create(payload);
+    const result = await LobbyModel.create(payload);
     return result;
-});
-const allMatch = (query) => __awaiter(void 0, void 0, void 0, function* () {
+};
+const allMatch = async (query) => {
     const search = query.searchTerms || "";
-    const lobbies = yield LobbyModel.aggregate([
+    const lobbies = await LobbyModel.aggregate([
         {
             $lookup: {
                 from: "teams",
@@ -96,10 +87,9 @@ const allMatch = (query) => __awaiter(void 0, void 0, void 0, function* () {
         }
     ]);
     return lobbies;
-});
-export const updatePlayerStats = (data) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const lobby = yield LobbyModel.findById(data.lobbyId);
+};
+export const updatePlayerStats = async (data) => {
+    const lobby = await LobbyModel.findById(data.lobbyId);
     if (!lobby)
         throw new Error("Lobby not found");
     let player = null;
@@ -115,7 +105,7 @@ export const updatePlayerStats = (data) => __awaiter(void 0, void 0, void 0, fun
     // -------------------
     for (const key of teams) {
         const team = lobby[key];
-        if ((_a = team === null || team === void 0 ? void 0 : team.players) === null || _a === void 0 ? void 0 : _a.length) {
+        if (team?.players?.length) {
             player = team.players.find(p => p.playerId.toString() === data.playerId);
             if (player) {
                 teamKey = key;
@@ -149,12 +139,12 @@ export const updatePlayerStats = (data) => __awaiter(void 0, void 0, void 0, fun
         else if (teamKey === "team2")
             lobby.goalTeam2 += data.goal;
     }
-    yield lobby.save();
+    await lobby.save();
     // -------------------
     // Recalculate profile rating from all lobbies
     // -------------------
     const objectId = new Types.ObjectId(data.playerId);
-    const allLobbies = yield LobbyModel.find({
+    const allLobbies = await LobbyModel.find({
         $or: [
             { "team1.players.playerId": objectId },
             { "team2.players.playerId": objectId },
@@ -166,9 +156,8 @@ export const updatePlayerStats = (data) => __awaiter(void 0, void 0, void 0, fun
     let matchCount = 0;
     allLobbies.forEach(lobbyItem => {
         teams.forEach(key => {
-            var _a;
             const team = lobbyItem[key];
-            if (!((_a = team === null || team === void 0 ? void 0 : team.players) === null || _a === void 0 ? void 0 : _a.length))
+            if (!team?.players?.length)
                 return;
             const p = team.players.find(pl => pl.playerId.toString() === data.playerId);
             if (!p)
@@ -188,7 +177,7 @@ export const updatePlayerStats = (data) => __awaiter(void 0, void 0, void 0, fun
     // -------------------
     // Update player profile stats + rating
     // -------------------
-    yield userModel.findByIdAndUpdate(data.playerId, {
+    await userModel.findByIdAndUpdate(data.playerId, {
         $inc: {
             redCard: data.redCard || 0,
             yellowCard: data.yellowCard || 0,
@@ -201,15 +190,15 @@ export const updatePlayerStats = (data) => __awaiter(void 0, void 0, void 0, fun
         rating: parseFloat(averageRating.toFixed(2)),
     }, { new: true });
     return { lobbyPlayer: player };
-});
-const updateLobbyInfo = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isUserExist = yield LobbyModel.findById(id);
+};
+const updateLobbyInfo = async (id, payload) => {
+    const isUserExist = await LobbyModel.findById(id);
     if (!isUserExist) {
         throw new AppError(404, "This user Not Found");
     }
-    const result = yield userModel.findByIdAndUpdate(id, payload, { new: true });
+    const result = await userModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
-});
+};
 export const lobbyService = {
     createMatch,
     allMatch,

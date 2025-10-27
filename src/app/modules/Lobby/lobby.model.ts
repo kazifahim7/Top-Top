@@ -24,7 +24,7 @@ const TeamSchema = new Schema<Team>({
 });
 
 const DefaultTeamSchema = new Schema<DefaultTeam>({
-     teamName: { type: String, required: true },
+     teamName: { type: String },
      players: { type: [PlayerStatsSchema], default: [] },
      matchFormat: { type: String },
 });
@@ -32,6 +32,7 @@ const DefaultTeamSchema = new Schema<DefaultTeam>({
 const LocationSchema = new Schema<GeoLocation>({
      lat: { type: Number, required: true },
      lng: { type: Number, required: true },
+     address: { type: String, required: true }
 });
 
 const LobbySchema = new Schema<LobbyDocument>(
@@ -55,7 +56,7 @@ const LobbySchema = new Schema<LobbyDocument>(
           media: { type: [String] },
           motm: { type: Schema.Types.ObjectId, ref: "Player" },
           note: { type: String },
-          lobbyStatus: { type: String, enum: ["ongoing", "completed"], default: "ongoing" },
+          lobbyStatus: { type: String, enum: ["ongoing", "completed","block"], default: "ongoing" },
           matchType: { type: String, enum: ["solo", "teams"], default: "solo" },
           matchPrivacy: { type: String, enum: ["public", "private"], default: "public" },
           privateKey: { type: String },

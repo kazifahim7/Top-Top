@@ -7,7 +7,7 @@ router.post("/create-tournament", upload.fields([
 ]), (req, _res, next) => {
     if (req.body.data) {
         try {
-            req.body = Object.assign({}, JSON.parse(req.body.data));
+            req.body = { ...JSON.parse(req.body.data) };
         }
         catch (err) {
             return next(new Error("Invalid JSON in 'data' field"));
@@ -22,7 +22,7 @@ router.patch('/update-tournament/:id', upload.fields([
 ]), (req, _res, next) => {
     if (req.body.data) {
         try {
-            req.body = Object.assign({}, JSON.parse(req.body.data));
+            req.body = { ...JSON.parse(req.body.data) };
         }
         catch (err) {
             return next(new Error("Invalid JSON in 'data' field"));

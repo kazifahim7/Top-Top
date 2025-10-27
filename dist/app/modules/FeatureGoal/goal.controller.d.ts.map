@@ -1,1 +1,1 @@
-{"version":3,"file":"goal.controller.d.ts","sourceRoot":"","sources":["../../../../src/app/modules/FeatureGoal/goal.controller.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AA2BjD,eAAO,MAAM,cAAc;;;CAG1B,CAAA"}
+{"version":3,"file":"goal.controller.d.ts","sourceRoot":"","sources":["../../../../src/app/modules/FeatureGoal/goal.controller.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAmCjD,eAAO,MAAM,cAAc;;;;CAI1B,CAAA"}

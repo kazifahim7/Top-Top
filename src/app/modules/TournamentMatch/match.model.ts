@@ -35,7 +35,7 @@ const matchSchema = new Schema<IMatch>({
 
      status: {
           type: String,
-          enum: ["Pending", "Completed"],
+          enum: ["Pending", "Completed","block"],
           default: "Pending"
      },
 

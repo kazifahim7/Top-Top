@@ -120,6 +120,16 @@ const updateStatusInDB = async (id: string, payload: Record<string, unknown>) =>
      return result
 
 }
+const deletePlayerFromDB = async (id: string) => {
+     const isUserExist = await userModel.findById(id)
+     if (!isUserExist) {
+          throw new AppError(404, "This user Not Found");
+
+     }
+     const result = await userModel.findByIdAndDelete(id,  { new: true })
+     return result
+
+}
 const updateProfileInDB = async (email: string, payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findOne({ email: email })
 
@@ -270,5 +280,6 @@ export const authService = {
      googleLogin,
      appleLogin,
      changePassword,
-     playerProfile
+     playerProfile,
+     deletePlayerFromDB
 }

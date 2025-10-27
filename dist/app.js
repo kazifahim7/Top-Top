@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import express, {} from 'express';
 import cors from 'cors';
 import cron from "node-cron";
@@ -14,20 +5,31 @@ import notFound from './app/middleware/notFound.js';
 import globalErrorHandler from './app/middleware/globalErrorHandler.js';
 import router from './app/router/index.js';
 import path from "path";
+import fs from "fs";
 import { GoalModel } from './app/modules/FeatureGoal/goal.model.js';
 const app = express();
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-// parser 
+const uploadsPath = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+    console.log("📁 'uploads' folder created successfully!");
+}
+else {
+    console.log("✅ 'uploads' folder already exists.");
+}
+// Serve static uploads folder
+app.use("/uploads", express.static(uploadsPath));
+// Parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
     origin: '*',
     credentials: true
 }));
-cron.schedule("* * * * *", () => __awaiter(void 0, void 0, void 0, function* () {
+// Cron job
+cron.schedule("* * * * *", async () => {
     const now = new Date();
-    console.log("hi");
-    const goals = yield GoalModel.find({
+    console.log("⏰ Cron running...");
+    const goals = await GoalModel.find({
         isScheduled: true,
         status: "pending",
         scheduledDate: { $lte: now },
@@ -35,16 +37,17 @@ cron.schedule("* * * * *", () => __awaiter(void 0, void 0, void 0, function* () 
     if (goals.length > 0) {
         for (const goal of goals) {
             goal.status = "active";
-            yield goal.save();
+            await goal.save();
             console.log(`✅ Goal Activated: ${goal.goalTitle}`);
         }
     }
-}));
-// api 
+});
+// API routes
 app.use("/api/v1", router);
 app.get('/', (req, res) => {
-    res.send('Welcome  Dear...');
+    res.send('Welcome Dear... hi all done and safe');
 });
+// Error handling
 app.use(notFound);
 app.use(globalErrorHandler);
 export default app;

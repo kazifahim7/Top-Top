@@ -27,6 +27,7 @@ router.post("/reset-password",authController.resetPassword)
 router.get("/all-player", authController.allUsers)
 
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus)
+router.delete("/delete-player/:id", auth("admin"), authController.deletePlayer)
 
 router.post('/change-password',auth("player"),authController.changePassword)
 

@@ -146,5 +146,10 @@ export declare const authService: {
             __v: number;
         })[];
     }>;
+    deletePlayerFromDB: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: import("mongoose").Types.ObjectId;
+    } & {
+        __v: number;
+    }) | null>;
 };
 //# sourceMappingURL=auth.services.d.ts.map

@@ -1,90 +1,81 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import catchAsync from "../../utils/catcgAsync.js";
 import { getLocalImageURL } from "../../utils/multer.js";
 import { TournamentModel } from "./Tournament.model.js";
 import { TournamentService } from "./Tournament.service.js";
-const createTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const createTournament = catchAsync(async (req, res) => {
     const data = req.body;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
         const url = getLocalImageURL(file.filename);
         data.imageUrl = url;
     }
-    const result = yield TournamentService.createTournament(data);
+    const result = await TournamentService.createTournament(data);
     res.status(200).json({
         success: true,
         message: "Tournament created successfully",
         data: result
     });
-}));
-const singleTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentService.singleTournament(req.params.id);
+});
+const singleTournament = catchAsync(async (req, res) => {
+    const result = await TournamentService.singleTournament(req.params.id);
     res.status(200).json({
         success: true,
         message: "Tournament retrieved successfully",
         data: result
     });
-}));
-const allTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentService.allTournament();
+});
+const allTournament = catchAsync(async (req, res) => {
+    const result = await TournamentService.allTournament();
     res.status(200).json({
         success: true,
         message: "Tournament retrieved successfully",
         data: result
     });
-}));
-const updateTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const updateTournament = catchAsync(async (req, res) => {
     const data = req.body;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
         const url = getLocalImageURL(file.filename);
         data.imageUrl = url;
     }
-    const result = yield TournamentService.updateTournament(req.params.id, data);
+    const result = await TournamentService.updateTournament(req.params.id, data);
     res.status(200).json({
         success: true,
         message: "Tournament updated successfully",
         data: result
     });
-}));
-const deleteTournament = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentService.deleteTournament(req.params.id);
+});
+const deleteTournament = catchAsync(async (req, res) => {
+    const result = await TournamentService.deleteTournament(req.params.id);
     res.status(200).json({
         success: true,
         message: "Tournament deleted successfully",
         data: {}
     });
-}));
-const qualifyTeamsController = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const qualifyTeamsController = catchAsync(async (req, res) => {
     const { tournamentId } = req.params;
     const { teamIds } = req.body;
     if (!teamIds || !Array.isArray(teamIds)) {
         return res.status(400).json({ message: "teamIds must be an array" });
     }
-    const result = yield TournamentService.qualifyTeamsService(tournamentId, teamIds);
+    const result = await TournamentService.qualifyTeamsService(tournamentId, teamIds);
     res.status(200).json({
         success: true,
         message: "Tournament deleted successfully",
         data: {}
     });
-}));
-const getTopPlayers = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const getTopPlayers = catchAsync(async (req, res) => {
     const { tournamentId } = req.params;
-    const result = yield TournamentService.getTopPlayers(tournamentId);
+    const result = await TournamentService.getTopPlayers(tournamentId);
     res.status(200).json({
         success: true,
         message: "Tournament Top player coming successfully",
         data: {}
     });
-}));
+});
 export const TournamentController = {
     createTournament,
     singleTournament,

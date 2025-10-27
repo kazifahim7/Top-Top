@@ -1,139 +1,137 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import {} from "express";
 import catchAsync from "../../utils/catcgAsync.js";
 import { authService } from "./auth.services.js";
 import { getLocalImageURL } from "../../utils/multer.js";
-const createUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const createUser = catchAsync(async (req, res) => {
     const data = req.body;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
         const url = getLocalImageURL(file.filename);
         data.imageUrl = url;
     }
-    const result = yield authService.createUserIntoDB(data);
+    const result = await authService.createUserIntoDB(data);
     res.status(200).json({
         success: true,
         message: "Player registered successfully",
         data: {
-            _id: result === null || result === void 0 ? void 0 : result._id,
-            fullName: result === null || result === void 0 ? void 0 : result.FullName,
-            email: result === null || result === void 0 ? void 0 : result.email
+            _id: result?._id,
+            fullName: result?.FullName,
+            email: result?.email
         }
     });
-}));
-const logInUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const logInUser = catchAsync(async (req, res) => {
     const data = req.body;
-    const result = yield authService.loginUser(data);
+    const result = await authService.loginUser(data);
     res.status(200).json({
         success: true,
         message: "User login successfully",
         data: result
     });
-}));
-const googleLogin = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const googleLogin = catchAsync(async (req, res) => {
     const data = req.body;
-    const result = yield authService.googleLogin(data);
+    const result = await authService.googleLogin(data);
     res.status(200).json({
         success: true,
         message: "Google login successfully",
         data: result
     });
-}));
-const appleLogin = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const appleLogin = catchAsync(async (req, res) => {
     const data = req.body;
-    const result = yield authService.appleLogin(data);
+    const result = await authService.appleLogin(data);
     res.status(200).json({
         success: true,
         message: "Apple login successfully",
         data: result
     });
-}));
-const resetRequest = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const resetRequest = catchAsync(async (req, res) => {
     const data = req.body;
-    const result = yield authService.resetRequest(data);
+    const result = await authService.resetRequest(data);
     res.status(200).json({
         success: true,
         message: "Check your Email",
         data: result
     });
-}));
-const updateStatus = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const updateStatus = catchAsync(async (req, res) => {
     const id = req.params.id;
     const data = req.body;
-    const result = yield authService.updateStatusInDB(id, data);
+    const result = await authService.updateStatusInDB(id, data);
     res.status(200).json({
         success: true,
         message: "User status update successfully successfully",
         data: result
     });
-}));
-const updateProfile = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const id = (_a = req.params) === null || _a === void 0 ? void 0 : _a.email;
+});
+const deletePlayer = catchAsync(async (req, res) => {
+    const id = req.params.id;
+    const result = await authService.deletePlayerFromDB(id);
+    res.status(200).json({
+        success: true,
+        message: "deleted successfully successfully",
+        data: result
+    });
+});
+const updateProfile = catchAsync(async (req, res) => {
+    const id = req.params?.email;
     const data = req.body;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
         const url = getLocalImageURL(file.filename);
         data.imageUrl = url;
     }
-    const result = yield authService.updateProfileInDB(id, data);
+    const result = await authService.updateProfileInDB(id, data);
     res.status(200).json({
         success: true,
         message: "User  update successfully ",
         data: result
     });
-}));
-const allUsers = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield authService.allStudentFromDB(req.query);
+});
+const allUsers = catchAsync(async (req, res) => {
+    const result = await authService.allStudentFromDB(req.query);
     res.status(200).json({
         success: true,
         message: "User is retrieved successfully ",
         data: result
     });
-}));
-const singleUser = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const result = yield authService.getSingleUser((_a = req === null || req === void 0 ? void 0 : req.params) === null || _a === void 0 ? void 0 : _a.email);
+});
+const singleUser = catchAsync(async (req, res) => {
+    const result = await authService.getSingleUser(req?.params?.email);
     res.status(200).json({
         success: true,
         message: "User is retrieved successfully ",
         data: result
     });
-}));
-const resetPassword = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield authService.resetPassword(req === null || req === void 0 ? void 0 : req.body);
+});
+const resetPassword = catchAsync(async (req, res) => {
+    const result = await authService.resetPassword(req?.body);
     res.status(200).json({
         success: true,
         message: "Password successfully updated ",
         data: result
     });
-}));
-const changePassword = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const changePassword = catchAsync(async (req, res) => {
     const userId = req.user.id;
-    const result = yield authService.changePassword(req === null || req === void 0 ? void 0 : req.body, userId);
+    const result = await authService.changePassword(req?.body, userId);
     res.status(200).json({
         success: true,
         message: "Password successfully updated ",
         data: result
     });
-}));
-const playerProfile = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+});
+const playerProfile = catchAsync(async (req, res) => {
     const userId = req.params.id;
-    const result = yield authService.playerProfile(userId);
+    const result = await authService.playerProfile(userId);
     res.status(200).json({
         success: true,
         message: "Player data retrieved successfully ",
         data: result
     });
-}));
+});
 export const authController = {
     createUser,
     logInUser,
@@ -146,6 +144,7 @@ export const authController = {
     googleLogin,
     appleLogin,
     changePassword,
-    playerProfile
+    playerProfile,
+    deletePlayer
 };
 //# sourceMappingURL=auth.controller.js.map

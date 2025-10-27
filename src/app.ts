@@ -7,6 +7,8 @@ import router from './app/router/index.js';
 import path from "path";
 import fs from "fs";
 import { GoalModel } from './app/modules/FeatureGoal/goal.model.js';
+import axios from 'axios';
+import config from './app/config/index.js';
 
 const app: Application = express();
 
@@ -48,6 +50,57 @@ cron.schedule("* * * * *", async () => {
           }
      }
 });
+
+// location 
+
+app.get("/api/autocomplete", async (req, res) => {
+     try {
+          const { input } = req.query;
+          const response = await axios.get(
+               `https://maps.googleapis.com/maps/api/place/autocomplete/json`,
+               {
+                    params: { input, key: config.google_api_key },
+               }
+          );
+
+          res.json(response.data);
+     } catch (error) {
+          res.status(500).json({ message: "Something went wrong", error });
+     }
+});
+
+
+app.get("/api/place-details", async (req, res) => {
+     try {
+          const { place_id } = req.query;
+          const response = await axios.get(
+               `https://maps.googleapis.com/maps/api/place/details/json`,
+               {
+                    params: {
+                         place_id,
+                         key: config.google_api_key,
+                         fields: "formatted_address,geometry",
+                    },
+               }
+          );
+
+          const result = response.data.result;
+
+          res.json({
+               address: result.formatted_address,
+               lat: result.geometry.location.lat,
+               lng: result.geometry.location.lng,
+          });
+     } catch (error) {
+          res.status(500).json({ message: "Something went wrong", error });
+     }
+});
+
+
+
+
+
+
 
 // API routes
 app.use("/api/v1", router);

@@ -18,8 +18,12 @@ const createGoal = async (payload: IGoal) => {
 
 
 
-const allGoal = async()=>{
+const allGoal = async () => {
      const goalsData = await GoalModel.find()
+     return goalsData
+}
+const deleteGoal = async (id: string) => {
+     const goalsData = await GoalModel.findByIdAndDelete(id, { new: true })
      return goalsData
 }
 
@@ -32,5 +36,6 @@ const allGoal = async()=>{
 
 export const goalServices = {
      createGoal,
-     allGoal
+     allGoal,
+     deleteGoal
 }

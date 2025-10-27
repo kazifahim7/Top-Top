@@ -1,5 +1,5 @@
 export const TAdmin = {
-    "FullName": "Super Admin kaka",
+    "FullName": "Super Admin",
     "email": "admin@gmail.com",
     "password": "admin1234",
     "role": "admin",

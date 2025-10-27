@@ -1,30 +1,21 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import catchAsync from "../../utils/catcgAsync.js";
 import { playerRankingService } from "./ranking.services.js";
-const playerRanking = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield playerRankingService.playerRanking(req.body);
+const playerRanking = catchAsync(async (req, res) => {
+    const result = await playerRankingService.playerRanking(req.body);
     res.status(200).json({
         success: true,
         message: "Player Ranking retrieved successfully ",
         data: result
     });
-}));
-const teamRanking = catchAsync((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield playerRankingService.teamRanking(req.body);
+});
+const teamRanking = catchAsync(async (req, res) => {
+    const result = await playerRankingService.teamRanking(req.body);
     res.status(200).json({
         success: true,
         message: "Team Ranking retrieved successfully ",
         data: result
     });
-}));
+});
 export const playerRankingController = {
     playerRanking,
     teamRanking

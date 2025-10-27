@@ -14,16 +14,16 @@ const globalErrorHandler = (err, req, res, next) => {
     ];
     if (err instanceof ZodError) {
         const simplifiedError = handleZodError(err);
-        statusCode = simplifiedError === null || simplifiedError === void 0 ? void 0 : simplifiedError.statusCode;
-        message = simplifiedError === null || simplifiedError === void 0 ? void 0 : simplifiedError.message;
+        statusCode = simplifiedError?.statusCode;
+        message = simplifiedError?.message;
     }
     else if (err instanceof AppError) {
-        statusCode = err === null || err === void 0 ? void 0 : err.statusCode;
+        statusCode = err?.statusCode;
         message = err.message;
         errorSources = [
             {
                 path: '',
-                message: err === null || err === void 0 ? void 0 : err.message,
+                message: err?.message,
             },
         ];
     }
@@ -32,7 +32,7 @@ const globalErrorHandler = (err, req, res, next) => {
         errorSources = [
             {
                 path: '',
-                message: err === null || err === void 0 ? void 0 : err.message,
+                message: err?.message,
             },
         ];
     }
@@ -42,7 +42,7 @@ const globalErrorHandler = (err, req, res, next) => {
         message,
         errorSources,
         err,
-        stack: config.node_env === 'development' ? err === null || err === void 0 ? void 0 : err.stack : null,
+        stack: config.node_env === 'development' ? err?.stack : null,
     });
 };
 export default globalErrorHandler;

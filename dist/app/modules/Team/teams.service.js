@@ -1,65 +1,56 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "./team.model.js";
 import { InviteModel } from "../Notification/notification.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
-const createTeam = (payload, owner) => __awaiter(void 0, void 0, void 0, function* () {
-    const isTeamOwnerHasATeam = yield TeamModel.findOne({ teamOwner: owner });
+const createTeam = async (payload, owner) => {
+    const isTeamOwnerHasATeam = await TeamModel.findOne({ teamOwner: owner });
     if (isTeamOwnerHasATeam) {
         throw new AppError(403, "you already has a team");
     }
     payload.teamOwner = owner;
-    const result = yield TeamModel.create(payload);
+    const result = await TeamModel.create(payload);
     return result;
-});
-const updateTeam = (payload, id) => __awaiter(void 0, void 0, void 0, function* () {
-    const isTeamIsExist = yield TeamModel.findById(id);
+};
+const updateTeam = async (payload, id) => {
+    const isTeamIsExist = await TeamModel.findById(id);
     if (!isTeamIsExist) {
         throw new AppError(404, "This team not found");
     }
-    const result = yield TeamModel.findByIdAndUpdate(id, payload, { new: true });
+    const result = await TeamModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
-});
-const allTeams = () => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TeamModel.find().populate("players")
+};
+const allTeams = async () => {
+    const result = await TeamModel.find().populate("players")
         .populate("teamOwner")
         .populate("teamCaptain");
     return result;
-});
-const myTeam = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const myTeam = yield TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
+};
+const myTeam = async (id) => {
+    const myTeam = await TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
         .populate("players")
         .populate("teamOwner")
         .populate("teamCaptain");
-    const upcomingMatch = yield LobbyModel.find({
+    const upcomingMatch = await LobbyModel.find({
         $or: [
             { "team1.teamId": id },
             { "team2.teamId": id },
         ],
         lobbyStatus: "ongoing",
     });
-    const completeMatch = yield LobbyModel.find({
+    const completeMatch = await LobbyModel.find({
         $or: [
             { "team1.teamId": id },
             { "team2.teamId": id },
         ],
         lobbyStatus: "completed",
     });
-    const upcomingMatchTournament = yield MatchModel.find({
+    const upcomingMatchTournament = await MatchModel.find({
         $or: [{ teamA: id }, { teamB: id }],
         status: "Pending"
     });
-    const completeMatchTournament = yield MatchModel.find({
+    const completeMatchTournament = await MatchModel.find({
         $or: [{ teamA: id }, { teamB: id }],
         status: "Completed"
     });
@@ -70,14 +61,14 @@ const myTeam = (id) => __awaiter(void 0, void 0, void 0, function* () {
         completeMatch,
         completeMatchTournament
     };
-});
-const assignCaptain = (ownerId, teamId, captainId) => __awaiter(void 0, void 0, void 0, function* () {
+};
+const assignCaptain = async (ownerId, teamId, captainId) => {
     try {
-        const team = yield TeamModel.findById(teamId);
+        const team = await TeamModel.findById(teamId);
         if (!team) {
             throw new AppError(404, "Team not found");
         }
-        if ((team === null || team === void 0 ? void 0 : team.teamOwner.toString()) !== ownerId) {
+        if (team?.teamOwner.toString() !== ownerId) {
             throw new AppError(400, "you can not assigned it");
         }
         if (!captainId) {
@@ -96,16 +87,16 @@ const assignCaptain = (ownerId, teamId, captainId) => __awaiter(void 0, void 0, 
         }
         // Assign new captain
         team.teamCaptain.push(new Types.ObjectId(captainId));
-        yield team.save();
-        const result = yield team.populate("players teamOwner teamCaptain");
+        await team.save();
+        const result = await team.populate("players teamOwner teamCaptain");
         return result;
     }
     catch (err) {
         throw new AppError(400, "something went wrong bro");
     }
-});
-const removePlayer = (ownerId, teamId, playerId) => __awaiter(void 0, void 0, void 0, function* () {
-    const team = yield TeamModel.findById(teamId);
+};
+const removePlayer = async (ownerId, teamId, playerId) => {
+    const team = await TeamModel.findById(teamId);
     if (!team) {
         throw new AppError(404, "Team not found");
     }
@@ -126,18 +117,18 @@ const removePlayer = (ownerId, teamId, playerId) => __awaiter(void 0, void 0, vo
         throw new AppError(400, "Cannot remove a captain directly");
     }
     // Remove the player
-    const updatedTeam = yield TeamModel.findByIdAndUpdate(teamId, { $pull: { players: new Types.ObjectId(playerId) } }, { new: true })
+    const updatedTeam = await TeamModel.findByIdAndUpdate(teamId, { $pull: { players: new Types.ObjectId(playerId) } }, { new: true })
         .populate("players")
         .populate("teamOwner")
         .populate("teamCaptain");
     return updatedTeam;
-});
-const invitePlayer = (ownerId, teamId, playerId, message) => __awaiter(void 0, void 0, void 0, function* () {
-    const team = yield TeamModel.findById(teamId);
+};
+const invitePlayer = async (ownerId, teamId, playerId, message) => {
+    const team = await TeamModel.findById(teamId);
     if (!team) {
         throw new AppError(400, "Cannot remove a captain directly");
     }
-    if ((team === null || team === void 0 ? void 0 : team.teamOwner.toString()) !== ownerId) {
+    if (team?.teamOwner.toString() !== ownerId) {
         throw new AppError(400, "you can not send invite");
     }
     // Prevent owner inviting themselves
@@ -145,7 +136,7 @@ const invitePlayer = (ownerId, teamId, playerId, message) => __awaiter(void 0, v
         throw new AppError(400, "Owner cannot invite themselves");
     }
     // Create invite in database
-    const invite = yield InviteModel.create({
+    const invite = await InviteModel.create({
         team: new Types.ObjectId(teamId),
         sender: new Types.ObjectId(ownerId),
         receiver: new Types.ObjectId(playerId),
@@ -155,17 +146,17 @@ const invitePlayer = (ownerId, teamId, playerId, message) => __awaiter(void 0, v
     // You can integrate Firebase Cloud Messaging (FCM) or OneSignal
     // sendPushNotification(receiverId, `You have a new invite to join ${team.teamName}`);
     return invite;
-});
-const acceptInvite = (inviteId) => __awaiter(void 0, void 0, void 0, function* () {
-    const invite = yield InviteModel.findById(inviteId);
+};
+const acceptInvite = async (inviteId) => {
+    const invite = await InviteModel.findById(inviteId);
     if (!invite) {
         throw new AppError(404, "This request not found");
     }
-    const team = yield TeamModel.findById(invite.team);
+    const team = await TeamModel.findById(invite.team);
     if (!team) {
         throw new AppError(404, "Team not found");
     }
-    const playerTeams = yield TeamModel.find({
+    const playerTeams = await TeamModel.find({
         players: invite.receiver,
     });
     if (playerTeams.length >= 2) {
@@ -176,20 +167,20 @@ const acceptInvite = (inviteId) => __awaiter(void 0, void 0, void 0, function* (
         throw new AppError(400, "This player is already in this team");
     }
     team.players.push(new Types.ObjectId(invite.receiver));
-    const result = yield team.save();
-    yield InviteModel.findByIdAndUpdate(inviteId, { status: "accepted" }, { new: true });
-    return yield result.populate("players teamOwner teamCaptain");
-});
-const rejectInvite = (inviteId) => __awaiter(void 0, void 0, void 0, function* () {
-    const isRequestIsExist = yield InviteModel.findById(inviteId);
+    const result = await team.save();
+    await InviteModel.findByIdAndUpdate(inviteId, { status: "accepted" }, { new: true });
+    return await result.populate("players teamOwner teamCaptain");
+};
+const rejectInvite = async (inviteId) => {
+    const isRequestIsExist = await InviteModel.findById(inviteId);
     if (!isRequestIsExist) {
         throw new AppError(404, "This request not found");
     }
-    const result = yield InviteModel.findByIdAndUpdate(inviteId, { status: "rejected" }, { new: true });
+    const result = await InviteModel.findByIdAndUpdate(inviteId, { status: "rejected" }, { new: true });
     return result;
-});
-const myRequest = (userId) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield InviteModel.find({ receiver: userId })
+};
+const myRequest = async (userId) => {
+    const result = await InviteModel.find({ receiver: userId })
         .populate("sender")
         .populate("receiver").populate("team")
         .sort({ createdAt: -1 });
@@ -197,7 +188,7 @@ const myRequest = (userId) => __awaiter(void 0, void 0, void 0, function* () {
         return [];
     }
     return result;
-});
+};
 export const teamsService = {
     createTeam,
     updateTeam,

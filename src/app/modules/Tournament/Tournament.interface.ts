@@ -15,5 +15,6 @@ export interface ITournament   {
      qualifiedTeams: Types.ObjectId[];
      winner?: Types.ObjectId | null;
      maxTeam:number,
-     imageUrl:string
+     imageUrl:string,
+     status: string
 }

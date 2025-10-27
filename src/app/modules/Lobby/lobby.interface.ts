@@ -31,6 +31,7 @@ export interface DefaultTeam {
 export interface GeoLocation {
      lat: number;
      lng: number;
+     address:string
 }
 
 export interface LobbyDocument extends Document {

@@ -11,5 +11,6 @@ export default {
      salt_round: process.env.SALT_ROUND,
      jwt_secret: process.env.JWT_SECRET,
      email_pass: process.env.EMAIL_PASS,
-     sk_key: process.env.SK_KEY
+     sk_key: process.env.SK_KEY,
+     google_api_key: process.env.GOOGLE_API
 }

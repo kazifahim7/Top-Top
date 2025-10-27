@@ -86,6 +86,19 @@ const updateStatus = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const deletePlayer = catchAsync(async (req: Request, res: Response) => {
+     const id = req.params.id;
+    
+     const result = await authService.deletePlayerFromDB(id!)
+
+     res.status(200).json({
+          success: true,
+          message: "deleted successfully successfully",
+          data: result
+     })
+
+
+})
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
      const id = req.params?.email;
      const data = req.body
@@ -181,5 +194,6 @@ export const authController = {
      googleLogin,
      appleLogin,
      changePassword,
-     playerProfile
+     playerProfile,
+     deletePlayer
 }

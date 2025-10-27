@@ -21,11 +21,20 @@ const allGoal = catchAsync(async (req: Request, res: Response) => {
           data: result,
      });
 })
+const deleteGoal = catchAsync(async (req: Request, res: Response) => {
+     const result = await goalServices.deleteGoal(req.params.id!)
+     res.status(201).json({
+          success: true,
+          message: "delete successfully",
+          data: result,
+     });
+})
 
 
 
 
 export const goalController = {
      createGoal,
-     allGoal
+     allGoal,
+     deleteGoal
 }

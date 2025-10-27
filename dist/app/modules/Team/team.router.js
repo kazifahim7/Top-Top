@@ -8,7 +8,7 @@ router.post("/create-team", auth("player"), upload.fields([
 ]), (req, _res, next) => {
     if (req.body.data) {
         try {
-            req.body = Object.assign({}, JSON.parse(req.body.data));
+            req.body = { ...JSON.parse(req.body.data) };
         }
         catch (err) {
             return next(new Error("Invalid JSON in 'data' field"));
@@ -21,7 +21,7 @@ router.put("/update-team/:id", auth("player"), upload.fields([
 ]), (req, _res, next) => {
     if (req.body.data) {
         try {
-            req.body = Object.assign({}, JSON.parse(req.body.data));
+            req.body = { ...JSON.parse(req.body.data) };
         }
         catch (err) {
             return next(new Error("Invalid JSON in 'data' field"));

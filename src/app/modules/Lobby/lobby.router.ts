@@ -5,13 +5,13 @@ import { upload } from '../../utils/multer.js';
 
 const  router = express.Router()
 
-router.post("/create-match", auth("organizer"),lobbyController.createMatch)
+router.post("/create-match", auth("organizer","admin"),lobbyController.createMatch)
 
 router.get("/all-match",lobbyController.allMatch)
 
-router.put("/:lobbyId/player",auth("organizer") , lobbyController.updatePlayerState);
+router.put("/:lobbyId/player",auth("organizer","admin") , lobbyController.updatePlayerState);
 
-router.put("/lobby/:lobbyId/lobby-info",upload.fields([
+router.put("/:lobbyId/lobby-info",upload.fields([
      { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
      if (req.body.data) {

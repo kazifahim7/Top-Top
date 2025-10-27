@@ -6,9 +6,10 @@ import { getLocalImageURL } from "../../utils/multer.js";
 const createMatch = catchAsync(async (req: Request, res: Response) => {
      const data = req.body;
      const id = req.user?.id
-     const result = await lobbyService.createMatch(data, id)
+     const role = req.user?.role
+     const result = await lobbyService.createMatch(data, id, role)
      res.status(200).json({
-          success: true,
+          success: true, 
           message: "Lobby created created successfully",
           data: result
      })

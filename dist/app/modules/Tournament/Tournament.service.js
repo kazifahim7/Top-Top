@@ -1,45 +1,36 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import { TournamentModel } from "./Tournament.model.js";
-const createTournament = (payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentModel.create(payload);
+const createTournament = async (payload) => {
+    const result = await TournamentModel.create(payload);
     return result;
-});
-const singleTournament = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentModel.findById(id).populate("winner qualifiedTeams teams");
+};
+const singleTournament = async (id) => {
+    const result = await TournamentModel.findById(id).populate("winner qualifiedTeams teams");
     return result;
-});
-const allTournament = () => __awaiter(void 0, void 0, void 0, function* () {
-    const result = yield TournamentModel.find().populate("winner qualifiedTeams teams");
+};
+const allTournament = async () => {
+    const result = await TournamentModel.find().populate("winner qualifiedTeams teams");
     return result;
-});
-const updateTournament = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
-    const isTournamentIsExists = yield TournamentModel.findById(id);
+};
+const updateTournament = async (id, payload) => {
+    const isTournamentIsExists = await TournamentModel.findById(id);
     if (!isTournamentIsExists) {
         throw new AppError(404, "this tournament is not found");
     }
-    const result = yield TournamentModel.findByIdAndUpdate(id, payload, { new: true });
+    const result = await TournamentModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
-});
-const deleteTournament = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    const isTournamentIsExists = yield TournamentModel.findById(id);
+};
+const deleteTournament = async (id) => {
+    const isTournamentIsExists = await TournamentModel.findById(id);
     if (!isTournamentIsExists) {
         throw new AppError(404, "this tournament is not found");
     }
-    const result = yield TournamentModel.findByIdAndDelete(id);
+    const result = await TournamentModel.findByIdAndDelete(id);
     return result;
-});
-const qualifyTeamsService = (tournamentId, teamIds) => __awaiter(void 0, void 0, void 0, function* () {
-    const tournament = yield TournamentModel.findById(tournamentId);
+};
+const qualifyTeamsService = async (tournamentId, teamIds) => {
+    const tournament = await TournamentModel.findById(tournamentId);
     if (!tournament) {
         throw new Error("Tournament not found");
     }
@@ -49,11 +40,11 @@ const qualifyTeamsService = (tournamentId, teamIds) => __awaiter(void 0, void 0,
         throw new Error("All teams already qualified or invalid");
     }
     tournament.qualifiedTeams.push(...uniqueTeams.map((id) => new Types.ObjectId(id)));
-    yield tournament.save();
+    await tournament.save();
     return tournament;
-});
-const getTopPlayers = (tournamentId) => __awaiter(void 0, void 0, void 0, function* () {
-    const tournament = yield TournamentModel.findById(tournamentId)
+};
+const getTopPlayers = async (tournamentId) => {
+    const tournament = await TournamentModel.findById(tournamentId)
         .populate({
         path: "teams",
         populate: {
@@ -80,7 +71,7 @@ const getTopPlayers = (tournamentId) => __awaiter(void 0, void 0, void 0, functi
         tournament: tournament.name,
         topPlayers: sortedPlayers,
     };
-});
+};
 export const TournamentService = {
     createTournament,
     singleTournament,

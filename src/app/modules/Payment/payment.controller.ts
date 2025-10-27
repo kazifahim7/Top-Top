@@ -20,6 +20,24 @@ export const joinLobby = async (req: Request, res: Response) => {
           const playerId = req?.user?.id;
           const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType } = req.body;
 
+          
+          if(tournamentId){
+               const isTournamentExist = await TournamentModel.findOne(tournamentId)
+               if (isTournamentExist?.status === "block") {
+                    throw new AppError(403, "this tournament right now block");
+
+               }
+          }
+          if (lobbyId){
+               const isLobbyExist = await LobbyModel.findOne(lobbyId)
+
+               if (isLobbyExist?.lobbyStatus === "block") {
+                    throw new AppError(403, "this lobby right now block");
+
+               }
+          }
+          
+
           const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
           const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
 

@@ -5,16 +5,44 @@ import QueryBuilder from "../../builder/QueryBuilder.js";
 import { userModel } from "../auth/auth.model.js";
 import AppError from "../../Error/AppError.js";
 
-const createMatch = async (payload: LobbyDocument, id: string) => {
-     if (payload.matchType === "solo") {
-          payload.defaultTeam1!.teamName = "Team X"
-          payload.defaultTeam2!.teamName = "Team Y"
-     }
-     payload.organizer = new Types.ObjectId(id)
+const createMatch = async (payload: LobbyDocument, id: string,role:string) => {
+     
+     const now = new Date();
+     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-     const result = await LobbyModel.create(payload)
-     return result ;
-}
+   
+     const lobbyCount = await LobbyModel.countDocuments({
+          organizer: id,
+          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+     });
+
+
+     if (lobbyCount >= 16 && role === "organizer") {
+          throw new AppError(403,"You have reached your monthly lobby limit (16). Please contact admin for payment.");
+     }
+
+    
+     let finalData = {};
+     if (payload.matchType === "solo") {
+          finalData = {
+               ...payload,
+               defaultTeam1: { teamName: "Team X" },
+               defaultTeam2: { teamName: "Team X" },
+          };
+     } else {
+          finalData = { ...payload };
+     }
+
+     // ✅ Step 5: Create new lobby
+     const result = await LobbyModel.create({
+          ...finalData,
+          organizer: new Types.ObjectId(id),
+     });
+
+     return result;
+};
+
 
 const allMatch = async (query: Record<string, unknown>) => {
      const search = query.searchTerms || "";
@@ -255,13 +283,14 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
 
 const updateLobbyInfo = async (id: string, payload: Record<string, unknown>) => {
-     const isUserExist = await LobbyModel.findById(id)
+     const isLobbyExist = await LobbyModel.findById(id)
+     console.log(payload)
 
-     if (!isUserExist) {
-          throw new AppError(404, "This user Not Found");
+     if (!isLobbyExist) {
+          throw new AppError(404, "This lobby Not Found");
 
      }
-     const result = await userModel.findByIdAndUpdate(id, payload, { new: true })
+     const result = await LobbyModel.findByIdAndUpdate(id, payload, { new: true })
      return result
 }
 
