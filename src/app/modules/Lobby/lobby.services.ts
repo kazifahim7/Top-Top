@@ -28,7 +28,7 @@ const createMatch = async (payload: LobbyDocument, id: string,role:string) => {
           finalData = {
                ...payload,
                defaultTeam1: { teamName: "Team X" },
-               defaultTeam2: { teamName: "Team X" },
+               defaultTeam2: { teamName: "Team Y" },
           };
      } else {
           finalData = { ...payload };
@@ -48,7 +48,6 @@ const allMatch = async (query: Record<string, unknown>) => {
      const search = query.searchTerms || "";
 
      const lobbies = await LobbyModel.aggregate([
-     
           {
                $lookup: {
                     from: "teams",
@@ -59,7 +58,6 @@ const allMatch = async (query: Record<string, unknown>) => {
           },
           { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
 
-       
           {
                $lookup: {
                     from: "teams",
@@ -70,7 +68,6 @@ const allMatch = async (query: Record<string, unknown>) => {
           },
           { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
 
-        
           {
                $lookup: {
                     from: "players",
@@ -80,7 +77,6 @@ const allMatch = async (query: Record<string, unknown>) => {
                }
           },
 
-          
           {
                $lookup: {
                     from: "players",
@@ -100,26 +96,50 @@ const allMatch = async (query: Record<string, unknown>) => {
           },
           { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
 
+          // FIXED: Add $ifNull to handle undefined playerIds
           {
                $lookup: {
                     from: "players",
-                    localField: "defaultTeam1.players",
-                    foreignField: "_id",
+                    let: {
+                         playerIds: {
+                              $ifNull: ["$defaultTeam1.players.playerId", []]
+                         }
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"]
+                                   }
+                              }
+                         }
+                    ],
                     as: "defaultTeam1Players"
                }
           },
 
-         
+          // FIXED: Add $ifNull to handle undefined playerIds
           {
                $lookup: {
                     from: "players",
-                    localField: "defaultTeam2.players",
-                    foreignField: "_id",
+                    let: {
+                         playerIds: {
+                              $ifNull: ["$defaultTeam2.players.playerId", []]
+                         }
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"]
+                                   }
+                              }
+                         }
+                    ],
                     as: "defaultTeam2Players"
                }
           },
 
-       
           {
                $match: {
                     $or: [
@@ -294,6 +314,11 @@ const updateLobbyInfo = async (id: string, payload: Record<string, unknown>) => 
      return result
 }
 
+const deleteLobby = async (id:string)=>{
+     const result = await LobbyModel.findByIdAndDelete(id)
+
+     return result
+}
 
 
 
@@ -301,5 +326,6 @@ export const lobbyService = {
      createMatch ,
      allMatch,
      updatePlayerStats,
-     updateLobbyInfo
+     updateLobbyInfo,
+     deleteLobby
 }

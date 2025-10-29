@@ -6,6 +6,7 @@ declare const _default: {
     jwt_secret: string | undefined;
     email_pass: string | undefined;
     sk_key: string | undefined;
+    google_api_key: string | undefined;
 };
 export default _default;
 //# sourceMappingURL=index.d.ts.map

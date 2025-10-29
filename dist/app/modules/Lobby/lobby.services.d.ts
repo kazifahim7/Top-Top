@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import type { LobbyDocument } from "./lobby.interface.js";
 interface UpdatePlayerStatsDTO {
     lobbyId: string;
@@ -24,7 +23,7 @@ export declare const updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<
     lobbyPlayer: any;
 }>;
 export declare const lobbyService: {
-    createMatch: (payload: LobbyDocument, id: string) => Promise<import("mongoose").Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+    createMatch: (payload: LobbyDocument, id: string, role: string) => Promise<import("mongoose").Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;
     }> & {
         __v: number;
@@ -33,9 +32,14 @@ export declare const lobbyService: {
     updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
         lobbyPlayer: any;
     }>;
-    updateLobbyInfo: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, import("../auth/auth.interface.js").TCreateProfile, {}, {}> & import("../auth/auth.interface.js").TCreateProfile & {
-        _id: Types.ObjectId;
-    } & {
+    updateLobbyInfo: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+        _id: unknown;
+    }> & {
+        __v: number;
+    }) | null>;
+    deleteLobby: (id: string) => Promise<(import("mongoose").Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+        _id: unknown;
+    }> & {
         __v: number;
     }) | null>;
 };

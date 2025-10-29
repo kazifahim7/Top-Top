@@ -1,6 +1,7 @@
 import { userModel } from "../auth/auth.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { PaymentModel } from "../Payment/payment.model.js";
+import { MatchModel } from "../TournamentMatch/match.model.js";
 
 const adminData = async () => {
      const totalRevenue = await PaymentModel.aggregate([
@@ -17,6 +18,7 @@ const adminData = async () => {
 
      const lobbyCount = await LobbyModel.countDocuments();
      const activePlayers = await userModel.countDocuments({ isBlocked: "active" });
+     const matchFromTournament = await MatchModel.countDocuments();
      const revenueGraph = await PaymentModel.aggregate([
           {
                $match: { status: "success" }
@@ -77,7 +79,7 @@ const adminData = async () => {
           }
      ]);
 
-     const totalMatches = matchesPlayed[0]?.totalMatches || 0;
+     const totalMatches = matchesPlayed[0]?.totalMatches + matchFromTournament || 0;
 
 
 

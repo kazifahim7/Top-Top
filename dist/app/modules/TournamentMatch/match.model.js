@@ -28,7 +28,7 @@ const matchSchema = new Schema({
     scoreB: { type: Number, default: 0 },
     status: {
         type: String,
-        enum: ["Pending", "Completed"],
+        enum: ["Pending", "Completed", "block"],
         default: "Pending"
     },
     winner: { type: Schema.Types.ObjectId, ref: "Team", default: null },

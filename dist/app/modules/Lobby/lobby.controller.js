@@ -4,7 +4,8 @@ import { getLocalImageURL } from "../../utils/multer.js";
 const createMatch = catchAsync(async (req, res) => {
     const data = req.body;
     const id = req.user?.id;
-    const result = await lobbyService.createMatch(data, id);
+    const role = req.user?.role;
+    const result = await lobbyService.createMatch(data, id, role);
     res.status(200).json({
         success: true,
         message: "Lobby created created successfully",
@@ -45,10 +46,20 @@ const lobbyInFo = catchAsync(async (req, res) => {
         data: result
     });
 });
+const deleteLobby = catchAsync(async (req, res) => {
+    const id = req.params?.id;
+    const result = await lobbyService.deleteLobby(id);
+    res.status(200).json({
+        success: true,
+        message: "lobby  delete successfully ",
+        data: result
+    });
+});
 export const lobbyController = {
     createMatch,
     allMatch,
     updatePlayerState,
-    lobbyInFo
+    lobbyInFo,
+    deleteLobby
 };
 //# sourceMappingURL=lobby.controller.js.map

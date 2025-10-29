@@ -22,6 +22,7 @@ export interface Team {
 }
 
 export interface DefaultTeam {
+     teamId: any;
      teamName: string;
      players: PlayerStats[];
      matchFormat?: string

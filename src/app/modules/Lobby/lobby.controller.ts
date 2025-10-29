@@ -56,6 +56,21 @@ const lobbyInFo = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const deleteLobby = catchAsync(async (req: Request, res: Response) => {
+     const id = req.params?.id;
+    
+
+     
+     const result = await lobbyService.deleteLobby(id!)
+
+     res.status(200).json({
+          success: true,
+          message: "lobby  delete successfully ",
+          data: result
+     })
+
+
+})
 
 
 
@@ -64,5 +79,6 @@ export const lobbyController={
      createMatch,
      allMatch,
      updatePlayerState,
-     lobbyInFo
+     lobbyInFo,
+     deleteLobby
 }

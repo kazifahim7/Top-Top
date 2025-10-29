@@ -24,7 +24,7 @@ router.put("/:lobbyId/lobby-info",upload.fields([
      next();
 }, lobbyController.lobbyInFo);
 
-
+router.delete("/delete/:id",auth("admin"),lobbyController.deleteLobby)
 
 
 

@@ -19,6 +19,7 @@ export interface Team {
     matchFormat?: string;
 }
 export interface DefaultTeam {
+    teamId: any;
     teamName: string;
     players: PlayerStats[];
     matchFormat?: string;
@@ -26,6 +27,7 @@ export interface DefaultTeam {
 export interface GeoLocation {
     lat: number;
     lng: number;
+    address: string;
 }
 export interface LobbyDocument extends Document {
     title: string;

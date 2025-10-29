@@ -3,13 +3,33 @@ import { LobbyModel } from "./lobby.model.js";
 import QueryBuilder from "../../builder/QueryBuilder.js";
 import { userModel } from "../auth/auth.model.js";
 import AppError from "../../Error/AppError.js";
-const createMatch = async (payload, id) => {
-    if (payload.matchType === "solo") {
-        payload.defaultTeam1.teamName = "Team X";
-        payload.defaultTeam2.teamName = "Team Y";
+const createMatch = async (payload, id, role) => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const lobbyCount = await LobbyModel.countDocuments({
+        organizer: id,
+        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+    });
+    if (lobbyCount >= 16 && role === "organizer") {
+        throw new AppError(403, "You have reached your monthly lobby limit (16). Please contact admin for payment.");
     }
-    payload.organizer = new Types.ObjectId(id);
-    const result = await LobbyModel.create(payload);
+    let finalData = {};
+    if (payload.matchType === "solo") {
+        finalData = {
+            ...payload,
+            defaultTeam1: { teamName: "Team X" },
+            defaultTeam2: { teamName: "Team Y" },
+        };
+    }
+    else {
+        finalData = { ...payload };
+    }
+    // ✅ Step 5: Create new lobby
+    const result = await LobbyModel.create({
+        ...finalData,
+        organizer: new Types.ObjectId(id),
+    });
     return result;
 };
 const allMatch = async (query) => {
@@ -58,19 +78,45 @@ const allMatch = async (query) => {
             }
         },
         { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+        // FIXED: Add $ifNull to handle undefined playerIds
         {
             $lookup: {
                 from: "players",
-                localField: "defaultTeam1.players",
-                foreignField: "_id",
+                let: {
+                    playerIds: {
+                        $ifNull: ["$defaultTeam1.players.playerId", []]
+                    }
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"]
+                            }
+                        }
+                    }
+                ],
                 as: "defaultTeam1Players"
             }
         },
+        // FIXED: Add $ifNull to handle undefined playerIds
         {
             $lookup: {
                 from: "players",
-                localField: "defaultTeam2.players",
-                foreignField: "_id",
+                let: {
+                    playerIds: {
+                        $ifNull: ["$defaultTeam2.players.playerId", []]
+                    }
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"]
+                            }
+                        }
+                    }
+                ],
                 as: "defaultTeam2Players"
             }
         },
@@ -192,17 +238,23 @@ export const updatePlayerStats = async (data) => {
     return { lobbyPlayer: player };
 };
 const updateLobbyInfo = async (id, payload) => {
-    const isUserExist = await LobbyModel.findById(id);
-    if (!isUserExist) {
-        throw new AppError(404, "This user Not Found");
+    const isLobbyExist = await LobbyModel.findById(id);
+    console.log(payload);
+    if (!isLobbyExist) {
+        throw new AppError(404, "This lobby Not Found");
     }
-    const result = await userModel.findByIdAndUpdate(id, payload, { new: true });
+    const result = await LobbyModel.findByIdAndUpdate(id, payload, { new: true });
+    return result;
+};
+const deleteLobby = async (id) => {
+    const result = await LobbyModel.findByIdAndDelete(id);
     return result;
 };
 export const lobbyService = {
     createMatch,
     allMatch,
     updatePlayerStats,
-    updateLobbyInfo
+    updateLobbyInfo,
+    deleteLobby
 };
 //# sourceMappingURL=lobby.services.js.map

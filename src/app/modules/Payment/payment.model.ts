@@ -13,7 +13,7 @@ const PaymentSchema = new Schema<Payment>(
           paymentType: { type: String, enum: ["team fee" , "tournament fee"], default: "team fee" },
           stripePaymentIntentId: { type: String },
           defaultTeam: { type: String },
-          method: { type: String },
+          method: { type: String ,default:"online"},
           //tournament part is here kaka
          
                tournamentId: { type: Schema.Types.ObjectId, ref: "Tournament" },

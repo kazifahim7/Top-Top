@@ -20,6 +20,12 @@ export declare const refundService: {
         lobbyId: string | Types.ObjectId;
         playerId: string | Types.ObjectId;
         teamId?: string | Types.ObjectId;
-    }) => Promise<mongoose.UpdateWriteOpResult>;
+    }) => Promise<{
+        success: boolean;
+        message: string;
+        lobbyUpdate: mongoose.UpdateWriteOpResult;
+        paymentUpdate: mongoose.UpdateWriteOpResult;
+        refundUpdate: mongoose.UpdateWriteOpResult;
+    }>;
 };
 //# sourceMappingURL=refund.service.d.ts.map
