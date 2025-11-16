@@ -23,16 +23,52 @@ export const joinLobby = async (req: Request, res: Response) => {
           if (!playerId) {
                throw new AppError(400, "User ID is required");
           }
-          const isLobbyExist = await LobbyModel.findById(lobbyId)
-          if (isLobbyExist?.matchPrivacy ==="private") {
-               
-               if (!isLobbyExist) {
-                    throw new AppError(404, "Lobby not found");
-               }
-               if (isLobbyExist.privateKey !== privateKey) {
-                    throw new AppError(403, "Wrong key, Please enter a proper key");
-               }
-          }
+         if(lobbyId){
+              const isLobbyExist = await LobbyModel.findById(lobbyId)
+              if (!isLobbyExist) {
+                   throw new AppError(404, "Lobby not found");
+              }
+
+
+              let currentTeam;
+
+              // Determine which team to check based on matchType
+              if (isLobbyExist.matchType === "solo") {
+                   //@ts-ignore
+                   if (isLobbyExist.defaultTeam1?._id?.toString() === teamId?.toString()) {
+                        currentTeam = isLobbyExist.defaultTeam1;
+                        //@ts-ignore
+                   } else if (isLobbyExist.defaultTeam2?._id?.toString() === teamId?.toString()) {
+                        currentTeam = isLobbyExist.defaultTeam2;
+                   }
+              } else if (isLobbyExist.matchType === "teams") {
+                   if (isLobbyExist.team1?.teamId?.toString() === teamId?.toString()) {
+                        currentTeam = isLobbyExist.team1;
+                   } else if (isLobbyExist.team2?.teamId?.toString() === teamId?.toString()) {
+                        currentTeam = isLobbyExist.team2;
+                   }
+              }
+
+              // Check duplicate position only inside that specific team
+              if (currentTeam?.players?.some((p: any) => p.matchPosition === matchPosition)) {
+                   return res.status(400).json({
+                        message: "This position is already taken in this team",
+                   });
+              }
+
+
+
+
+              if (isLobbyExist?.matchPrivacy === "private") {
+
+                   if (!isLobbyExist) {
+                        throw new AppError(404, "Lobby not found");
+                   }
+                   if (isLobbyExist.privateKey !== privateKey) {
+                        throw new AppError(403, "Wrong key, Please enter a proper key");
+                   }
+              }
+         }
 
           if (tournamentId) {
                const isTournamentExist = await TournamentModel.findById(tournamentId)
@@ -71,6 +107,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                     (lobby.defaultTeam2?.players?.some(p => p.playerId.toString() === playerObjectId.toString()) || false);
 
                if (isDuplicate) return res.status(400).json({ message: "Player already joined this lobby" });
+             
 
                // FIXED: Check if teams exist and have players array before checking length
                const team1PlayersCount = lobby.team1?.players?.length || 0;
@@ -101,8 +138,6 @@ export const joinLobby = async (req: Request, res: Response) => {
                if (!findTeam) throw new AppError(404, "Team not Found");
                if (tournament.teams.some(t => t.toString() === findTeam._id.toString()))
                     throw new AppError(400, "Team already exists");
-
-               const lobby = await LobbyModel.findById(lobbyId);
 
                // Create Payment Record (pending)
                payment = await PaymentModel.create({
@@ -374,7 +409,7 @@ export const paymentCancel = async (req: Request, res: Response) => {
 
 
 export const allPaymentHistory = catchAsync(async (req, res) => {
-     const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId teamId playerId tournamentId").select("-stripePaymentIntentId"), req.query).filter().search(["status", "method"]).sort()
+     const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId  playerId tournamentId").select("-stripePaymentIntentId"), req.query).filter().search(["status", "method"]).sort()
      const result = await paymentQuery.modelQuery
 
      res.status(200).json({

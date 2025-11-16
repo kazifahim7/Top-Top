@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import catchAsync from "../../utils/catcgAsync.js";
 import { lobbyService } from "./lobby.services.js";
-import { getLocalImageURL } from "../../utils/multer.js";
+import { getLocalImageURL, uploadToS3 } from "../../utils/multer.js";
 
 const createMatch = catchAsync(async (req: Request, res: Response) => {
      const data = req.body;
@@ -43,7 +43,8 @@ const lobbyInFo = catchAsync(async (req: Request, res: Response) => {
 
      const imageFiles = (req.files as any).images || [];
      for (const file of imageFiles) {
-          const url = getLocalImageURL(file.filename);
+          // const url = getLocalImageURL(file.filename);
+          const url = await uploadToS3(file);
           data.media = url
      }
      const result = await lobbyService.updateLobbyInfo(id!, data)

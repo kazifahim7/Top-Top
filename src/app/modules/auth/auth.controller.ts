@@ -1,14 +1,14 @@
 import { type Request, type Response } from "express";
 import catchAsync from "../../utils/catcgAsync.js";
 import { authService } from "./auth.services.js";
-import { getLocalImageURL } from "../../utils/multer.js";
+import { getLocalImageURL, uploadToS3 } from "../../utils/multer.js";
 
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
      const data = req.body;
      const imageFiles = (req.files as any).images || [];
      for (const file of imageFiles) {
-          const url = getLocalImageURL(file.filename);
+          const url = await uploadToS3(file);
           data.imageUrl = url   
      }
      const result = await authService.createUserIntoDB(data)
@@ -105,7 +105,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
 
      const imageFiles = (req.files as any).images || [];
      for (const file of imageFiles) {
-          const url = getLocalImageURL(file.filename);
+          const url = await uploadToS3(file);
           data.imageUrl = url
      }
      const result = await authService.updateProfileInDB(id!, data)

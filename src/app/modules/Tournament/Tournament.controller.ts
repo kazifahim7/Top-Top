@@ -1,16 +1,17 @@
 import catchAsync from "../../utils/catcgAsync.js";
-import { getLocalImageURL } from "../../utils/multer.js";
+import { getLocalImageURL, uploadToS3 } from "../../utils/multer.js";
 import { TournamentModel } from "./Tournament.model.js";
 import { TournamentService } from "./Tournament.service.js";
 
 const createTournament = catchAsync(async (req, res) => {
-     const data =req.body
+     const data = req.body
 
      const imageFiles = (req.files as any).images || [];
-          for (const file of imageFiles) {
-               const url = getLocalImageURL(file.filename);
-               data.imageUrl = url   
-          }
+     for (const file of imageFiles) {
+          // const url = getLocalImageURL(file.filename);
+          const url = await uploadToS3(file);
+          data.imageUrl = url
+     }
      const result = await TournamentService.createTournament(data)
      res.status(200).json({
           success: true,
@@ -41,7 +42,8 @@ const updateTournament = catchAsync(async (req, res) => {
 
      const imageFiles = (req.files as any).images || [];
      for (const file of imageFiles) {
-          const url = getLocalImageURL(file.filename);
+          // const url = getLocalImageURL(file.filename);
+          const url = await uploadToS3(file);
           data.imageUrl = url
      }
      const result = await TournamentService.updateTournament(req.params.id!, data)
@@ -62,13 +64,13 @@ const deleteTournament = catchAsync(async (req, res) => {
 const qualifyTeamsController = catchAsync(async (req, res) => {
 
      const { tournamentId } = req.params;
-     const { teamIds } = req.body; 
+     const { teamIds } = req.body;
 
      if (!teamIds || !Array.isArray(teamIds)) {
           return res.status(400).json({ message: "teamIds must be an array" });
      }
 
-    
+
      const result = await TournamentService.qualifyTeamsService(tournamentId!, teamIds)
      res.status(200).json({
           success: true,

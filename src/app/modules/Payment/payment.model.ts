@@ -8,7 +8,35 @@ const PaymentSchema = new Schema<Payment>(
           playerId: { type: Schema.Types.ObjectId, ref: "Players" },
           teamId: { type: Schema.Types.ObjectId, ref: "Team" },
           price: { type: Number, required: true },
-          matchPosition: { type: String }, 
+          matchPosition: {
+               type: String,
+               enum: [
+                    // Goalkeepers
+                    "Goalkeeper",
+
+                    // Defenders
+                    "Center Back",
+                    "Left Back",
+                    "Right Back",
+                    "Sweeper",
+                    "Wing Back",
+
+                    // Midfielders
+                    "Defensive Midfielder",
+                    "Central Midfielder",
+                    "Attacking Midfielder",
+                    "Left Midfielder",
+                    "Right Midfielder",
+
+                    // Forwards / Attackers
+                    "Striker",
+                    "Center Forward",
+                    "Second Striker",
+                    "Left Winger",
+                    "Right Winger",
+               ]
+          },
+
           status: { type: String, enum: ["pending", "success", "failed","refund"], default: "pending" },
           paymentType: { type: String, enum: ["team fee" , "tournament fee"], default: "team fee" },
           stripePaymentIntentId: { type: String },

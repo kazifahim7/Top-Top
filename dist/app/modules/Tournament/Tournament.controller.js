@@ -1,12 +1,13 @@
 import catchAsync from "../../utils/catcgAsync.js";
-import { getLocalImageURL } from "../../utils/multer.js";
+import { getLocalImageURL, uploadToS3 } from "../../utils/multer.js";
 import { TournamentModel } from "./Tournament.model.js";
 import { TournamentService } from "./Tournament.service.js";
 const createTournament = catchAsync(async (req, res) => {
     const data = req.body;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
-        const url = getLocalImageURL(file.filename);
+        // const url = getLocalImageURL(file.filename);
+        const url = await uploadToS3(file);
         data.imageUrl = url;
     }
     const result = await TournamentService.createTournament(data);
@@ -36,7 +37,8 @@ const updateTournament = catchAsync(async (req, res) => {
     const data = req.body;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
-        const url = getLocalImageURL(file.filename);
+        // const url = getLocalImageURL(file.filename);
+        const url = await uploadToS3(file);
         data.imageUrl = url;
     }
     const result = await TournamentService.updateTournament(req.params.id, data);

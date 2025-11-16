@@ -1,12 +1,13 @@
 import catchAsync from "../../utils/catcgAsync.js";
-import { getLocalImageURL } from "../../utils/multer.js";
+import { getLocalImageURL, uploadToS3 } from "../../utils/multer.js";
 import { teamsService } from "./teams.service.js";
 const createTeam = catchAsync(async (req, res) => {
     const data = req.body;
     const id = req.user?.id;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
-        const url = getLocalImageURL(file.filename);
+        // const url = getLocalImageURL(file.filename);
+        const url = await uploadToS3(file);
         data.image = url;
     }
     const result = await teamsService.createTeam(data, id);
@@ -21,7 +22,8 @@ const updateTeam = catchAsync(async (req, res) => {
     const id = req.params?.id;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
-        const url = getLocalImageURL(file.filename);
+        // const url = getLocalImageURL(file.filename);
+        const url = await uploadToS3(file);
         data.image = url;
     }
     const result = await teamsService.updateTeam(data, id);
