@@ -6,9 +6,7 @@ import { userModel } from "./app/modules/auth/auth.model.js";
 import { TAdmin } from "./app/Admin/index.js";
 import bcrypt from 'bcrypt'
 
-
 let server: Server;
-
 async function run() {
 
      try {
@@ -27,7 +25,6 @@ async function run() {
                     await userModel.create(TAdmin)
                }
           }
-
      } catch (error) {
           console.log(error)
      }
@@ -36,7 +33,7 @@ run()
 
 
 process.on('unhandledRejection', (err) => {
-     console.log(`unahandledRejection is detected , shutting down ...`, err);
+     console.log(`unhandledRejection is detected , shutting down ...`, err);
      if (server) {
           server.close(() => {
                process.exit(1);
@@ -46,6 +43,6 @@ process.on('unhandledRejection', (err) => {
 });
 
 process.on('uncaughtException', () => {
-     console.log(` uncaughtException is detected , shutting down ...`);
+     console.log(`uncaughtException is detected , shutting down ...`);
      process.exit(1);
 });

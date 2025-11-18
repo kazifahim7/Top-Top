@@ -218,9 +218,9 @@ export const paymentSuccess = async (req: Request, res: Response) => {
           } else {
                // Stripe PaymentIntent verification
                const intent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId!);
-               // if (intent.status !== "succeeded") {
-               //      return res.status(400).json({ message: "Payment not successful" });
-               // }
+               if (intent.status !== "succeeded") {
+                    return res.status(400).json({ message: "Payment not successful" });
+               }
                payment.status = "success";
                await payment.save();
           }

@@ -81,7 +81,7 @@ app.get("/api/place-details", async (req, res) => {
 // API routes
 app.use("/api/v1", router);
 app.get('/', (req, res) => {
-    res.send('Welcome Dear... hi all done and safe');
+    res.send('Welcome to top_top...');
 });
 // Error handling
 app.use(notFound);
