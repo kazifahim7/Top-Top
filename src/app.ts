@@ -100,7 +100,7 @@ app.get("/api/place-details", async (req, res) => {
 app.use("/api/v1", router);
 
 app.get('/', (req: Request, res: Response) => {
-     res.send('Welcome to top_top...');
+     res.send('Welcome to top_top updated...');
 });
 
 // Error handling
