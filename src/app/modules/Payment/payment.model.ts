@@ -11,7 +11,7 @@ const PaymentSchema = new Schema<Payment>(
           matchPosition: {
                type: String,
                enum: [
-                    // Goalkeepers
+                   
                     "Goalkeeper",
 
                     // Defenders
