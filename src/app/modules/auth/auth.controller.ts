@@ -100,7 +100,7 @@ const deletePlayer = catchAsync(async (req: Request, res: Response) => {
 
 })
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
-     const id = req.params?.email;
+     const id = req.user?.email;
      const data = req.body
 
      const imageFiles = (req.files as any).images || [];
@@ -132,7 +132,7 @@ const allUsers = catchAsync(async (req: Request, res: Response) => {
 })
 const singleUser = catchAsync(async (req: Request, res: Response) => {
 
-     const result = await authService.getSingleUser(req?.params?.email!)
+     const result = await authService.getSingleUser(req?.user?.email!)
 
      res.status(200).json({
           success: true,
@@ -169,7 +169,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 })
 
 const playerProfile = catchAsync(async (req: Request, res: Response) => {
-     const userId = req.params.id
+     const userId = req.user?.email
      const result = await authService.playerProfile(userId!)
      res.status(200).json({
           success: true,

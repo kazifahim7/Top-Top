@@ -26,7 +26,7 @@ router.get("/all-player", authController.allUsers);
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus);
 router.delete("/delete-player/:id", auth("admin"), authController.deletePlayer);
 router.post('/change-password', auth("player"), authController.changePassword);
-router.put("/update-profile/:email", upload.fields([
+router.put("/update-profile", upload.fields([
     { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
     if (req.body.data) {
@@ -38,8 +38,8 @@ router.put("/update-profile/:email", upload.fields([
         }
     }
     next();
-}, authController.updateProfile);
-router.get("/user/:email", authController.singleUser);
+}, auth("player", "admin", "organizer"), authController.updateProfile);
+router.get("/user", auth("player", "admin", "organizer"), authController.singleUser);
 // single player 
 router.get('/player-profile/:id', authController.playerProfile);
 export const authRouter = router;

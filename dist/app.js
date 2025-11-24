@@ -21,8 +21,8 @@ else {
 // Serve static uploads folder
 app.use("/uploads", express.static(uploadsPath));
 // Parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors({
     origin: '*',
     credentials: true
@@ -81,7 +81,7 @@ app.get("/api/place-details", async (req, res) => {
 // API routes
 app.use("/api/v1", router);
 app.get('/', (req, res) => {
-    res.send('Welcome to top_top...');
+    res.send('Welcome to top_top updated...');
 });
 // Error handling
 app.use(notFound);

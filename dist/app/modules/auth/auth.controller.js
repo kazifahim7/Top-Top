@@ -76,7 +76,7 @@ const deletePlayer = catchAsync(async (req, res) => {
     });
 });
 const updateProfile = catchAsync(async (req, res) => {
-    const id = req.params?.email;
+    const id = req.user?.email;
     const data = req.body;
     const imageFiles = req.files.images || [];
     for (const file of imageFiles) {
@@ -99,7 +99,7 @@ const allUsers = catchAsync(async (req, res) => {
     });
 });
 const singleUser = catchAsync(async (req, res) => {
-    const result = await authService.getSingleUser(req?.params?.email);
+    const result = await authService.getSingleUser(req?.user?.email);
     res.status(200).json({
         success: true,
         message: "User is retrieved successfully ",
@@ -124,7 +124,7 @@ const changePassword = catchAsync(async (req, res) => {
     });
 });
 const playerProfile = catchAsync(async (req, res) => {
-    const userId = req.params.id;
+    const userId = req.user?.email;
     const result = await authService.playerProfile(userId);
     res.status(200).json({
         success: true,

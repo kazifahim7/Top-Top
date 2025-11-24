@@ -31,7 +31,7 @@ router.delete("/delete-player/:id", auth("admin"), authController.deletePlayer)
 
 router.post('/change-password',auth("player"),authController.changePassword)
 
-router.put("/update-profile/:email", upload.fields([
+router.put("/update-profile", upload.fields([
      { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
      if (req.body.data) {
@@ -42,10 +42,10 @@ router.put("/update-profile/:email", upload.fields([
           }
      }
      next();
-}, authController.updateProfile)
+}, auth("player", "admin", "organizer"), authController.updateProfile)
 
 
-router.get("/user/:email", authController.singleUser)
+router.get("/user", auth("player", "admin","organizer"), authController.singleUser)
 
 // single player 
 
