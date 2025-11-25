@@ -162,10 +162,10 @@ export const joinLobby = async (req: Request, res: Response) => {
                });
           }
 
-          // 💳 Stripe PaymentIntent for Flutter PaymentSheet
+          
           const paymentIntent = await stripe.paymentIntents.create({
                amount: price * 100,
-               currency: "usd",
+               currency: "aed",
                metadata: {
                     paymentId: payment._id.toString(),
                     lobbyId: lobbyId?.toString() || "",
