@@ -195,13 +195,10 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 };
 
 
-export const resetPassword = async (payload: { email: string, password: string, otp?: number }) => {
+export const resetPassword = async (payload: {  password: string, otp?: number }) => {
 
-     const isPlayerIsExist = await userModel.findOne({ email: payload.email })
-     if (!isPlayerIsExist) {
-          throw new AppError(404, "User not found");
-     }
-     const otpExist = await OtpModel.findOne({ email: payload.email, otp: payload.otp })
+     
+     const otpExist = await OtpModel.findOne({otp: payload.otp })
      if (!otpExist) throw new AppError(404, "OTP not found");
      if (otpExist.otp !== payload.otp) throw new AppError(400, "Invalid OTP");
      if (Date.now() > +otpExist.otpExpiry) throw new AppError(400, "OTP expired");
@@ -211,7 +208,7 @@ export const resetPassword = async (payload: { email: string, password: string, 
 
 
      const updatedUser = await userModel.findOneAndUpdate(
-          { email: payload.email },
+          { email: otpExist.email },
           { $set: { password: hashedPassword } },
           { new: true }
      ).select("-password");

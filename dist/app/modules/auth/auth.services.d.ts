@@ -1,6 +1,5 @@
 import type { TCreateProfile } from './auth.interface.js';
 export declare const resetPassword: (payload: {
-    email: string;
     password: string;
     otp?: number;
 }) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
@@ -102,7 +101,6 @@ export declare const authService: {
     }) | null>;
     resetRequest: (payload: Record<string, unknown>) => Promise<void>;
     resetPassword: (payload: {
-        email: string;
         password: string;
         otp?: number;
     }) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
