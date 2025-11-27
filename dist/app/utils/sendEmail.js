@@ -1,20 +1,18 @@
 import nodemailer from 'nodemailer';
 import config from '../config/index.js';
-const emailSender = async (email, html, subject) => {
+const emailSender = async (email, subject, html) => {
     const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
+        host: `${config.SES_HOST}`,
         port: 587,
         secure: false,
         auth: {
-            user: "kazifahim661@gmail.com",
-            pass: config.email_pass
+            user: `${config.SES_USER}`,
+            pass: `${config.SES_PASS}`,
         },
-        tls: {
-            rejectUnauthorized: false
-        }
+        tls: { rejectUnauthorized: false }
     });
     const info = await transporter.sendMail({
-        from: '" Gem Jewelers Co ." <kazifahim661@gmail.com>',
+        from: `"Top Top" <${config.SES_FROM}>`,
         to: email,
         subject: subject,
         html: html,

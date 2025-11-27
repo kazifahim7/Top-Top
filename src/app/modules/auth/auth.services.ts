@@ -6,11 +6,14 @@ import jwt from 'jsonwebtoken'
 import { userModel } from './auth.model.js';
 import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
-import emailSender from '../../utils/sendEmail.js';
+
 import type { TCreateProfile } from './auth.interface.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
 import { LobbyModel } from '../Lobby/lobby.model.js';
 import { email } from 'zod';
+import OtpModel from './auth.otpmodel.js';
+import emailSender from '../../utils/sendEmail.js';
+
 
 const createUserIntoDB = async (payload: TCreateProfile) => {
      const isUserAlreadyExist = await userModel.findOne({ email: payload?.email })
@@ -126,7 +129,7 @@ const deletePlayerFromDB = async (id: string) => {
           throw new AppError(404, "This user Not Found");
 
      }
-     const result = await userModel.findByIdAndDelete(id,  { new: true })
+     const result = await userModel.findByIdAndDelete(id, { new: true })
      return result
 
 }
@@ -140,8 +143,8 @@ const updateProfileInDB = async (email: string, payload: Record<string, unknown>
      const result = await userModel.findOneAndUpdate({ email: email }, payload, { new: true })
      return result
 }
-const allStudentFromDB = async (query:Record<string,unknown>) => {
-     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName","FullName"]).sort()
+const allStudentFromDB = async (query: Record<string, unknown>) => {
+     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName", "FullName"]).sort()
      const result = await playerQuery.modelQuery
      return result;
 
@@ -162,42 +165,47 @@ const resetRequest = async (payload: Record<string, unknown>) => {
      if (isUserExist.isBlocked === "block") {
           throw new AppError(403, "You are not authorized");
      }
-     const user = {
+
+     const otp = Math.floor(1000 + Math.random() * 9000);
+     const userOtp = {
           id: isUserExist?._id,
           role: isUserExist?.role,
-          email: isUserExist?.email
+          email: isUserExist?.email,
+          otp: otp,
+          otpExpiry: Date.now() + 5 * 60 * 1000
      }
 
-     const resetToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "30d" })
+     const createdOtp = await OtpModel.create(userOtp);
 
-
-     const resetUrl = `yourapp://reset-password?token=${resetToken}`;
-     // Email template
      const emailHtml = `
-       <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-         <h2 style="color: #4CAF50;">Password Reset Request</h2>
-         <p>Hello ${isUserExist.FullName},</p>
-         <p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
-         <p>Otherwise, click the button below to reset your password:</p>
-         <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: #fff; text-decoration: none; font-weight: bold; border-radius: 5px;">
-           Reset Now
-         </a>
-         <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
-         <p>Thank you,<br>Top Top Team</p>
-       </div>
-     `;
+        <p>Hello ${isUserExist.FullName},</p>
+        <p>Your password reset OTP is: <strong>${otp}</strong></p>
+        <p>This OTP is valid for 5 minutes.</p>
+    `;
 
-     await emailSender(payload.email as string, emailHtml, "Reset your password");
-     return {}
+     try {
+          await emailSender(payload.email as string, "Password Reset OTP", emailHtml);
+          console.log("OTP Email sent successfully");
+     } catch (error) {
+          // Delete the OTP if email fails
+          await OtpModel.findByIdAndDelete(createdOtp._id);
+          console.error("Error sending OTP email:", error);
+          throw new AppError(500, "Failed to send OTP. Please try again later.");
+     }
 };
 
 
-export const resetPassword = async (payload: { email: string, password: string  }) => {
+export const resetPassword = async (payload: { email: string, password: string, otp?: number }) => {
 
-     const isPlayerIsExist = await userModel.findOne({email:payload.email})
+     const isPlayerIsExist = await userModel.findOne({ email: payload.email })
      if (!isPlayerIsExist) {
           throw new AppError(404, "User not found");
      }
+     const otpExist = await OtpModel.findOne({ email: payload.email, otp: payload.otp })
+     if (!otpExist) throw new AppError(404, "OTP not found");
+     if (otpExist.otp !== payload.otp) throw new AppError(400, "Invalid OTP");
+     if (Date.now() > +otpExist.otpExpiry) throw new AppError(400, "OTP expired");
+
 
      const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
 
@@ -207,6 +215,9 @@ export const resetPassword = async (payload: { email: string, password: string  
           { $set: { password: hashedPassword } },
           { new: true }
      ).select("-password");
+     if(updatedUser){
+          await OtpModel.findByIdAndDelete(otpExist._id)
+     }
 
 
      if (!updatedUser) {
@@ -216,8 +227,8 @@ export const resetPassword = async (payload: { email: string, password: string  
 
      return updatedUser;
 };
-export const changePassword = async (payload: { oldPassword: string, newPassword: string }, userId:string) => {
-     
+export const changePassword = async (payload: { oldPassword: string, newPassword: string }, userId: string) => {
+
 
      const isUserExist = await userModel.findById(userId)
      if (!isUserExist) {
@@ -234,7 +245,7 @@ export const changePassword = async (payload: { oldPassword: string, newPassword
      const hashedPassword = await bcrypt.hash(payload.newPassword, Number(config.salt_round));
 
 
-     const updatedUser = await userModel.findByIdAndUpdate(userId,{password:hashedPassword},{new:true})
+     const updatedUser = await userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true })
 
 
      if (!updatedUser) {
@@ -246,8 +257,8 @@ export const changePassword = async (payload: { oldPassword: string, newPassword
 };
 
 
-const playerProfile =async(id:string)=>{
-     const result = await userModel.findById(id) 
+const playerProfile = async (id: string) => {
+     const result = await userModel.findById(id)
      const allLobbies = await LobbyModel.find({
           $or: [
                { "team1.players.playerId": id },
@@ -256,11 +267,11 @@ const playerProfile =async(id:string)=>{
                { "defaultTeam2.players.playerId": id },
           ],
      }).populate("team1.teamId")
-     .populate("team2.teamId") 
+          .populate("team2.teamId")
 
-     
+
      return {
-          result ,
+          result,
           allLobbies
      }
 }

@@ -9,6 +9,11 @@ export default {
     jwt_secret: process.env.JWT_SECRET,
     email_pass: process.env.EMAIL_PASS,
     sk_key: process.env.SK_KEY,
-    google_api_key: process.env.GOOGLE_API
+    google_api_key: process.env.GOOGLE_API,
+    SES_HOST: process.env.SES_HOST,
+    SES_PORT: process.env.SES_PORT,
+    SES_USER: process.env.SES_USER,
+    SES_PASS: process.env.SES_PASS,
+    SES_FROM: process.env.SES_FROM
 };
 //# sourceMappingURL=index.js.map

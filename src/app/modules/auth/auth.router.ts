@@ -22,7 +22,7 @@ router.post("/create-player",  upload.fields([
 router.post("/login",  authController.logInUser)
 router.post("/google-login",authController.googleLogin)
 router.post("/apple-login",authController.appleLogin)
-router.post("/reset-request",authController.resetRequest)
+router.post("/send-otp",authController.resetRequest)
 router.post("/reset-password",authController.resetPassword)
 router.get("/all-player", authController.allUsers)
 
