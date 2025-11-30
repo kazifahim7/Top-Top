@@ -45,18 +45,19 @@ const loginUser = async (payload) => {
 const googleLogin = async (payload) => {
     const isUserExist = await userModel.findOne({ email: payload.email });
     let user;
-    if (isUserExist) {
+    let result = null;
+    if (!isUserExist) {
+        result = await userModel.create(payload);
         user = {
-            id: isUserExist?._id,
-            role: isUserExist?.role,
-            email: isUserExist?.email
+            id: result?._id,
+            role: result?.role,
+            email: result?.email
         };
     }
-    const result = await userModel.create(payload);
     user = {
-        id: result?._id,
-        role: result?.role,
-        email: result?.email
+        id: isUserExist?._id,
+        role: isUserExist?.role,
+        email: isUserExist?.email
     };
     const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
     const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });

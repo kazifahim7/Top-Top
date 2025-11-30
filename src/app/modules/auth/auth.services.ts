@@ -63,22 +63,28 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
 const googleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
 
      const isUserExist=await userModel.findOne({email:payload.email})
+     
      let user;
-     if (isUserExist) {
-          user = {
-               id: isUserExist?._id,
-               role: isUserExist?.role,
-               email: isUserExist?.email
-          }
+     let result = null;
+     if (!isUserExist) {
 
-     }
- 
-          const result = await userModel.create(payload)
+          result = await userModel.create(payload)
           user = {
                id: result?._id,
                role: result?.role,
                email: result?.email
           }
+         
+
+     }
+
+     user = {
+          id: isUserExist?._id,
+          role: isUserExist?.role,
+          email: isUserExist?.email
+     }
+ 
+         
 
 
     

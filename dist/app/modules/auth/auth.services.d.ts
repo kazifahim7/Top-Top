@@ -109,11 +109,11 @@ export declare const authService: {
         __v: number;
     }>;
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
-        result: import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
             _id: import("mongoose").Types.ObjectId;
         } & {
             __v: number;
-        };
+        }) | null;
         accessToken: string;
         refreshToken: string;
     }>;
