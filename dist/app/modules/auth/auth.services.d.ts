@@ -109,6 +109,11 @@ export declare const authService: {
         __v: number;
     }>;
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
+        user: {
+            id: import("mongoose").Types.ObjectId;
+            role: "admin" | "player" | "organizer";
+            email: string;
+        };
         result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
             _id: import("mongoose").Types.ObjectId;
         } & {

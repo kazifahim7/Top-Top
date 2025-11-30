@@ -60,49 +60,44 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
 
 
 }
-const googleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
+const googleLogin = async (
+     payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">
+) => {
 
-     const isUserExist=await userModel.findOne({email:payload.email})
-     
-     let user;
+     const isUserExist = await userModel.findOne({ email: payload.email })
+
+     let userData;
      let result = null;
-     if (!isUserExist) {
 
+     if (!isUserExist) {
           result = await userModel.create(payload)
-          user = {
+
+          userData = {
                id: result?._id,
                role: result?.role,
-               email: result?.email
+               email: result?.email,   
           }
-         
-
+     } else {
+          userData = {
+               id: isUserExist?._id,
+               role: isUserExist?.role,
+               email: isUserExist?.email,
+          }
      }
 
-     user = {
-          id: isUserExist?._id,
-          role: isUserExist?.role,
-          email: isUserExist?.email
-     }
- 
-         
+     
 
-
-    
-  
-
-
-     const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
-     const refreshToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
+     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
 
      return {
+          user: userData,
           result,
           accessToken,
           refreshToken
      }
-
-
-
 }
+
 const appleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
 
 
@@ -168,6 +163,7 @@ const allStudentFromDB = async (query: Record<string, unknown>) => {
 }
 
 const getSingleUser = async (id: string) => {
+     console.log(id)
      const result = await userModel.findOne({ email: id }).select("-password")
      return result;
 }

@@ -99,6 +99,7 @@ const allUsers = catchAsync(async (req, res) => {
     });
 });
 const singleUser = catchAsync(async (req, res) => {
+    console.log(req?.user?.email, "hello");
     const result = await authService.getSingleUser(req?.user?.email);
     res.status(200).json({
         success: true,

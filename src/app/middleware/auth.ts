@@ -26,6 +26,7 @@ const auth = (...roles: string[]) => {
 
           const { role, email } = decoded
           // <- check this user exist in database
+          console.log(email,"fahim")
 
           const isExists = await userModel.findOne({ email: email })
           if (!isExists) {

@@ -16,6 +16,7 @@ const auth = (...roles) => {
         }
         const { role, email } = decoded;
         // <- check this user exist in database
+        console.log(email, "fahim");
         const isExists = await userModel.findOne({ email: email });
         if (!isExists) {
             throw new AppError(404, "This User Not Found");

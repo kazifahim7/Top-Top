@@ -131,6 +131,7 @@ const allUsers = catchAsync(async (req: Request, res: Response) => {
 
 })
 const singleUser = catchAsync(async (req: Request, res: Response) => {
+     console.log(req?.user?.email!,"hello")
 
      const result = await authService.getSingleUser(req?.user?.email!)
 

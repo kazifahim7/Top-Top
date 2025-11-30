@@ -44,24 +44,27 @@ const loginUser = async (payload) => {
 };
 const googleLogin = async (payload) => {
     const isUserExist = await userModel.findOne({ email: payload.email });
-    let user;
+    let userData;
     let result = null;
     if (!isUserExist) {
         result = await userModel.create(payload);
-        user = {
+        userData = {
             id: result?._id,
             role: result?.role,
-            email: result?.email
+            email: result?.email,
         };
     }
-    user = {
-        id: isUserExist?._id,
-        role: isUserExist?.role,
-        email: isUserExist?.email
-    };
-    const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
-    const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    else {
+        userData = {
+            id: isUserExist?._id,
+            role: isUserExist?.role,
+            email: isUserExist?.email,
+        };
+    }
+    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
+    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
     return {
+        user: userData,
         result,
         accessToken,
         refreshToken
@@ -112,6 +115,7 @@ const allStudentFromDB = async (query) => {
     return result;
 };
 const getSingleUser = async (id) => {
+    console.log(id);
     const result = await userModel.findOne({ email: id }).select("-password");
     return result;
 };
