@@ -62,16 +62,27 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
 }
 const googleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
 
+     const isUserExist=await userModel.findOne({email:payload.email})
+     let user;
+     if (isUserExist) {
+          user = {
+               id: isUserExist?._id,
+               role: isUserExist?.role,
+               email: isUserExist?.email
+          }
 
-
-
-     const result = await userModel.create(payload)
-
-     const user = {
-          id: result?._id,
-          role: result?.role,
-          email: result?.email
      }
+ 
+          const result = await userModel.create(payload)
+          user = {
+               id: result?._id,
+               role: result?.role,
+               email: result?.email
+          }
+
+
+    
+  
 
 
      const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })

@@ -43,8 +43,17 @@ const loginUser = async (payload) => {
     };
 };
 const googleLogin = async (payload) => {
+    const isUserExist = await userModel.findOne({ email: payload.email });
+    let user;
+    if (isUserExist) {
+        user = {
+            id: isUserExist?._id,
+            role: isUserExist?.role,
+            email: isUserExist?.email
+        };
+    }
     const result = await userModel.create(payload);
-    const user = {
+    user = {
         id: result?._id,
         role: result?.role,
         email: result?.email
