@@ -5,6 +5,7 @@ import { TeamModel } from "./team.model.js";
 import { InviteModel } from "../Notification/notification.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
+import { userModel } from "../auth/auth.model.js";
 
 const createTeam = async (payload: TTeam, owner: any) => {
      const isTeamOwnerHasATeam = await TeamModel.findOne({ teamOwner: owner })
@@ -174,8 +175,12 @@ const removePlayer = async (ownerId: string, teamId: string, playerId: string) =
 const invitePlayer = async (ownerId: string, teamId: string, playerId: string,message:string) => {
 
      const team = await TeamModel.findById(teamId);
+     const isUserExist = await userModel.findById(playerId)
+     if(!isUserExist){
+          throw new AppError(400, "this player are not available");
+     }
      if (!team){
-          throw new AppError(400, "Cannot remove a captain directly");
+          throw new AppError(400, "Team is not Found");
      } 
 
      if (team?.teamOwner.toString() !== ownerId) {

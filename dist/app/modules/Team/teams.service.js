@@ -4,6 +4,7 @@ import { TeamModel } from "./team.model.js";
 import { InviteModel } from "../Notification/notification.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
+import { userModel } from "../auth/auth.model.js";
 const createTeam = async (payload, owner) => {
     const isTeamOwnerHasATeam = await TeamModel.findOne({ teamOwner: owner });
     if (isTeamOwnerHasATeam) {
@@ -125,8 +126,12 @@ const removePlayer = async (ownerId, teamId, playerId) => {
 };
 const invitePlayer = async (ownerId, teamId, playerId, message) => {
     const team = await TeamModel.findById(teamId);
+    const isUserExist = await userModel.findById(playerId);
+    if (!isUserExist) {
+        throw new AppError(400, "this player are not available");
+    }
     if (!team) {
-        throw new AppError(400, "Cannot remove a captain directly");
+        throw new AppError(400, "Team is not Found");
     }
     if (team?.teamOwner.toString() !== ownerId) {
         throw new AppError(400, "you can not send invite");
