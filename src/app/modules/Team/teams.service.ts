@@ -191,6 +191,14 @@ const invitePlayer = async (ownerId: string, teamId: string, playerId: string,me
      if (ownerId === playerId) {
           throw new AppError(400, "Owner cannot invite themselves");
      }
+     const alreadyRequestSend = await  InviteModel.findOne({
+          team: new Types.ObjectId(teamId),
+          sender: new Types.ObjectId(ownerId),
+          receiver: new Types.ObjectId(playerId)
+     })
+     if (alreadyRequestSend) {
+          throw new AppError(400, "Already request send!");
+     }
 
      // Create invite in database
      const invite = await InviteModel.create({
