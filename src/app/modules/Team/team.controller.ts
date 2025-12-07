@@ -142,6 +142,15 @@ const myRequest = catchAsync(async (req: Request, res: Response) => {
           data: result
      })
 })
+const DeleteTeam = catchAsync(async (req: Request, res: Response) => {
+     const teamId = req.params.id
+     const result = await teamsService.DeleteTeam(teamId!)
+     res.status(200).json({
+          success: true,
+          message: "Team are deleted successfully",
+          data: result
+     })
+})
 
 
 export const TeamController ={
@@ -154,5 +163,6 @@ export const TeamController ={
      invitePlayer,
      acceptInvite,
      rejectInvite,
-     myRequest
+     myRequest,
+     DeleteTeam
 }

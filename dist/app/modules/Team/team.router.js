@@ -32,6 +32,7 @@ router.put("/update-team/:id", auth("player"), upload.fields([
 router.put("/update-team/:id", TeamController.updateTeam);
 router.get("/all-teams", TeamController.allTeams);
 router.get("/my-team", auth("player"), TeamController.myTeam);
+router.delete("/delete-team/:id", TeamController.DeleteTeam);
 // assign captain in a team
 router.put("/:teamId/assign-captain", auth("player"), TeamController.assignCaptain);
 router.put("/:teamId/remove-player", auth("player"), TeamController.removePlayer);

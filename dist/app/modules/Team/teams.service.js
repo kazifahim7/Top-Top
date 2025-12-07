@@ -202,6 +202,10 @@ const myRequest = async (userId) => {
     }
     return result;
 };
+const DeleteTeam = async (teamId) => {
+    const result = await TeamModel.findByIdAndDelete(teamId);
+    return result;
+};
 export const teamsService = {
     createTeam,
     updateTeam,
@@ -212,6 +216,7 @@ export const teamsService = {
     invitePlayer,
     acceptInvite,
     rejectInvite,
-    myRequest
+    myRequest,
+    DeleteTeam
 };
 //# sourceMappingURL=teams.service.js.map

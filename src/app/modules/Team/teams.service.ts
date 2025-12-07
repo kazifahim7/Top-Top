@@ -275,11 +275,13 @@ const myRequest = async (userId: string) => {
           .populate("sender")   
           .populate("receiver").populate("team")
           .sort({ createdAt: -1 }); 
-
      if (!result || result.length === 0) {
           return []; 
      }
-
+     return result;
+};
+const DeleteTeam = async (teamId: string) => {
+     const result = await TeamModel.findByIdAndDelete(teamId)
      return result;
 };
 
@@ -294,5 +296,6 @@ export const teamsService = {
      invitePlayer,
      acceptInvite,
      rejectInvite,
-     myRequest
+     myRequest,
+     DeleteTeam
 }
