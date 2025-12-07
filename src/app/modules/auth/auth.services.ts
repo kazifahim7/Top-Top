@@ -13,6 +13,7 @@ import { LobbyModel } from '../Lobby/lobby.model.js';
 import { email } from 'zod';
 import OtpModel from './auth.otpmodel.js';
 import emailSender from '../../utils/sendEmail.js';
+import { TeamModel } from '../Team/team.model.js';
 
 
 const createUserIntoDB = async (payload: TCreateProfile) => {
@@ -75,7 +76,7 @@ const googleLogin = async (
           userData = {
                id: result?._id,
                role: result?.role,
-               email: result?.email,   
+               email: result?.email,
           }
      } else {
           userData = {
@@ -85,7 +86,7 @@ const googleLogin = async (
           }
      }
 
-     
+
 
      const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
      const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
@@ -162,11 +163,22 @@ const allStudentFromDB = async (query: Record<string, unknown>) => {
 
 }
 
-const getSingleUser = async (id: string) => {
-     console.log(id)
-     const result = await userModel.findOne({ email: id }).select("-password")
-     return result;
-}
+const getSingleUser = async (email: string) => {
+     console.log(email);
+
+     const user = await userModel.findOne({ email }).select("-password");
+     if (!user) return null;
+
+     const myJoinedTeam = await TeamModel.find({
+          players: { $in: [user._id] } 
+     });
+
+     return {
+          ...user.toObject(),
+          myJoinedTeam
+     };
+};
+
 
 const resetRequest = async (payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findOne({ email: payload?.email });
@@ -208,10 +220,10 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 };
 
 
-export const resetPassword = async (payload: {  password: string, otp?: number }) => {
+export const resetPassword = async (payload: { password: string, otp?: number }) => {
 
-     
-     const otpExist = await OtpModel.findOne({otp: payload.otp })
+
+     const otpExist = await OtpModel.findOne({ otp: payload.otp })
      if (!otpExist) throw new AppError(404, "OTP not found");
      if (otpExist.otp !== payload.otp) throw new AppError(400, "Invalid OTP");
      if (Date.now() > +otpExist.otpExpiry) throw new AppError(400, "OTP expired");
@@ -225,7 +237,7 @@ export const resetPassword = async (payload: {  password: string, otp?: number }
           { $set: { password: hashedPassword } },
           { new: true }
      ).select("-password");
-     if(updatedUser){
+     if (updatedUser) {
           await OtpModel.findByIdAndDelete(otpExist._id)
      }
 

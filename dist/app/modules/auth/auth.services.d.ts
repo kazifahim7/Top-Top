@@ -94,11 +94,41 @@ export declare const authService: {
     } & {
         __v: number;
     })[]>;
-    getSingleUser: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+    getSingleUser: (email: string) => Promise<{
+        myJoinedTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: import("mongoose").Types.ObjectId;
+        } & {
+            __v: number;
+        })[];
+        FullName: string;
+        email: string;
+        password: string;
+        role: "admin" | "player" | "organizer";
+        isBlocked: "active" | "block";
+        mobile?: string;
+        socialProfile: string[];
+        imageUrl: string;
+        nationality: string;
+        dominantFoot: string;
+        playingDays: string[];
+        gameMode: string;
+        preferredAreas: string;
+        age: string;
+        position: string[];
+        userName: string;
+        matchPosition?: string;
+        redCard: number;
+        yellowCard: number;
+        contribution: number;
+        assists: number;
+        goal: number;
+        tackle: number;
+        save: number;
+        rating: number;
+        match: number;
         _id: import("mongoose").Types.ObjectId;
-    } & {
         __v: number;
-    }) | null>;
+    } | null>;
     resetRequest: (payload: Record<string, unknown>) => Promise<void>;
     resetPassword: (payload: {
         password: string;

@@ -8,6 +8,7 @@ import { LobbyModel } from '../Lobby/lobby.model.js';
 import { email } from 'zod';
 import OtpModel from './auth.otpmodel.js';
 import emailSender from '../../utils/sendEmail.js';
+import { TeamModel } from '../Team/team.model.js';
 const createUserIntoDB = async (payload) => {
     const isUserAlreadyExist = await userModel.findOne({ email: payload?.email });
     if (isUserAlreadyExist) {
@@ -114,10 +115,18 @@ const allStudentFromDB = async (query) => {
     const result = await playerQuery.modelQuery;
     return result;
 };
-const getSingleUser = async (id) => {
-    console.log(id);
-    const result = await userModel.findOne({ email: id }).select("-password");
-    return result;
+const getSingleUser = async (email) => {
+    console.log(email);
+    const user = await userModel.findOne({ email }).select("-password");
+    if (!user)
+        return null;
+    const myJoinedTeam = await TeamModel.find({
+        players: { $in: [user._id] }
+    });
+    return {
+        ...user.toObject(),
+        myJoinedTeam
+    };
 };
 const resetRequest = async (payload) => {
     const isUserExist = await userModel.findOne({ email: payload?.email });
