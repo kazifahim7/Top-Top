@@ -162,6 +162,10 @@ const removePlayer = async (ownerId: string, teamId: string, playerId: string) =
                { new: true }
           )
      }
+     // remove invitation
+     await InviteModel.findOneAndDelete({
+          receiver: new Types.ObjectId(playerId)
+     })
 
      // Remove the player
      const updatedTeam = await TeamModel.findByIdAndUpdate(
@@ -180,6 +184,9 @@ const invitePlayer = async (ownerId: string, teamId: string, playerId: string,me
 
      const team = await TeamModel.findById(teamId);
      const isUserExist = await userModel.findById(playerId)
+     if(team?.players.some((player)=>player.toString() === playerId)){
+          throw new AppError(400, "this player are already available in your team");
+     }
      if(!isUserExist){
           throw new AppError(400, "this player are not available");
      }

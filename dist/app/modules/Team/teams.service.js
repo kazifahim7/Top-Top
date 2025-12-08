@@ -113,10 +113,13 @@ const removePlayer = async (ownerId, teamId, playerId) => {
     if (team.teamOwner.toString() === playerId) {
         throw new AppError(400, "Cannot remove the team owner");
     }
-    // Prevent removing captain (optional, depends on your rules)
     if (team.teamCaptain.some(c => c.toString() === playerId)) {
-        throw new AppError(400, "Cannot remove a captain directly");
+        await TeamModel.findByIdAndUpdate(teamId, { $pull: { teamCaptain: new Types.ObjectId(playerId) } }, { new: true });
     }
+    // remove invitation
+    await InviteModel.findOneAndDelete({
+        receiver: new Types.ObjectId(playerId)
+    });
     // Remove the player
     const updatedTeam = await TeamModel.findByIdAndUpdate(teamId, { $pull: { players: new Types.ObjectId(playerId) } }, { new: true })
         .populate("players")
@@ -127,6 +130,9 @@ const removePlayer = async (ownerId, teamId, playerId) => {
 const invitePlayer = async (ownerId, teamId, playerId, message) => {
     const team = await TeamModel.findById(teamId);
     const isUserExist = await userModel.findById(playerId);
+    if (team?.players.some((player) => player.toString() === playerId)) {
+        throw new AppError(400, "this player are already available in your team");
+    }
     if (!isUserExist) {
         throw new AppError(400, "this player are not available");
     }
