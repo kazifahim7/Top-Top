@@ -47,7 +47,7 @@ export declare const teamsService: {
         _id: Types.ObjectId;
     } & {
         __v: number;
-    }, never>>;
+    }, never> | undefined>;
     removePlayer: (ownerId: string, teamId: string, playerId: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;
     } & {

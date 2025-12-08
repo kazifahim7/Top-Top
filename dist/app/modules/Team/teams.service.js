@@ -69,6 +69,9 @@ const assignCaptain = async (ownerId, teamId, captainId) => {
         if (!team) {
             throw new AppError(404, "Team not found");
         }
+        if (team.teamCaptain.some((captain) => captain.toString() == captainId)) {
+            throw new AppError(400, "This player is already a captain");
+        }
         if (team?.teamOwner.toString() !== ownerId) {
             throw new AppError(400, "you can not assigned it");
         }
@@ -83,9 +86,6 @@ const assignCaptain = async (ownerId, teamId, captainId) => {
             throw new AppError(400, "Team owner cannot be assigned as captain");
         }
         // Check if the captain is already assigned
-        if (team.teamCaptain.includes(new Types.ObjectId(captainId))) {
-            throw new AppError(400, "This player is already a captain");
-        }
         // Assign new captain
         team.teamCaptain.push(new Types.ObjectId(captainId));
         await team.save();
@@ -93,7 +93,7 @@ const assignCaptain = async (ownerId, teamId, captainId) => {
         return result;
     }
     catch (err) {
-        throw new AppError(400, "something went wrong bro");
+        // throw new AppError(400, "something went wrong bro");
     }
 };
 const removePlayer = async (ownerId, teamId, playerId) => {
