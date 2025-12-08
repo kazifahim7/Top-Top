@@ -154,9 +154,13 @@ const removePlayer = async (ownerId: string, teamId: string, playerId: string) =
           throw new AppError(400, "Cannot remove the team owner");
      }
 
-     // Prevent removing captain (optional, depends on your rules)
+    
      if (team.teamCaptain.some(c => c.toString() === playerId)) {
-          throw new AppError(400, "Cannot remove a captain directly");
+          await TeamModel.findByIdAndUpdate(
+               teamId,
+               { $pull: { teamCaptain: new Types.ObjectId(playerId) } },
+               { new: true }
+          )
      }
 
      // Remove the player
