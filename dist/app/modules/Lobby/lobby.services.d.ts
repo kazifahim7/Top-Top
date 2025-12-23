@@ -42,6 +42,7 @@ export declare const lobbyService: {
     }> & {
         __v: number;
     }) | null>;
+    singlelobby: (lobbyId: string) => Promise<any>;
 };
 export {};
 //# sourceMappingURL=lobby.services.d.ts.map

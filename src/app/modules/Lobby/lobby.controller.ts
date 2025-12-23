@@ -24,6 +24,16 @@ const allMatch = catchAsync(async (req: Request, res: Response) => {
           data: result
      })
 })
+const singlelobby = catchAsync(async (req: Request, res: Response) => {
+   
+     const query = req.params?.id
+     const result = await lobbyService.singlelobby(query!)
+     res.status(200).json({
+          success: true,
+          message: "single lobby successfully",
+          data: result
+     })
+})
 const updatePlayerState = catchAsync(async (req: Request, res: Response) => {
    
      const data = req.body
@@ -81,5 +91,6 @@ export const lobbyController={
      allMatch,
      updatePlayerState,
      lobbyInFo,
-     deleteLobby
+     deleteLobby,
+     singlelobby
 }

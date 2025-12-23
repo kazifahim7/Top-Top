@@ -5,5 +5,6 @@ export declare const lobbyController: {
     updatePlayerState: (req: Request, res: Response, next: import("express").NextFunction) => void;
     lobbyInFo: (req: Request, res: Response, next: import("express").NextFunction) => void;
     deleteLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    singlelobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=lobby.controller.d.ts.map

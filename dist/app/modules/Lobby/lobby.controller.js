@@ -21,6 +21,15 @@ const allMatch = catchAsync(async (req, res) => {
         data: result
     });
 });
+const singlelobby = catchAsync(async (req, res) => {
+    const query = req.params?.id;
+    const result = await lobbyService.singlelobby(query);
+    res.status(200).json({
+        success: true,
+        message: "single lobby successfully",
+        data: result
+    });
+});
 const updatePlayerState = catchAsync(async (req, res) => {
     const data = req.body;
     data.lobbyId = req.params?.lobbyId;
@@ -61,6 +70,7 @@ export const lobbyController = {
     allMatch,
     updatePlayerState,
     lobbyInFo,
-    deleteLobby
+    deleteLobby,
+    singlelobby
 };
 //# sourceMappingURL=lobby.controller.js.map

@@ -5,6 +5,7 @@ import { upload } from '../../utils/multer.js';
 const router = express.Router();
 router.post("/create-match", auth("organizer", "admin"), lobbyController.createMatch);
 router.get("/all-match", lobbyController.allMatch);
+router.get("/:id", lobbyController.singlelobby);
 router.put("/:lobbyId/player", auth("organizer", "admin"), lobbyController.updatePlayerState);
 router.put("/:lobbyId/lobby-info", upload.fields([
     { name: "images", maxCount: 6 }
