@@ -62,4 +62,5 @@ export interface LobbyDocument extends Document {
      goalTeam1: number;
      goalTeam2: number;
      organizer: Types.ObjectId;
+     matchPublished?:boolean
 }
