@@ -40,7 +40,8 @@ const loginUser = async (payload) => {
     const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
     return {
         accessToken,
-        refreshToken
+        refreshToken,
+        role: isUserExist?.role
     };
 };
 const googleLogin = async (payload) => {

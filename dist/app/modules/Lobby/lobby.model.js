@@ -1,4 +1,5 @@
 import { model, Schema } from "mongoose";
+import { boolean } from "zod";
 const PlayerStatsSchema = new Schema({
     playerId: { type: Schema.Types.ObjectId, ref: "players", required: true },
     redCard: { type: Number, default: 0 },
@@ -55,6 +56,7 @@ const LobbySchema = new Schema({
     goalTeam1: { type: Number, default: 0 },
     goalTeam2: { type: Number, default: 0 },
     organizer: { type: Schema.Types.ObjectId, ref: "players" },
+    matchPublished: { type: boolean, default: false }
 }, { timestamps: true });
 export const LobbyModel = model("Lobby", LobbySchema);
 //# sourceMappingURL=lobby.model.js.map
