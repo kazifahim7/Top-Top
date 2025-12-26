@@ -141,7 +141,7 @@ const singlelobby = async (lobbyId) => {
                 _id: new Types.ObjectId(lobbyId),
             },
         },
-        /* ================= TEAM 1 ================= */
+        /* ================= TEAM 1 DATA ================= */
         {
             $lookup: {
                 from: "teams",
@@ -150,16 +150,20 @@ const singlelobby = async (lobbyId) => {
                 as: "team1Data",
             },
         },
-        { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
+        {
+            $unwind: {
+                path: "$team1Data",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
         {
             $lookup: {
                 from: "players",
-                localField: "team1Data.players",
+                localField: "team1.players",
                 foreignField: "_id",
-                as: "team1Players",
+                as: "team1JoinedPlayers",
             },
         },
-        /* ================= TEAM 2 ================= */
         {
             $lookup: {
                 from: "teams",
@@ -168,16 +172,20 @@ const singlelobby = async (lobbyId) => {
                 as: "team2Data",
             },
         },
-        { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
+        {
+            $unwind: {
+                path: "$team2Data",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
         {
             $lookup: {
                 from: "players",
-                localField: "team2Data.players",
+                localField: "team2.players",
                 foreignField: "_id",
-                as: "team2Players",
+                as: "team2JoinedPlayers",
             },
         },
-        /* ================= ORGANIZER ================= */
         {
             $lookup: {
                 from: "players",
@@ -186,8 +194,12 @@ const singlelobby = async (lobbyId) => {
                 as: "organizerData",
             },
         },
-        { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
-        /* ================= DEFAULT TEAM 1 ================= */
+        {
+            $unwind: {
+                path: "$organizerData",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
         {
             $lookup: {
                 from: "players",
@@ -199,14 +211,15 @@ const singlelobby = async (lobbyId) => {
                 pipeline: [
                     {
                         $match: {
-                            $expr: { $in: ["$_id", "$$playerIds"] },
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"],
+                            },
                         },
                     },
                 ],
                 as: "defaultTeam1Players",
             },
         },
-        /* ================= DEFAULT TEAM 2 ================= */
         {
             $lookup: {
                 from: "players",
@@ -218,7 +231,9 @@ const singlelobby = async (lobbyId) => {
                 pipeline: [
                     {
                         $match: {
-                            $expr: { $in: ["$_id", "$$playerIds"] },
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"],
+                            },
                         },
                     },
                 ],

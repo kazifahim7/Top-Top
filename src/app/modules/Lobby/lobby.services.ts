@@ -159,13 +159,14 @@ const allMatch = async (query: Record<string, unknown>) => {
 
 const singlelobby = async (lobbyId: string) => {
      const lobbies = await LobbyModel.aggregate([
+          
           {
                $match: {
                     _id: new Types.ObjectId(lobbyId),
                },
           },
 
-          /* ================= TEAM 1 ================= */
+          /* ================= TEAM 1 DATA ================= */
           {
                $lookup: {
                     from: "teams",
@@ -174,18 +175,24 @@ const singlelobby = async (lobbyId: string) => {
                     as: "team1Data",
                },
           },
-          { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
-
           {
-               $lookup: {
-                    from: "players",
-                    localField: "team1Data.players",
-                    foreignField: "_id",
-                    as: "team1Players",
+               $unwind: {
+                    path: "$team1Data",
+                    preserveNullAndEmptyArrays: true,
                },
           },
 
-          /* ================= TEAM 2 ================= */
+        
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "team1.players",
+                    foreignField: "_id",
+                    as: "team1JoinedPlayers",
+               },
+          },
+
+       
           {
                $lookup: {
                     from: "teams",
@@ -194,18 +201,24 @@ const singlelobby = async (lobbyId: string) => {
                     as: "team2Data",
                },
           },
-          { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
-
           {
-               $lookup: {
-                    from: "players",
-                    localField: "team2Data.players",
-                    foreignField: "_id",
-                    as: "team2Players",
+               $unwind: {
+                    path: "$team2Data",
+                    preserveNullAndEmptyArrays: true,
                },
           },
 
-          /* ================= ORGANIZER ================= */
+  
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "team2.players",
+                    foreignField: "_id",
+                    as: "team2JoinedPlayers",
+               },
+          },
+
+       
           {
                $lookup: {
                     from: "players",
@@ -214,9 +227,14 @@ const singlelobby = async (lobbyId: string) => {
                     as: "organizerData",
                },
           },
-          { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+          {
+               $unwind: {
+                    path: "$organizerData",
+                    preserveNullAndEmptyArrays: true,
+               },
+          },
 
-          /* ================= DEFAULT TEAM 1 ================= */
+    
           {
                $lookup: {
                     from: "players",
@@ -228,7 +246,9 @@ const singlelobby = async (lobbyId: string) => {
                     pipeline: [
                          {
                               $match: {
-                                   $expr: { $in: ["$_id", "$$playerIds"] },
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"],
+                                   },
                               },
                          },
                     ],
@@ -236,7 +256,7 @@ const singlelobby = async (lobbyId: string) => {
                },
           },
 
-          /* ================= DEFAULT TEAM 2 ================= */
+         
           {
                $lookup: {
                     from: "players",
@@ -248,7 +268,9 @@ const singlelobby = async (lobbyId: string) => {
                     pipeline: [
                          {
                               $match: {
-                                   $expr: { $in: ["$_id", "$$playerIds"] },
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"],
+                                   },
                               },
                          },
                     ],
@@ -257,7 +279,6 @@ const singlelobby = async (lobbyId: string) => {
           },
      ]);
 
-    
      return lobbies[0] || null;
 };
 
