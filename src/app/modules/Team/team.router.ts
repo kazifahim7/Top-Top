@@ -35,6 +35,7 @@ router.put("/update-team/:id",TeamController.updateTeam)
 
 router.get("/all-teams",TeamController.allTeams)
 router.get("/my-team",auth("player"),TeamController.myTeam)
+router.delete("/delete-team/:id",TeamController.DeleteTeam)
 
 // assign captain in a team
 

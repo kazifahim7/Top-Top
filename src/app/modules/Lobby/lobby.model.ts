@@ -1,8 +1,9 @@
 import { model, Schema } from "mongoose";
 import type { DefaultTeam, GeoLocation, LobbyDocument, PlayerStats, Team } from "./lobby.interface.js";
+import { boolean } from "zod";
 
 const PlayerStatsSchema = new Schema<PlayerStats>({
-     playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
+     playerId: { type: Schema.Types.ObjectId, ref: "players", required: true },
      redCard: { type: Number, default: 0 },
      yellowCard: { type: Number, default: 0 },
      contribution: { type: Number, default: 0 },
@@ -13,14 +14,14 @@ const PlayerStatsSchema = new Schema<PlayerStats>({
      goodMoment: { type: Number, default: 0 },
      veryGoodMoment: { type: Number, default: 0 },
      rating: { type: Number, default: 6.5 },
-     matchPosition: { type: String},
+     matchPosition: { type: String },
 });
 
 const TeamSchema = new Schema<Team>({
      teamId: { type: Schema.Types.ObjectId, ref: "Team", required: true },
      players: { type: [PlayerStatsSchema], default: [] },
-     matchFormat:  { type: String},
-     
+     matchFormat: { type: String },
+
 });
 
 const DefaultTeamSchema = new Schema<DefaultTeam>({
@@ -38,9 +39,9 @@ const LocationSchema = new Schema<GeoLocation>({
 const LobbySchema = new Schema<LobbyDocument>(
      {
           title: { type: String, required: true },
-          team1: { type: TeamSchema},
-          team2: { type: TeamSchema  },
-          defaultTeam1: { type: DefaultTeamSchema  },
+          team1: { type: TeamSchema },
+          team2: { type: TeamSchema },
+          defaultTeam1: { type: DefaultTeamSchema },
           defaultTeam2: { type: DefaultTeamSchema },
           matchTime: { type: String, required: true },
           location: { type: LocationSchema, required: true },
@@ -54,15 +55,16 @@ const LobbySchema = new Schema<LobbyDocument>(
           maxSlot: { type: Number, required: true },
           positionRequired: { type: [String], default: [] },
           media: { type: [String] },
-          motm: { type: Schema.Types.ObjectId, ref: "Players" },
+          motm: { type: Schema.Types.ObjectId, ref: "players" },
           note: { type: String },
-          lobbyStatus: { type: String, enum: ["ongoing", "completed","block"], default: "ongoing" },
+          lobbyStatus: { type: String, enum: ["ongoing", "completed", "block"], default: "ongoing" },
           matchType: { type: String, enum: ["solo", "teams"], default: "solo" },
           matchPrivacy: { type: String, enum: ["public", "private"], default: "public" },
           privateKey: { type: String },
           goalTeam1: { type: Number, default: 0 },
           goalTeam2: { type: Number, default: 0 },
-          organizer: { type: Schema.Types.ObjectId, ref: "Players" },
+          organizer: { type: Schema.Types.ObjectId, ref: "players" },
+          matchPublished: { type: boolean, default: false }
      },
      { timestamps: true }
 );

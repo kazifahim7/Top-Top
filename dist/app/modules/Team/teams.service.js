@@ -4,6 +4,7 @@ import { TeamModel } from "./team.model.js";
 import { InviteModel } from "../Notification/notification.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
+import { userModel } from "../auth/auth.model.js";
 const createTeam = async (payload, owner) => {
     const isTeamOwnerHasATeam = await TeamModel.findOne({ teamOwner: owner });
     if (isTeamOwnerHasATeam) {
@@ -63,37 +64,30 @@ const myTeam = async (id) => {
     };
 };
 const assignCaptain = async (ownerId, teamId, captainId) => {
-    try {
-        const team = await TeamModel.findById(teamId);
-        if (!team) {
-            throw new AppError(404, "Team not found");
-        }
-        if (team?.teamOwner.toString() !== ownerId) {
-            throw new AppError(400, "you can not assigned it");
-        }
-        if (!captainId) {
-            throw new AppError(400, "Captain ID is required");
-        }
-        if (team.teamCaptain.length >= 3) {
-            throw new AppError(400, "Team already has 3 captains. Cannot assign more.");
-        }
-        // Check if the captainId is the teamOwner
-        if (team.teamOwner.toString() === captainId) {
-            throw new AppError(400, "Team owner cannot be assigned as captain");
-        }
-        // Check if the captain is already assigned
-        if (team.teamCaptain.includes(new Types.ObjectId(captainId))) {
-            throw new AppError(400, "This player is already a captain");
-        }
-        // Assign new captain
-        team.teamCaptain.push(new Types.ObjectId(captainId));
-        await team.save();
-        const result = await team.populate("players teamOwner teamCaptain");
-        return result;
+    if (!captainId) {
+        throw new AppError(400, "Captain ID is required");
     }
-    catch (err) {
-        throw new AppError(400, "something went wrong bro");
+    const team = await TeamModel.findById(teamId);
+    if (!team) {
+        throw new AppError(404, "Team not found");
     }
+    if (team.teamOwner.toString() !== ownerId) {
+        throw new AppError(403, "You are not allowed to assign captains");
+    }
+    if (team.teamCaptain.some(c => c.toString() === captainId)) {
+        throw new AppError(400, "This player is already a captain");
+    }
+    if (team.teamCaptain.length >= 3) {
+        throw new AppError(400, "Team already has 3 captains. Cannot assign more.");
+    }
+    if (team.teamOwner.toString() === captainId) {
+        throw new AppError(400, "Team owner cannot be assigned as captain");
+    }
+    // Assign captain
+    team.teamCaptain.push(new Types.ObjectId(captainId));
+    await team.save();
+    const result = await team.populate("players teamOwner teamCaptain");
+    return result;
 };
 const removePlayer = async (ownerId, teamId, playerId) => {
     const team = await TeamModel.findById(teamId);
@@ -112,10 +106,13 @@ const removePlayer = async (ownerId, teamId, playerId) => {
     if (team.teamOwner.toString() === playerId) {
         throw new AppError(400, "Cannot remove the team owner");
     }
-    // Prevent removing captain (optional, depends on your rules)
     if (team.teamCaptain.some(c => c.toString() === playerId)) {
-        throw new AppError(400, "Cannot remove a captain directly");
+        await TeamModel.findByIdAndUpdate(teamId, { $pull: { teamCaptain: new Types.ObjectId(playerId) } }, { new: true });
     }
+    // remove invitation
+    await InviteModel.findOneAndDelete({
+        receiver: new Types.ObjectId(playerId)
+    });
     // Remove the player
     const updatedTeam = await TeamModel.findByIdAndUpdate(teamId, { $pull: { players: new Types.ObjectId(playerId) } }, { new: true })
         .populate("players")
@@ -125,8 +122,15 @@ const removePlayer = async (ownerId, teamId, playerId) => {
 };
 const invitePlayer = async (ownerId, teamId, playerId, message) => {
     const team = await TeamModel.findById(teamId);
+    const isUserExist = await userModel.findById(playerId);
+    if (team?.players.some((player) => player.toString() === playerId)) {
+        throw new AppError(400, "this player are already available in your team");
+    }
+    if (!isUserExist) {
+        throw new AppError(400, "this player are not available");
+    }
     if (!team) {
-        throw new AppError(400, "Cannot remove a captain directly");
+        throw new AppError(400, "Team is not Found");
     }
     if (team?.teamOwner.toString() !== ownerId) {
         throw new AppError(400, "you can not send invite");
@@ -134,6 +138,14 @@ const invitePlayer = async (ownerId, teamId, playerId, message) => {
     // Prevent owner inviting themselves
     if (ownerId === playerId) {
         throw new AppError(400, "Owner cannot invite themselves");
+    }
+    const alreadyRequestSend = await InviteModel.findOne({
+        team: new Types.ObjectId(teamId),
+        sender: new Types.ObjectId(ownerId),
+        receiver: new Types.ObjectId(playerId)
+    });
+    if (alreadyRequestSend) {
+        throw new AppError(400, "Already request send!");
     }
     // Create invite in database
     const invite = await InviteModel.create({
@@ -189,6 +201,10 @@ const myRequest = async (userId) => {
     }
     return result;
 };
+const DeleteTeam = async (teamId) => {
+    const result = await TeamModel.findByIdAndDelete(teamId);
+    return result;
+};
 export const teamsService = {
     createTeam,
     updateTeam,
@@ -199,6 +215,7 @@ export const teamsService = {
     invitePlayer,
     acceptInvite,
     rejectInvite,
-    myRequest
+    myRequest,
+    DeleteTeam
 };
 //# sourceMappingURL=teams.service.js.map

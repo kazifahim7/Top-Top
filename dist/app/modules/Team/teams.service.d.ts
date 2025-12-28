@@ -73,5 +73,10 @@ export declare const teamsService: {
     } & {
         __v: number;
     })[]>;
+    DeleteTeam: (teamId: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }) | null>;
 };
 //# sourceMappingURL=teams.service.d.ts.map

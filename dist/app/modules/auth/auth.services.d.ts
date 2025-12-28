@@ -1,7 +1,7 @@
 import type { TCreateProfile } from './auth.interface.js';
 export declare const resetPassword: (payload: {
-    email: string;
     password: string;
+    otp?: number;
 }) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
     _id: import("mongoose").Types.ObjectId;
 } & {
@@ -24,6 +24,7 @@ export declare const authService: {
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
+        role: "admin" | "player" | "organizer";
     }>;
     updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;
@@ -94,26 +95,61 @@ export declare const authService: {
     } & {
         __v: number;
     })[]>;
-    getSingleUser: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
-    } & {
-        __v: number;
-    }) | null>;
-    resetRequest: (payload: Record<string, unknown>) => Promise<{}>;
-    resetPassword: (payload: {
+    getSingleUser: (email: string) => Promise<{
+        myJoinedTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: import("mongoose").Types.ObjectId;
+        } & {
+            __v: number;
+        })[];
+        FullName: string;
         email: string;
         password: string;
+        role: "admin" | "player" | "organizer";
+        isBlocked: "active" | "block";
+        mobile?: string;
+        socialProfile: string[];
+        imageUrl: string;
+        nationality: string;
+        dominantFoot: string;
+        playingDays: string[];
+        gameMode: string;
+        preferredAreas: string;
+        age: string;
+        position: string[];
+        userName: string;
+        matchPosition?: string;
+        redCard: number;
+        yellowCard: number;
+        contribution: number;
+        assists: number;
+        goal: number;
+        tackle: number;
+        save: number;
+        rating: number;
+        match: number;
+        _id: import("mongoose").Types.ObjectId;
+        __v: number;
+    } | null>;
+    resetRequest: (payload: Record<string, unknown>) => Promise<void>;
+    resetPassword: (payload: {
+        password: string;
+        otp?: number;
     }) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;
     } & {
         __v: number;
     }>;
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
-        result: import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        user: {
+            id: import("mongoose").Types.ObjectId;
+            role: "admin" | "player" | "organizer";
+            email: string;
+        };
+        result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
             _id: import("mongoose").Types.ObjectId;
         } & {
             __v: number;
-        };
+        }) | null;
         accessToken: string;
         refreshToken: string;
     }>;

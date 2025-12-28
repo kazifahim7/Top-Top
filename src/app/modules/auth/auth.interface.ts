@@ -1,3 +1,5 @@
+import type { Types } from "mongoose";
+
 export type TCreateProfile = {
      FullName: string,
      email: string,
@@ -27,3 +29,12 @@ export type TCreateProfile = {
      rating: number;
      match:number
 }
+
+
+export type OtpType ={
+          id: Types.ObjectId,
+          role: string,
+          email: string,
+          otp: number | string,
+          otpExpiry: Date
+     }

@@ -3,10 +3,12 @@ import jwt from 'jsonwebtoken';
 import { userModel } from './auth.model.js';
 import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
-import emailSender from '../../utils/sendEmail.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
 import { LobbyModel } from '../Lobby/lobby.model.js';
 import { email } from 'zod';
+import OtpModel from './auth.otpmodel.js';
+import emailSender from '../../utils/sendEmail.js';
+import { TeamModel } from '../Team/team.model.js';
 const createUserIntoDB = async (payload) => {
     const isUserAlreadyExist = await userModel.findOne({ email: payload?.email });
     if (isUserAlreadyExist) {
@@ -38,19 +40,33 @@ const loginUser = async (payload) => {
     const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
     return {
         accessToken,
-        refreshToken
+        refreshToken,
+        role: isUserExist?.role
     };
 };
 const googleLogin = async (payload) => {
-    const result = await userModel.create(payload);
-    const user = {
-        id: result?._id,
-        role: result?.role,
-        email: result?.email
-    };
-    const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
-    const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    const isUserExist = await userModel.findOne({ email: payload.email });
+    let userData;
+    let result = null;
+    if (!isUserExist) {
+        result = await userModel.create(payload);
+        userData = {
+            id: result?._id,
+            role: result?.role,
+            email: result?.email,
+        };
+    }
+    else {
+        userData = {
+            id: isUserExist?._id,
+            role: isUserExist?.role,
+            email: isUserExist?.email,
+        };
+    }
+    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
+    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
     return {
+        user: userData,
         result,
         accessToken,
         refreshToken
@@ -100,9 +116,18 @@ const allStudentFromDB = async (query) => {
     const result = await playerQuery.modelQuery;
     return result;
 };
-const getSingleUser = async (id) => {
-    const result = await userModel.findOne({ email: id }).select("-password");
-    return result;
+const getSingleUser = async (email) => {
+    console.log(email);
+    const user = await userModel.findOne({ email }).select("-password");
+    if (!user)
+        return null;
+    const myJoinedTeam = await TeamModel.find({
+        players: { $in: [user._id] }
+    });
+    return {
+        ...user.toObject(),
+        myJoinedTeam
+    };
 };
 const resetRequest = async (payload) => {
     const isUserExist = await userModel.findOne({ email: payload?.email });
@@ -112,37 +137,44 @@ const resetRequest = async (payload) => {
     if (isUserExist.isBlocked === "block") {
         throw new AppError(403, "You are not authorized");
     }
-    const user = {
+    const otp = Math.floor(1000 + Math.random() * 9000);
+    const userOtp = {
         id: isUserExist?._id,
         role: isUserExist?.role,
-        email: isUserExist?.email
+        email: isUserExist?.email,
+        otp: otp,
+        otpExpiry: Date.now() + 5 * 60 * 1000
     };
-    const resetToken = jwt.sign(user, config.jwt_secret, { expiresIn: "30d" });
-    const resetUrl = `yourapp://reset-password?token=${resetToken}`;
-    // Email template
+    const createdOtp = await OtpModel.create(userOtp);
     const emailHtml = `
-       <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
-         <h2 style="color: #4CAF50;">Password Reset Request</h2>
-         <p>Hello ${isUserExist.FullName},</p>
-         <p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
-         <p>Otherwise, click the button below to reset your password:</p>
-         <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background: #4CAF50; color: #fff; text-decoration: none; font-weight: bold; border-radius: 5px;">
-           Reset Now
-         </a>
-         <p style="margin-top: 20px;">If the button doesn't work, copy and paste this link into your browser:</p>
-         <p>Thank you,<br>Top Top Team</p>
-       </div>
-     `;
-    await emailSender(payload.email, emailHtml, "Reset your password");
-    return {};
+        <p>Hello ${isUserExist.FullName},</p>
+        <p>Your password reset OTP is: <strong>${otp}</strong></p>
+        <p>This OTP is valid for 5 minutes.</p>
+    `;
+    try {
+        await emailSender(payload.email, "Password Reset OTP", emailHtml);
+        console.log("OTP Email sent successfully");
+    }
+    catch (error) {
+        // Delete the OTP if email fails
+        await OtpModel.findByIdAndDelete(createdOtp._id);
+        console.error("Error sending OTP email:", error);
+        throw new AppError(500, "Failed to send OTP. Please try again later.");
+    }
 };
 export const resetPassword = async (payload) => {
-    const isPlayerIsExist = await userModel.findOne({ email: payload.email });
-    if (!isPlayerIsExist) {
-        throw new AppError(404, "User not found");
-    }
+    const otpExist = await OtpModel.findOne({ otp: payload.otp });
+    if (!otpExist)
+        throw new AppError(404, "OTP not found");
+    if (otpExist.otp !== payload.otp)
+        throw new AppError(400, "Invalid OTP");
+    if (Date.now() > +otpExist.otpExpiry)
+        throw new AppError(400, "OTP expired");
     const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
-    const updatedUser = await userModel.findOneAndUpdate({ email: payload.email }, { $set: { password: hashedPassword } }, { new: true }).select("-password");
+    const updatedUser = await userModel.findOneAndUpdate({ email: otpExist.email }, { $set: { password: hashedPassword } }, { new: true }).select("-password");
+    if (updatedUser) {
+        await OtpModel.findByIdAndDelete(otpExist._id);
+    }
     if (!updatedUser) {
         throw new AppError(404, "User not found");
     }

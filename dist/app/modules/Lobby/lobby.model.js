@@ -1,6 +1,11 @@
 import { model, Schema } from "mongoose";
+import { boolean } from "zod";
 const PlayerStatsSchema = new Schema({
+<<<<<<< HEAD
     playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
+=======
+    playerId: { type: Schema.Types.ObjectId, ref: "players", required: true },
+>>>>>>> b8fb58bb1cd248c11ae87b374230ff7dc6122728
     redCard: { type: Number, default: 0 },
     yellowCard: { type: Number, default: 0 },
     contribution: { type: Number, default: 0 },
@@ -46,7 +51,11 @@ const LobbySchema = new Schema({
     maxSlot: { type: Number, required: true },
     positionRequired: { type: [String], default: [] },
     media: { type: [String] },
+<<<<<<< HEAD
     motm: { type: Schema.Types.ObjectId, ref: "Players" },
+=======
+    motm: { type: Schema.Types.ObjectId, ref: "players" },
+>>>>>>> b8fb58bb1cd248c11ae87b374230ff7dc6122728
     note: { type: String },
     lobbyStatus: { type: String, enum: ["ongoing", "completed", "block"], default: "ongoing" },
     matchType: { type: String, enum: ["solo", "teams"], default: "solo" },
@@ -54,7 +63,12 @@ const LobbySchema = new Schema({
     privateKey: { type: String },
     goalTeam1: { type: Number, default: 0 },
     goalTeam2: { type: Number, default: 0 },
+<<<<<<< HEAD
     organizer: { type: Schema.Types.ObjectId, ref: "Players" },
+=======
+    organizer: { type: Schema.Types.ObjectId, ref: "players" },
+    matchPublished: { type: boolean, default: false }
+>>>>>>> b8fb58bb1cd248c11ae87b374230ff7dc6122728
 }, { timestamps: true });
 export const LobbyModel = model("Lobby", LobbySchema);
 //# sourceMappingURL=lobby.model.js.map

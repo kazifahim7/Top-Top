@@ -110,6 +110,15 @@ const myRequest = catchAsync(async (req, res) => {
         data: result
     });
 });
+const DeleteTeam = catchAsync(async (req, res) => {
+    const teamId = req.params.id;
+    const result = await teamsService.DeleteTeam(teamId);
+    res.status(200).json({
+        success: true,
+        message: "Team are deleted successfully",
+        data: result
+    });
+});
 export const TeamController = {
     createTeam,
     updateTeam,
@@ -120,6 +129,7 @@ export const TeamController = {
     invitePlayer,
     acceptInvite,
     rejectInvite,
-    myRequest
+    myRequest,
+    DeleteTeam
 };
 //# sourceMappingURL=team.controller.js.map

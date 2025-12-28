@@ -157,6 +157,133 @@ const allMatch = async (query: Record<string, unknown>) => {
 };
 
 
+const singlelobby = async (lobbyId: string) => {
+     const lobbies = await LobbyModel.aggregate([
+          
+          {
+               $match: {
+                    _id: new Types.ObjectId(lobbyId),
+               },
+          },
+
+          /* ================= TEAM 1 DATA ================= */
+          {
+               $lookup: {
+                    from: "teams",
+                    localField: "team1.teamId",
+                    foreignField: "_id",
+                    as: "team1Data",
+               },
+          },
+          {
+               $unwind: {
+                    path: "$team1Data",
+                    preserveNullAndEmptyArrays: true,
+               },
+          },
+
+        
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "team1.players",
+                    foreignField: "_id",
+                    as: "team1JoinedPlayers",
+               },
+          },
+
+       
+          {
+               $lookup: {
+                    from: "teams",
+                    localField: "team2.teamId",
+                    foreignField: "_id",
+                    as: "team2Data",
+               },
+          },
+          {
+               $unwind: {
+                    path: "$team2Data",
+                    preserveNullAndEmptyArrays: true,
+               },
+          },
+
+  
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "team2.players",
+                    foreignField: "_id",
+                    as: "team2JoinedPlayers",
+               },
+          },
+
+       
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "organizer",
+                    foreignField: "_id",
+                    as: "organizerData",
+               },
+          },
+          {
+               $unwind: {
+                    path: "$organizerData",
+                    preserveNullAndEmptyArrays: true,
+               },
+          },
+
+    
+          {
+               $lookup: {
+                    from: "players",
+                    let: {
+                         playerIds: {
+                              $ifNull: ["$defaultTeam1.players.playerId", []],
+                         },
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"],
+                                   },
+                              },
+                         },
+                    ],
+                    as: "defaultTeam1Players",
+               },
+          },
+
+         
+          {
+               $lookup: {
+                    from: "players",
+                    let: {
+                         playerIds: {
+                              $ifNull: ["$defaultTeam2.players.playerId", []],
+                         },
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"],
+                                   },
+                              },
+                         },
+                    ],
+                    as: "defaultTeam2Players",
+               },
+          },
+     ]);
+
+     return lobbies[0] || null;
+};
+
+
+
 interface UpdatePlayerStatsDTO {
      lobbyId: string;
      playerId: string;
@@ -327,5 +454,6 @@ export const lobbyService = {
      allMatch,
      updatePlayerStats,
      updateLobbyInfo,
-     deleteLobby
+     deleteLobby,
+     singlelobby
 }
