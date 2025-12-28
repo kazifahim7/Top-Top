@@ -16,5 +16,6 @@ export interface ITournament {
     maxTeam: number;
     imageUrl: string;
     status: string;
+    organizer: Types.ObjectId;
 }
 //# sourceMappingURL=Tournament.interface.d.ts.map

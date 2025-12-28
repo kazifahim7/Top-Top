@@ -351,4 +351,33 @@ export const allPaymentHistory = catchAsync(async (req, res) => {
         data: result
     });
 });
+export const allPaymentHistoryOrganizer = catchAsync(async (req, res) => {
+    const organizerId = req.user.id;
+    const paymentQuery = new QueryBuilder(PaymentModel.find()
+        .populate("lobbyId playerId tournamentId teamId")
+        .select("-stripePaymentIntentId"), req.query)
+        .filter()
+        .search(["status", "method"])
+        .sort();
+    const result = await paymentQuery.modelQuery;
+    // 🔥 Organizer-wise filter
+    const organizerPayments = result.filter((payment) => {
+        // tournament payment
+        if (payment.tournamentId &&
+            payment.tournamentId.organizer?.toString() === organizerId) {
+            return true;
+        }
+        // lobby payment
+        if (payment.lobbyId &&
+            payment.lobbyId.organizer?.toString() === organizerId) {
+            return true;
+        }
+        return false;
+    });
+    res.status(200).json({
+        success: true,
+        message: "Organizer payment history retrieved successfully",
+        data: organizerPayments,
+    });
+});
 //# sourceMappingURL=payment.controller.js.map

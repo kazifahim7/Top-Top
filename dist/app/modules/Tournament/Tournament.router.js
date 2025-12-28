@@ -1,17 +1,19 @@
 import express from 'express';
 import { upload } from '../../utils/multer.js';
 import { TournamentController } from './Tournament.controller.js';
+import auth from '../../middleware/auth.js';
 const router = express.Router();
-router.post("/create-tournament", upload.fields([
-    { name: "images", maxCount: 6 }
-]), (req, _res, next) => {
+router.post("/create-tournament", upload.fields([{ name: "images", maxCount: 6 }]), auth("organizer"), (req, _res, next) => {
     if (req.body.data) {
+        let parsedData;
         try {
-            req.body = { ...JSON.parse(req.body.data) };
+            parsedData = JSON.parse(req.body.data);
         }
         catch (err) {
             return next(new Error("Invalid JSON in 'data' field"));
         }
+        parsedData.organizer = req.user.id;
+        req.body = parsedData;
     }
     next();
 }, TournamentController.createTournament);

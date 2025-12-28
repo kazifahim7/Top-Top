@@ -16,6 +16,7 @@ const tournamentSchema = new Schema({
     winner: { type: Schema.Types.ObjectId, ref: "Team", default: null },
     maxTeam: { type: Number, default: 16 },
     status: { type: String, enum: ["active", "block"], default: "active" },
+    organizer: { type: Schema.Types.ObjectId, ref: "Players" },
     imageUrl: { type: String }
 });
 export const TournamentModel = model("Tournament", tournamentSchema);

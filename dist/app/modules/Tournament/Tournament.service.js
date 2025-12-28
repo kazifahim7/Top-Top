@@ -6,11 +6,11 @@ const createTournament = async (payload) => {
     return result;
 };
 const singleTournament = async (id) => {
-    const result = await TournamentModel.findById(id).populate("winner qualifiedTeams teams");
+    const result = await TournamentModel.findById(id).populate("winner qualifiedTeams teams organizer");
     return result;
 };
 const allTournament = async () => {
-    const result = await TournamentModel.find().populate("winner qualifiedTeams teams");
+    const result = await TournamentModel.find().populate("winner qualifiedTeams teams organizer");
     return result;
 };
 const updateTournament = async (id, payload) => {

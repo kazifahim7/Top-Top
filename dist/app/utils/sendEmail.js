@@ -6,7 +6,7 @@ const emailSender = async (email, html, subject) => {
         port: 587,
         secure: false,
         auth: {
-            user: "kazifahim661@gmail.com",
+            user: "kazifahim761@gmail.com",
             pass: config.email_pass
         },
         tls: {
@@ -14,7 +14,7 @@ const emailSender = async (email, html, subject) => {
         }
     });
     const info = await transporter.sendMail({
-        from: '" Gem Jewelers Co ." <kazifahim661@gmail.com>',
+        from: '" top-top" <kazifahim761@gmail.com>',
         to: email,
         subject: subject,
         html: html,

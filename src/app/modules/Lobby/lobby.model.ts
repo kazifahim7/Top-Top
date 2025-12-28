@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 import type { DefaultTeam, GeoLocation, LobbyDocument, PlayerStats, Team } from "./lobby.interface.js";
 
 const PlayerStatsSchema = new Schema<PlayerStats>({
-     playerId: { type: Schema.Types.ObjectId, ref: "Player", required: true },
+     playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
      redCard: { type: Number, default: 0 },
      yellowCard: { type: Number, default: 0 },
      contribution: { type: Number, default: 0 },
@@ -54,7 +54,7 @@ const LobbySchema = new Schema<LobbyDocument>(
           maxSlot: { type: Number, required: true },
           positionRequired: { type: [String], default: [] },
           media: { type: [String] },
-          motm: { type: Schema.Types.ObjectId, ref: "Player" },
+          motm: { type: Schema.Types.ObjectId, ref: "Players" },
           note: { type: String },
           lobbyStatus: { type: String, enum: ["ongoing", "completed","block"], default: "ongoing" },
           matchType: { type: String, enum: ["solo", "teams"], default: "solo" },
@@ -62,7 +62,7 @@ const LobbySchema = new Schema<LobbyDocument>(
           privateKey: { type: String },
           goalTeam1: { type: Number, default: 0 },
           goalTeam2: { type: Number, default: 0 },
-          organizer: { type: Schema.Types.ObjectId, ref: "Player" },
+          organizer: { type: Schema.Types.ObjectId, ref: "Players" },
      },
      { timestamps: true }
 );
