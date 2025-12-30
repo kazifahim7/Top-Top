@@ -42,6 +42,7 @@ const PaymentSchema = new Schema<Payment>(
           stripePaymentIntentId: { type: String },
           defaultTeam: { type: String },
           method: { type: String ,default:"online"},
+          matchFormat: { type: String},
           //tournament part is here kaka
          
                tournamentId: { type: Schema.Types.ObjectId, ref: "Tournament" },

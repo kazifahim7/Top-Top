@@ -10,6 +10,7 @@ export interface Payment {
      stripePaymentIntentId?: string;
      defaultTeam?: string,
      method?: string,
+     matchFormat?:string
      paymentType:"team fee"|"tournament fee";
    
          
