@@ -159,6 +159,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                     status: "pending",
                     method,
                     matchPosition,
+                    matchFormat,
                     paymentType
                });
 
@@ -360,11 +361,13 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                          return res.status(400).json({ message: "Player already exists in a team" });
                     }
                  
-
-                    if (payment.matchFormat) {
+                    if (
+                         payment.matchFormat &&
+                         (!targetTeam.matchFormat || targetTeam.matchFormat === "") &&
+                         targetTeam.players.length === 0
+                    ) {
                          targetTeam.matchFormat = payment.matchFormat;
 
-                        
                          if (assignedTeam === "defaultTeam1") {
                               lobby.markModified("defaultTeam1.matchFormat");
                          }
@@ -372,6 +375,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                               lobby.markModified("defaultTeam2.matchFormat");
                          }
                     }
+
                     //@ts-ignore
                     targetTeam.players.push(playerData);
 
@@ -397,7 +401,11 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                          targetTeam.players = [];
                     }
 
-                    if (payment.matchFormat) {
+                    if (
+                         payment.matchFormat &&
+                         (!targetTeam.matchFormat || targetTeam.matchFormat === "") &&
+                         targetTeam.players.length === 0
+                    ) {
                          targetTeam.matchFormat = payment.matchFormat;
 
                          if (assignedTeam === "team1") {
@@ -407,6 +415,9 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                               lobby.markModified("team2.matchFormat");
                          }
                     }
+
+                   
+
 
                     //@ts-ignore
                     targetTeam.players.push(playerData);
