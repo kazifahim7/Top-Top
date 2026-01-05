@@ -108,6 +108,19 @@ export const joinLobby = async (req: Request, res: Response) => {
           const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
           const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
 
+          const allreadyRequestAviableInSamePosition = await PaymentModel.findOne({
+               lobbyId,
+               playerId,
+               teamId,
+               matchPosition,
+               status: "pending"
+          })
+          console.log(allreadyRequestAviableInSamePosition, "fahim")
+          if (allreadyRequestAviableInSamePosition) {
+               throw new AppError(403, "You already have a pending cash request for this position. Please wait for admin approval or choose another position.");
+
+          }
+
           let payment: any;
 
           if (paymentType === "team fee") {
@@ -134,6 +147,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                if (team1PlayersCount >= lobby.maxSlot && team2PlayersCount >= lobby.maxSlot) {
                     return res.status(400).json({ message: "Both teams are full" });
                }
+
+              
 
                // Create Payment Record (pending)
                payment = await PaymentModel.create({
@@ -172,17 +187,7 @@ export const joinLobby = async (req: Request, res: Response) => {
           // Cash payment handling
           if (method === "cash") {
 
-               const allreadyRequestAviableInSamePosition = await PaymentModel.findOne({
-                    lobbyId,
-                    playerId,
-                    teamId,
-                    matchPosition,
-                    status:"pending"
-               })
-               if(allreadyRequestAviableInSamePosition){
-                    throw new AppError(403,"You already have a pending cash request for this position. Please wait for admin approval or choose another position.");
-                    
-               }
+               
                
                const result = await payment.save();
                return res.json({

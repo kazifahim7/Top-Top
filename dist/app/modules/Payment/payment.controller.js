@@ -36,6 +36,14 @@ export const joinLobby = async (req, res) => {
                 }
             }
             else if (isLobbyExist.matchType === "teams") {
+                const isTeamsExist = await TeamModel.findById(teamId);
+                if (!isTeamsExist) {
+                    throw new AppError(404, "Team not found");
+                }
+                if (isTeamsExist.teamOwner.toString() !== playerId &&
+                    !isTeamsExist.players.includes(playerId)) {
+                    throw new AppError(403, "You are not a team player");
+                }
                 if (isLobbyExist.team1?.teamId?.toString() === teamId?.toString()) {
                     currentTeam = isLobbyExist.team1;
                 }
@@ -78,6 +86,17 @@ export const joinLobby = async (req, res) => {
         }
         const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
         const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
+        const allreadyRequestAviableInSamePosition = await PaymentModel.findOne({
+            lobbyId,
+            playerId,
+            teamId,
+            matchPosition,
+            status: "pending"
+        });
+        console.log(allreadyRequestAviableInSamePosition, "fahim");
+        if (allreadyRequestAviableInSamePosition) {
+            throw new AppError(403, "You already have a pending cash request for this position. Please wait for admin approval or choose another position.");
+        }
         let payment;
         if (paymentType === "team fee") {
             const lobby = await LobbyModel.findById(lobbyId);
@@ -131,7 +150,6 @@ export const joinLobby = async (req, res) => {
         }
         // Cash payment handling
         if (method === "cash") {
-            console.log(payment);
             const result = await payment.save();
             return res.json({
                 success: true,
@@ -179,6 +197,9 @@ export const paymentSuccess = async (req, res) => {
         if (!paymentId)
             return res.status(400).json({ message: "Payment ID missing" });
         const payment = await PaymentModel.findById(paymentId);
+        if (payment?.status === "success") {
+            return res.json({ success: true, message: "Payment already processed" });
+        }
         if (!payment)
             return res.status(404).json({ message: "Payment not found" });
         // Cash payments directly success
@@ -191,6 +212,12 @@ export const paymentSuccess = async (req, res) => {
             const intent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId);
             if (intent.status !== "succeeded") {
                 return res.status(400).json({ message: "Payment not successful" });
+            }
+            if (intent.metadata.paymentId !== payment._id.toString()) {
+                return res.status(400).json({ message: "Payment metadata mismatch" });
+            }
+            if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
+                return res.status(400).json({ message: "Payment amount or currency mismatch" });
             }
             payment.status = "success";
             await payment.save();
