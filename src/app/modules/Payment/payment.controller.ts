@@ -239,6 +239,9 @@ export const paymentSuccess = async (req: Request, res: Response) => {
           if (!paymentId) return res.status(400).json({ message: "Payment ID missing" });
 
           const payment = await PaymentModel.findById(paymentId);
+          if (payment?.status === "success") {
+               return res.json({ success: true, message: "Payment already processed" });
+          }
           if (!payment) return res.status(404).json({ message: "Payment not found" });
 
           // Cash payments directly success
@@ -248,8 +251,17 @@ export const paymentSuccess = async (req: Request, res: Response) => {
           } else {
                // Stripe PaymentIntent verification
                const intent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId!);
+
                if (intent.status !== "succeeded") {
                     return res.status(400).json({ message: "Payment not successful" });
+               }
+
+               if (intent.metadata.paymentId !== payment._id.toString()) {
+                    return res.status(400).json({ message: "Payment metadata mismatch" });
+               }
+
+               if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
+                    return res.status(400).json({ message: "Payment amount or currency mismatch" });
                }
                payment.status = "success";
                await payment.save();
