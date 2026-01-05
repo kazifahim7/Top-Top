@@ -44,11 +44,8 @@ const lobbyInFo = catchAsync(async (req, res) => {
     const id = req.params?.lobbyId;
     const data = req.body;
     const imageFiles = req.files.images || [];
-    for (const file of imageFiles) {
-        // const url = getLocalImageURL(file.filename);
-        const url = await uploadToS3(file);
-        data.media = url;
-    }
+    const uploadedUrls = await Promise.all(imageFiles.map((file) => uploadToS3(file)));
+    data.media.push(...uploadedUrls);
     const result = await lobbyService.updateLobbyInfo(id, data);
     res.status(200).json({
         success: true,
