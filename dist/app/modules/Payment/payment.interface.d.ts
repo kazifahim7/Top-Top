@@ -9,6 +9,7 @@ export interface Payment {
     stripePaymentIntentId?: string;
     defaultTeam?: string;
     method?: string;
+    matchFormat?: string;
     paymentType: "team fee" | "tournament fee";
     tournamentId: Schema.Types.ObjectId;
     createdAt: Date;

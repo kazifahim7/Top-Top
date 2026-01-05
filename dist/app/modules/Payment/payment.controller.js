@@ -268,6 +268,9 @@ export const paymentSuccess = async (req, res) => {
                 if (playerExistsInTeam1 || playerExistsInTeam2) {
                     return res.status(400).json({ message: "Player already exists in a team" });
                 }
+                if (payment.matchFormat && !targetTeam.matchFormat) {
+                    targetTeam.matchFormat = payment.matchFormat;
+                }
                 //@ts-ignore
                 targetTeam.players.push(playerData);
             }
@@ -288,6 +291,9 @@ export const paymentSuccess = async (req, res) => {
                 }
                 if (!targetTeam.players) {
                     targetTeam.players = [];
+                }
+                if (payment.matchFormat && !targetTeam.matchFormat) {
+                    targetTeam.matchFormat = payment.matchFormat;
                 }
                 //@ts-ignore
                 targetTeam.players.push(playerData);

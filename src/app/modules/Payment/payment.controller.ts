@@ -23,6 +23,8 @@ export const joinLobby = async (req: Request, res: Response) => {
           if (!playerId) {
                throw new AppError(400, "User ID is required");
           }
+
+         
          if(lobbyId){
               const isLobbyExist = await LobbyModel.findById(lobbyId)
               if (!isLobbyExist) {
@@ -42,6 +44,19 @@ export const joinLobby = async (req: Request, res: Response) => {
                         currentTeam = isLobbyExist.defaultTeam2;
                    }
               } else if (isLobbyExist.matchType === "teams") {
+                   const isTeamsExist = await TeamModel.findById(teamId)
+                   if(!isTeamsExist){
+                    throw new AppError(404,"Team not found");
+                    
+                   }
+                   if (
+                        isTeamsExist.teamOwner.toString() !== playerId &&
+                        !isTeamsExist.players.includes(playerId)
+                   ) {
+                        throw new AppError(403, "You are not a team player");
+                   }
+
+
                    if (isLobbyExist.team1?.teamId?.toString() === teamId?.toString()) {
                         currentTeam = isLobbyExist.team1;
                    } else if (isLobbyExist.team2?.teamId?.toString() === teamId?.toString()) {
@@ -98,6 +113,9 @@ export const joinLobby = async (req: Request, res: Response) => {
           if (paymentType === "team fee") {
                const lobby = await LobbyModel.findById(lobbyId);
                if (!lobby) return res.status(404).json({ message: "Lobby not found" });
+               
+
+
 
                // FIXED: Check if teams exist before accessing players
                const isDuplicate =
