@@ -171,7 +171,19 @@ export const joinLobby = async (req: Request, res: Response) => {
 
           // Cash payment handling
           if (method === "cash") {
-               console.log(payment)
+
+               const allreadyRequestAviableInSamePosition = await PaymentModel.findOne({
+                    lobbyId,
+                    playerId,
+                    teamId,
+                    matchPosition,
+                    status:"pending"
+               })
+               if(allreadyRequestAviableInSamePosition){
+                    throw new AppError(403,"You already have a pending cash request for this position. Please wait for admin approval or choose another position.");
+                    
+               }
+               
                const result = await payment.save();
                return res.json({
                     success: true,
