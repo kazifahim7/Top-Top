@@ -141,7 +141,7 @@ const singlelobby = async (lobbyId) => {
                 _id: new Types.ObjectId(lobbyId),
             },
         },
-        /* ================= TEAM 1 DATA ================= */
+        /* ================= TEAM 1 ================= */
         {
             $lookup: {
                 from: "teams",
@@ -150,20 +150,27 @@ const singlelobby = async (lobbyId) => {
                 as: "team1Data",
             },
         },
-        {
-            $unwind: {
-                path: "$team1Data",
-                preserveNullAndEmptyArrays: true,
-            },
-        },
+        { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
         {
             $lookup: {
                 from: "players",
-                localField: "team1.players",
-                foreignField: "_id",
+                let: {
+                    playerIds: {
+                        $map: {
+                            input: "$team1.players",
+                            as: "p",
+                            in: "$$p.playerId",
+                        },
+                    },
+                },
+                pipeline: [
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
+                    { $project: { password: 0 } },
+                ],
                 as: "team1JoinedPlayers",
             },
         },
+        /* ================= TEAM 2 ================= */
         {
             $lookup: {
                 from: "teams",
@@ -172,20 +179,27 @@ const singlelobby = async (lobbyId) => {
                 as: "team2Data",
             },
         },
-        {
-            $unwind: {
-                path: "$team2Data",
-                preserveNullAndEmptyArrays: true,
-            },
-        },
+        { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
         {
             $lookup: {
                 from: "players",
-                localField: "team2.players",
-                foreignField: "_id",
+                let: {
+                    playerIds: {
+                        $map: {
+                            input: "$team2.players",
+                            as: "p",
+                            in: "$$p.playerId",
+                        },
+                    },
+                },
+                pipeline: [
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
+                    { $project: { password: 0 } },
+                ],
                 as: "team2JoinedPlayers",
             },
         },
+        /* ================= ORGANIZER ================= */
         {
             $lookup: {
                 from: "players",
@@ -194,48 +208,43 @@ const singlelobby = async (lobbyId) => {
                 as: "organizerData",
             },
         },
-        {
-            $unwind: {
-                path: "$organizerData",
-                preserveNullAndEmptyArrays: true,
-            },
-        },
+        { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+        /* ================= DEFAULT TEAM 1 ================= */
         {
             $lookup: {
                 from: "players",
                 let: {
                     playerIds: {
-                        $ifNull: ["$defaultTeam1.players.playerId", []],
+                        $map: {
+                            input: { $ifNull: ["$defaultTeam1.players", []] },
+                            as: "p",
+                            in: "$$p.playerId",
+                        },
                     },
                 },
                 pipeline: [
-                    {
-                        $match: {
-                            $expr: {
-                                $in: ["$_id", "$$playerIds"],
-                            },
-                        },
-                    },
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
+                    { $project: { password: 0 } },
                 ],
                 as: "defaultTeam1Players",
             },
         },
+        /* ================= DEFAULT TEAM 2 ================= */
         {
             $lookup: {
                 from: "players",
                 let: {
                     playerIds: {
-                        $ifNull: ["$defaultTeam2.players.playerId", []],
+                        $map: {
+                            input: { $ifNull: ["$defaultTeam2.players", []] },
+                            as: "p",
+                            in: "$$p.playerId",
+                        },
                     },
                 },
                 pipeline: [
-                    {
-                        $match: {
-                            $expr: {
-                                $in: ["$_id", "$$playerIds"],
-                            },
-                        },
-                    },
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
+                    { $project: { password: 0 } },
                 ],
                 as: "defaultTeam2Players",
             },
