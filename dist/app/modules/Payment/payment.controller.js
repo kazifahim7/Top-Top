@@ -295,8 +295,14 @@ export const paymentSuccess = async (req, res) => {
                 if (playerExistsInTeam1 || playerExistsInTeam2) {
                     return res.status(400).json({ message: "Player already exists in a team" });
                 }
-                if (payment.matchFormat && !targetTeam.matchFormat) {
+                if (payment.matchFormat) {
                     targetTeam.matchFormat = payment.matchFormat;
+                    if (assignedTeam === "defaultTeam1") {
+                        lobby.markModified("defaultTeam1.matchFormat");
+                    }
+                    if (assignedTeam === "defaultTeam2") {
+                        lobby.markModified("defaultTeam2.matchFormat");
+                    }
                 }
                 //@ts-ignore
                 targetTeam.players.push(playerData);
@@ -319,8 +325,14 @@ export const paymentSuccess = async (req, res) => {
                 if (!targetTeam.players) {
                     targetTeam.players = [];
                 }
-                if (payment.matchFormat && !targetTeam.matchFormat) {
+                if (payment.matchFormat) {
                     targetTeam.matchFormat = payment.matchFormat;
+                    if (assignedTeam === "team1") {
+                        lobby.markModified("team1.matchFormat");
+                    }
+                    if (assignedTeam === "team2") {
+                        lobby.markModified("team2.matchFormat");
+                    }
                 }
                 //@ts-ignore
                 targetTeam.players.push(playerData);

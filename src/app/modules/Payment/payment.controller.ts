@@ -361,8 +361,16 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     }
                  
 
-                    if (payment.matchFormat && !targetTeam.matchFormat) {
+                    if (payment.matchFormat) {
                          targetTeam.matchFormat = payment.matchFormat;
+
+                        
+                         if (assignedTeam === "defaultTeam1") {
+                              lobby.markModified("defaultTeam1.matchFormat");
+                         }
+                         if (assignedTeam === "defaultTeam2") {
+                              lobby.markModified("defaultTeam2.matchFormat");
+                         }
                     }
                     //@ts-ignore
                     targetTeam.players.push(playerData);
@@ -389,9 +397,17 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                          targetTeam.players = [];
                     }
 
-                    if (payment.matchFormat && !targetTeam.matchFormat) {
+                    if (payment.matchFormat) {
                          targetTeam.matchFormat = payment.matchFormat;
+
+                         if (assignedTeam === "team1") {
+                              lobby.markModified("team1.matchFormat");
+                         }
+                         if (assignedTeam === "team2") {
+                              lobby.markModified("team2.matchFormat");
+                         }
                     }
+
                     //@ts-ignore
                     targetTeam.players.push(playerData);
                     
