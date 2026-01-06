@@ -136,6 +136,7 @@ const allMatch = async (query) => {
 };
 const singlelobby = async (lobbyId) => {
     const lobbies = await LobbyModel.aggregate([
+        /* ================= MATCH LOBBY ================= */
         {
             $match: {
                 _id: new Types.ObjectId(lobbyId),
@@ -150,22 +151,35 @@ const singlelobby = async (lobbyId) => {
                 as: "team1Data",
             },
         },
-        { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
+        {
+            $unwind: {
+                path: "$team1Data",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
         {
             $lookup: {
                 from: "players",
                 let: {
                     playerIds: {
                         $map: {
-                            input: "$team1.players",
+                            input: { $ifNull: ["$team1.players", []] },
                             as: "p",
                             in: "$$p.playerId",
                         },
                     },
                 },
                 pipeline: [
-                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
-                    { $project: { password: 0 } },
+                    {
+                        $match: {
+                            $expr: { $in: ["$_id", "$$playerIds"] },
+                        },
+                    },
+                    {
+                        $project: {
+                            password: 0,
+                        },
+                    },
                 ],
                 as: "team1JoinedPlayers",
             },
@@ -179,22 +193,35 @@ const singlelobby = async (lobbyId) => {
                 as: "team2Data",
             },
         },
-        { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
+        {
+            $unwind: {
+                path: "$team2Data",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
         {
             $lookup: {
                 from: "players",
                 let: {
                     playerIds: {
                         $map: {
-                            input: "$team2.players",
+                            input: { $ifNull: ["$team2.players", []] },
                             as: "p",
                             in: "$$p.playerId",
                         },
                     },
                 },
                 pipeline: [
-                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
-                    { $project: { password: 0 } },
+                    {
+                        $match: {
+                            $expr: { $in: ["$_id", "$$playerIds"] },
+                        },
+                    },
+                    {
+                        $project: {
+                            password: 0,
+                        },
+                    },
                 ],
                 as: "team2JoinedPlayers",
             },
@@ -208,7 +235,12 @@ const singlelobby = async (lobbyId) => {
                 as: "organizerData",
             },
         },
-        { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+        {
+            $unwind: {
+                path: "$organizerData",
+                preserveNullAndEmptyArrays: true,
+            },
+        },
         /* ================= DEFAULT TEAM 1 ================= */
         {
             $lookup: {
@@ -223,8 +255,16 @@ const singlelobby = async (lobbyId) => {
                     },
                 },
                 pipeline: [
-                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
-                    { $project: { password: 0 } },
+                    {
+                        $match: {
+                            $expr: { $in: ["$_id", "$$playerIds"] },
+                        },
+                    },
+                    {
+                        $project: {
+                            password: 0,
+                        },
+                    },
                 ],
                 as: "defaultTeam1Players",
             },
@@ -243,8 +283,16 @@ const singlelobby = async (lobbyId) => {
                     },
                 },
                 pipeline: [
-                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } },
-                    { $project: { password: 0 } },
+                    {
+                        $match: {
+                            $expr: { $in: ["$_id", "$$playerIds"] },
+                        },
+                    },
+                    {
+                        $project: {
+                            password: 0,
+                        },
+                    },
                 ],
                 as: "defaultTeam2Players",
             },
