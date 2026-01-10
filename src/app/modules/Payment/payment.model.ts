@@ -6,6 +6,7 @@ const PaymentSchema = new Schema<Payment>(
      {
           lobbyId: { type: Schema.Types.ObjectId, ref: "Lobby" },
           playerId: { type: Schema.Types.ObjectId, ref: "Players" },
+          ExtraPlayerId: { type: Schema.Types.ObjectId, ref: "Players" },
           teamId: { type: Schema.Types.ObjectId, ref: "Team" },
           price: { type: Number, required: true },
           matchPosition: {
