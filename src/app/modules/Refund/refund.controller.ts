@@ -33,8 +33,9 @@ const acceptRefundRequest = catchAsync(async (req: Request, res: Response) => {
 })
 
 const exit_lobby = catchAsync(async (req: Request, res: Response) => {
+     const id =req?.user?.id;
     
-     const result = await refundService.exit_lobby(req.body)
+     const result = await refundService.exit_lobby(req.body,id)
      res.status(200).json({
           success: true,
           message: "  Accept successfully ",
