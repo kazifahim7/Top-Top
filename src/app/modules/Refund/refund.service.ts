@@ -144,8 +144,54 @@ const acceptRefundRequest = async (payload: {
           throw error;
      }
 };
+const exit_lobby = async (payload: {
+     lobbyId: string | Types.ObjectId;
+     playerId: string | Types.ObjectId;
+     teamId?: string | Types.ObjectId;
+}) => {
+     const session = await mongoose.startSession();
+     session.startTransaction();
+
+     try {
+          const { lobbyId, playerId, teamId } = payload;
+
+          // Convert to ObjectId to ensure consistent type handling
+          const lobbyObjectId = new Types.ObjectId(lobbyId);
+          const playerObjectId = new Types.ObjectId(playerId);
+          const teamObjectId = teamId ? new Types.ObjectId(teamId) : undefined;
+
+
+          // 1. Remove player from lobby teams - FIXED: Added proper field reference
+          const lobbyUpdate = await LobbyModel.updateOne(
+               { _id: lobbyObjectId },
+               {
+                    $pull: {
+                         "team1.players": { playerId: playerObjectId },
+                         "team2.players": { playerId: playerObjectId },
+                         "defaultTeam1.players": { playerId: playerObjectId },
+                         "defaultTeam2.players": { playerId: playerObjectId },
+                    },
+               },
+               { session }
+          );
+          console.log('Lobby update result:', lobbyUpdate);
+          // Commit transaction
+          await session.commitTransaction();
+          session.endSession();
+
+          return lobbyUpdate;
+
+     } catch (error) {
+          // Rollback transaction on error
+          await session.abortTransaction();
+          session.endSession();
+          console.error("Accept refund error:", error);
+          throw error;
+     }
+};
 export const refundService = {
      sendRefundRequest,
      allRefundRequest,
-     acceptRefundRequest
+     acceptRefundRequest,
+     exit_lobby
 }
