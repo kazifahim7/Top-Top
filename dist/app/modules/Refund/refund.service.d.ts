@@ -27,5 +27,9 @@ export declare const refundService: {
         paymentUpdate: mongoose.UpdateWriteOpResult;
         refundUpdate: mongoose.UpdateWriteOpResult;
     }>;
+    exit_lobby: (payload: {
+        lobbyId: string | Types.ObjectId;
+        currentUserId: string | Types.ObjectId;
+    }, playerId: string | Types.ObjectId) => Promise<mongoose.UpdateWriteOpResult>;
 };
 //# sourceMappingURL=refund.service.d.ts.map

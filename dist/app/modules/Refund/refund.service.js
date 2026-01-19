@@ -100,9 +100,43 @@ const acceptRefundRequest = async (payload) => {
         throw error;
     }
 };
+const exit_lobby = async (payload, playerId) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const { lobbyId } = payload;
+        const lobbyObjectId = new Types.ObjectId(lobbyId);
+        const playerObjectId = new Types.ObjectId(playerId);
+        const currentUserObjectId = new Types.ObjectId(payload.currentUserId);
+        // Ensure the player can only remove themselves
+        if (!playerObjectId.equals(currentUserObjectId)) {
+            throw new Error("You can only remove yourself from the lobby.");
+        }
+        // Remove player from all possible teams
+        const lobbyUpdate = await LobbyModel.updateOne({ _id: lobbyObjectId }, {
+            $pull: {
+                "team1.players": { playerId: playerObjectId },
+                "team2.players": { playerId: playerObjectId },
+                "defaultTeam1.players": { playerId: playerObjectId },
+                "defaultTeam2.players": { playerId: playerObjectId },
+            },
+        }, { session });
+        console.log("Lobby update result:", lobbyUpdate);
+        await session.commitTransaction();
+        session.endSession();
+        return lobbyUpdate;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Exit lobby error:", error);
+        throw error;
+    }
+};
 export const refundService = {
     sendRefundRequest,
     allRefundRequest,
-    acceptRefundRequest
+    acceptRefundRequest,
+    exit_lobby
 };
 //# sourceMappingURL=refund.service.js.map

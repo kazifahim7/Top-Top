@@ -13,8 +13,21 @@ import { StandingModel } from "../PointTable/pointtable.model.js";
 const stripe = new Stripe(config.sk_key, { apiVersion: "2025-08-27.basil" });
 export const joinLobby = async (req, res) => {
     try {
-        const playerId = req?.user?.id;
-        const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType, privateKey } = req.body;
+        const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId } = req.body;
+        let playerId = req.user.id;
+        if (ExtraPlayerId) {
+            if (req.user.role !== "organizer") {
+                throw new AppError(403, "Only organizer can add extra player");
+            }
+            const lobby = await LobbyModel.findById(lobbyId);
+            if (!lobby) {
+                throw new AppError(404, "Lobby not found");
+            }
+            if (lobby.organizer.toString() !== req.user.id) {
+                throw new AppError(403, "Unauthorized lobby access");
+            }
+            playerId = ExtraPlayerId;
+        }
         if (!playerId) {
             throw new AppError(400, "User ID is required");
         }

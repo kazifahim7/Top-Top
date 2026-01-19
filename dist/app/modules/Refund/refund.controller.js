@@ -27,9 +27,19 @@ const acceptRefundRequest = catchAsync(async (req, res) => {
         data: result
     });
 });
+const exit_lobby = catchAsync(async (req, res) => {
+    const id = req?.user?.id;
+    const result = await refundService.exit_lobby(req.body, id);
+    res.status(200).json({
+        success: true,
+        message: "  Accept successfully ",
+        data: result
+    });
+});
 export const refundController = {
     sendRefundRequest,
     allRefundRequest,
-    acceptRefundRequest
+    acceptRefundRequest,
+    exit_lobby
 };
 //# sourceMappingURL=refund.controller.js.map
