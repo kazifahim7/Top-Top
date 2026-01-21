@@ -1,32 +1,37 @@
 import { userModel } from "../auth/auth.model.js";
 import { TeamModel } from "../Team/team.model.js";
 const playerRanking = async (options) => {
-    const { filterBy = "all", sortField = "rating", sortOrder = "desc", matchField, matchValue } = options;
+    const { filterBy = "all", sortField = "rating", sortOrder = "desc" } = options;
     const now = new Date();
     let startDate;
+    // Date filter only for weekly & monthly
     if (filterBy === "weekly") {
         startDate = new Date();
-        startDate.setDate(now.getDate() - 7);
+        startDate.setDate(now.getDate() - 7); // last 7 days
     }
     else if (filterBy === "monthly") {
         startDate = new Date();
-        startDate.setMonth(now.getMonth() - 1);
+        startDate.setMonth(now.getMonth() - 1); // last 1 month
     }
-    const matchStage = {
-        match: { $gte: 2 }
-    };
-    // date filter
-    if (filterBy !== "all" && startDate) {
-        matchStage.createdAt = { $gte: startDate, $lte: now };
+    // Minimum match threshold
+    const minMatches = filterBy === "weekly" ? 2 : filterBy === "monthly" ? 4 : 15;
+    // Match stage
+    const matchStage = {};
+    // All-time ranking → only match count
+    if (filterBy === "all") {
+        matchStage.match = { $gte: minMatches };
     }
-    if (matchField && matchValue !== undefined) {
-        matchStage[matchField] = matchValue;
+    else {
+        // Weekly / Monthly → match count AND updatedAt filter
+        matchStage.match = { $gte: minMatches };
+        if (startDate) {
+            matchStage.updatedAt = { $gte: startDate, $lte: now };
+        }
     }
-    // sort order
     const sortDirection = sortOrder === "asc" ? 1 : -1;
     const result = await userModel.aggregate([
         { $match: matchStage },
-        { $sort: { [sortField]: sortDirection } }
+        { $sort: { [sortField]: sortDirection } },
     ]);
     return result;
 };
