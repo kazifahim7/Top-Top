@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { LobbyModel } from "./lobby.model.js";
 import QueryBuilder from "../../builder/QueryBuilder.js";
 import { userModel } from "../auth/auth.model.js";
@@ -416,12 +416,29 @@ const deleteLobby = async (id) => {
     const result = await LobbyModel.findByIdAndDelete(id);
     return result;
 };
+const myUpcomingLobby = async (id) => {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error("Invalid player ID");
+    }
+    const playerObjectId = new mongoose.Types.ObjectId(id);
+    const result = await LobbyModel.find({
+        lobbyStatus: "ongoing",
+        $or: [
+            { "team1.players.playerId": playerObjectId },
+            { "team2.players.playerId": playerObjectId },
+            { "defaultTeam1.players.playerId": playerObjectId },
+            { "defaultTeam2.players.playerId": playerObjectId },
+        ],
+    });
+    return result;
+};
 export const lobbyService = {
     createMatch,
     allMatch,
     updatePlayerStats,
     updateLobbyInfo,
     deleteLobby,
-    singlelobby
+    singlelobby,
+    myUpcomingLobby
 };
 //# sourceMappingURL=lobby.services.js.map

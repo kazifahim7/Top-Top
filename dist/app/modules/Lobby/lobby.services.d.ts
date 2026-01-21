@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import type { LobbyDocument } from "./lobby.interface.js";
 interface UpdatePlayerStatsDTO {
     lobbyId: string;
@@ -23,7 +24,7 @@ export declare const updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<
     lobbyPlayer: any;
 }>;
 export declare const lobbyService: {
-    createMatch: (payload: LobbyDocument, id: string, role: string) => Promise<import("mongoose").Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+    createMatch: (payload: LobbyDocument, id: string, role: string) => Promise<mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;
     }> & {
         __v: number;
@@ -32,17 +33,22 @@ export declare const lobbyService: {
     updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
         lobbyPlayer: any;
     }>;
-    updateLobbyInfo: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+    updateLobbyInfo: (id: string, payload: Record<string, unknown>) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;
     }> & {
         __v: number;
     }) | null>;
-    deleteLobby: (id: string) => Promise<(import("mongoose").Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+    deleteLobby: (id: string) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;
     }> & {
         __v: number;
     }) | null>;
     singlelobby: (lobbyId: string) => Promise<any>;
+    myUpcomingLobby: (id: string) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+        _id: unknown;
+    }> & {
+        __v: number;
+    })[]>;
 };
 export {};
 //# sourceMappingURL=lobby.services.d.ts.map

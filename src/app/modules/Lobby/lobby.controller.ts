@@ -79,6 +79,19 @@ const deleteLobby = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const myUpcomingLobby = catchAsync(async (req: Request, res: Response) => {
+     const id = req.user?.id;
+     console.log(id)
+     const result = await lobbyService.myUpcomingLobby(id!)
+
+     res.status(200).json({
+          success: true,
+          message: "My upcoming lobby retrieved successfully",
+          data: result
+     })
+
+
+})
 
 
 
@@ -89,5 +102,6 @@ export const lobbyController={
      updatePlayerState,
      lobbyInFo,
      deleteLobby,
-     singlelobby
+     singlelobby,
+     myUpcomingLobby
 }

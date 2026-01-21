@@ -62,12 +62,23 @@ const deleteLobby = catchAsync(async (req, res) => {
         data: result
     });
 });
+const myUpcomingLobby = catchAsync(async (req, res) => {
+    const id = req.user?.id;
+    console.log(id);
+    const result = await lobbyService.myUpcomingLobby(id);
+    res.status(200).json({
+        success: true,
+        message: "My upcoming lobby retrieved successfully",
+        data: result
+    });
+});
 export const lobbyController = {
     createMatch,
     allMatch,
     updatePlayerState,
     lobbyInFo,
     deleteLobby,
-    singlelobby
+    singlelobby,
+    myUpcomingLobby
 };
 //# sourceMappingURL=lobby.controller.js.map
