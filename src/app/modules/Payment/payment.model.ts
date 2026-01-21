@@ -1,5 +1,6 @@
 import { model, Schema } from "mongoose";
 import type { Payment } from "./payment.interface.js";
+import { boolean } from "zod";
 
 
 const PaymentSchema = new Schema<Payment>(
@@ -9,6 +10,7 @@ const PaymentSchema = new Schema<Payment>(
           ExtraPlayerId: { type: Schema.Types.ObjectId, ref: "Players" },
           teamId: { type: Schema.Types.ObjectId, ref: "Team" },
           price: { type: Number, required: true },
+          guest_player:{type:Boolean,default:false},
           matchPosition: {
                type: String,
                enum: [

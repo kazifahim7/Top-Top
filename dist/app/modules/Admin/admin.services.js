@@ -174,6 +174,55 @@ const adminData = async () => {
         },
         { $sort: { hour: 1 } }
     ]);
+    const mostPlayableDays = await userModel.aggregate([
+        {
+            $match: { role: "player", isBlocked: "active" }
+        },
+        {
+            $unwind: "$playingDays"
+        },
+        {
+            $group: {
+                _id: "$playingDays",
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                day: "$_id",
+                players: "$count"
+            }
+        },
+        {
+            $sort: { players: -1 }
+        }
+    ]);
+    const mostPreferredAreas = await userModel.aggregate([
+        {
+            $match: {
+                role: "player",
+                isBlocked: "active",
+                preferredAreas: { $ne: "" }
+            }
+        },
+        {
+            $group: {
+                _id: "$preferredAreas",
+                players: { $sum: 1 }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                area: "$_id",
+                players: 1
+            }
+        },
+        {
+            $sort: { players: -1 }
+        }
+    ]);
     return {
         totalRevenue: totalRevenue[0]?.total || 0,
         revenueBarGraph,
@@ -188,7 +237,9 @@ const adminData = async () => {
         revenueGraph,
         recentTransactions,
         trafficByCountry,
-        MatchesPlayedVsAvailable
+        MatchesPlayedVsAvailable,
+        mostPlayableDays,
+        mostPreferredAreas
     };
 };
 export const adminService = {

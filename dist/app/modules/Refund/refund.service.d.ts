@@ -30,6 +30,9 @@ export declare const refundService: {
     exit_lobby: (payload: {
         lobbyId: string | Types.ObjectId;
         currentUserId: string | Types.ObjectId;
-    }, playerId: string | Types.ObjectId) => Promise<mongoose.UpdateWriteOpResult>;
+    }, playerId: string | Types.ObjectId) => Promise<{
+        success: boolean;
+        message: string;
+    }>;
 };
 //# sourceMappingURL=refund.service.d.ts.map

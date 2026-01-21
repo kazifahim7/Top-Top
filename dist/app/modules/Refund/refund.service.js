@@ -104,16 +104,14 @@ const exit_lobby = async (payload, playerId) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const { lobbyId } = payload;
-        const lobbyObjectId = new Types.ObjectId(lobbyId);
+        const lobbyObjectId = new Types.ObjectId(payload.lobbyId);
         const playerObjectId = new Types.ObjectId(playerId);
         const currentUserObjectId = new Types.ObjectId(payload.currentUserId);
-        // Ensure the player can only remove themselves
         if (!playerObjectId.equals(currentUserObjectId)) {
             throw new Error("You can only remove yourself from the lobby.");
         }
-        // Remove player from all possible teams
-        const lobbyUpdate = await LobbyModel.updateOne({ _id: lobbyObjectId }, {
+        //  Remove player from all possible teams
+        await LobbyModel.updateOne({ _id: lobbyObjectId }, {
             $pull: {
                 "team1.players": { playerId: playerObjectId },
                 "team2.players": { playerId: playerObjectId },
@@ -121,10 +119,35 @@ const exit_lobby = async (payload, playerId) => {
                 "defaultTeam2.players": { playerId: playerObjectId },
             },
         }, { session });
-        console.log("Lobby update result:", lobbyUpdate);
+        //  Fetch updated lobby inside transaction
+        const lobby = await LobbyModel.findById(lobbyObjectId).session(session);
+        if (!lobby) {
+            throw new Error("Lobby not found");
+        }
+        //  Reset matchFormat if team players are empty
+        const updateData = {};
+        if (lobby.team1?.players?.length === 0) {
+            updateData["team1.matchFormat"] = "";
+        }
+        if (lobby.team2?.players?.length === 0) {
+            updateData["team2.matchFormat"] = "";
+        }
+        if (lobby.defaultTeam1?.players?.length === 0) {
+            updateData["defaultTeam1.matchFormat"] = "";
+        }
+        if (lobby.defaultTeam2?.players?.length === 0) {
+            updateData["defaultTeam2.matchFormat"] = "";
+        }
+        if (Object.keys(updateData).length > 0) {
+            await LobbyModel.updateOne({ _id: lobbyObjectId }, { $set: updateData }, { session });
+        }
+        //  Commit transaction
         await session.commitTransaction();
         session.endSession();
-        return lobbyUpdate;
+        return {
+            success: true,
+            message: "Successfully exited lobby",
+        };
     }
     catch (error) {
         await session.abortTransaction();

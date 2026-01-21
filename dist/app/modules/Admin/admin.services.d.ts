@@ -18,6 +18,8 @@ export declare const adminService: {
         })[];
         trafficByCountry: any[];
         MatchesPlayedVsAvailable: any[];
+        mostPlayableDays: any[];
+        mostPreferredAreas: any[];
     }>;
 };
 //# sourceMappingURL=admin.services.d.ts.map

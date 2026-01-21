@@ -7,11 +7,11 @@ export const TAdmin = {
     "mobile": "N/A",
     "socialProfile": [],
     "imageUrl": "N/A",
-    "nationality": "N/A",
+    "nationality": "UAE",
     "dominantFoot": "N/A",
     "playingDays": [],
     "gameMode": "N/A",
-    "preferredAreas": "London",
+    "preferredAreas": "UAE",
     "age": "18"
 };
 //# sourceMappingURL=index.js.map

@@ -18,23 +18,23 @@ const stripe = new Stripe(config.sk_key!, { apiVersion: "2025-08-27.basil" as an
 export const joinLobby = async (req: Request, res: Response) => {
      try {
 
-          const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId } = req.body;
+          const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId, guest_player } = req.body;
           let playerId = req.user.id;
 
-         
+
           if (ExtraPlayerId) {
-         
+
                if (req.user.role !== "organizer") {
                     throw new AppError(403, "Only organizer can add extra player");
                }
 
-              
+
                const lobby = await LobbyModel.findById(lobbyId);
                if (!lobby) {
                     throw new AppError(404, "Lobby not found");
                }
 
-               
+
                if (lobby.organizer.toString() !== req.user.id) {
                     throw new AppError(403, "Unauthorized lobby access");
                }
@@ -43,9 +43,11 @@ export const joinLobby = async (req: Request, res: Response) => {
           }
 
 
-               if (!playerId) {
-                    throw new AppError(400, "User ID is required");
-               }
+          const isGuestPlayer=guest_player === true ? true : false
+
+          if (!playerId) {
+               throw new AppError(400, "User ID is required");
+          }
 
 
           if (lobbyId) {
@@ -66,7 +68,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                     } else if (isLobbyExist.defaultTeam2?._id?.toString() === teamId?.toString()) {
                          currentTeam = isLobbyExist.defaultTeam2;
                     }
-               } else if (isLobbyExist.matchType === "teams") {
+               } 
+               else if (isLobbyExist.matchType === "teams") {
                     const isTeamsExist = await TeamModel.findById(teamId)
                     if (!isTeamsExist) {
                          throw new AppError(404, "Team not found");
@@ -136,7 +139,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                playerId,
                teamId,
                matchPosition,
-               status: "pending"
+               status: "pending",
+               guest_player: isGuestPlayer
           })
           console.log(allreadyRequestAviableInSamePosition, "fahim")
           if (allreadyRequestAviableInSamePosition) {
@@ -164,11 +168,23 @@ export const joinLobby = async (req: Request, res: Response) => {
 
 
                // FIXED: Check if teams exist and have players array before checking length
-               const team1PlayersCount = lobby.team1?.players?.length || 0;
-               const team2PlayersCount = lobby.team2?.players?.length || 0;
+               const team1PlayersCount = lobby.team1?.players?.filter(player => player.guest_player === false).length || 0;
+               const team2PlayersCount = lobby.team2?.players?.filter(player => player.guest_player === false).length || 0;
+               const defaultTeam1PlayersCount = lobby.defaultTeam1?.players?.filter(player => player.guest_player === false).length || 0;
+               const defaultTeam2PlayersCount = lobby.defaultTeam2?.players?.filter(player => player.guest_player === false).length || 0;
 
-               if (team1PlayersCount >= lobby.maxSlot && team2PlayersCount >= lobby.maxSlot) {
-                    return res.status(400).json({ message: "Both teams are full" });
+
+               // if (team1PlayersCount >= lobby.maxSlot && team2PlayersCount >= lobby.maxSlot) {
+               //      return res.status(400).json({ message: "Both teams are full" });
+               // }
+               if (team1PlayersCount >= lobby.teamSize || team2PlayersCount >= lobby.teamSize) {
+                    return res.status(400).json({ message: " teams are full" });
+               }
+               // if (defaultTeam1PlayersCount >= lobby.maxSlot && defaultTeam2PlayersCount >= lobby.maxSlot) {
+               //      return res.status(400).json({ message: "Both teams are full" });
+               // }
+               if (defaultTeam1PlayersCount >= lobby.teamSize || defaultTeam2PlayersCount >= lobby.teamSize) {
+                    return res.status(400).json({ message: " teams are full" });
                }
 
 
@@ -183,7 +199,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                     method,
                     matchPosition,
                     matchFormat,
-                    paymentType
+                    paymentType,
+                    guest_player: isGuestPlayer  
                });
 
           } else if (paymentType === "tournament fee") {
@@ -268,10 +285,11 @@ export const paymentSuccess = async (req: Request, res: Response) => {
           if (!paymentId) return res.status(400).json({ message: "Payment ID missing" });
 
           const payment = await PaymentModel.findById(paymentId);
-          if (payment?.status === "success") {
+          if (!payment) return res.status(404).json({ message: "Payment not found" });
+
+          if (payment.status === "success") {
                return res.json({ success: true, message: "Payment already processed" });
           }
-          if (!payment) return res.status(404).json({ message: "Payment not found" });
 
           // Cash payments directly success
           if (payment.method === "cash") {
@@ -292,6 +310,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
                     return res.status(400).json({ message: "Payment amount or currency mismatch" });
                }
+
                payment.status = "success";
                await payment.save();
           }
@@ -301,7 +320,6 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                const lobby = await LobbyModel.findById(payment.lobbyId);
                if (!lobby) return res.status(404).json({ message: "Lobby not found" });
 
-               // Validate required fields for team fee payment
                if (!payment.playerId) {
                     return res.status(400).json({ message: "Player ID missing for team fee payment" });
                }
@@ -310,6 +328,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     return res.status(400).json({ message: "Team ID missing for team fee payment" });
                }
 
+               // Player data with guest_player flag
                const playerData = {
                     playerId: payment.playerId,
                     matchPosition: payment.matchPosition || "",
@@ -321,157 +340,101 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     tackle: 0,
                     save: 0,
                     rating: 0,
+                    guest_player: payment.guest_player ?? false,
                };
 
-
-
+               let targetTeam: any = null;
                let assignedTeam = "";
 
                if (lobby.matchType === "solo") {
-                    // Better team identification logic
-                    let targetTeam = null;
+                    // FIXED: Check if player already exists in the SPECIFIC team they requested
+                    const requestedTeamId = payment.teamId.toString();
 
-                    // Check if payment teamId matches defaultTeam1
-                    if (lobby.defaultTeam1?.teamId &&
-                         payment.teamId.toString() === lobby.defaultTeam1.teamId.toString()) {
+                    // Check which team the player requested to join
+                    //@ts-ignore
+                    if (requestedTeamId === lobby.defaultTeam1?._id?.toString()) {
+                         // Check if player already in defaultTeam1
+                         const inTeam1 = lobby.defaultTeam1?.players?.some(p =>
+                              p.playerId.toString() === payment.playerId!.toString()
+                         );
+
+                         if (inTeam1) {
+                              return res.status(400).json({
+                                   message: "Player already joined team 1"
+                              });
+                         }
+
                          targetTeam = lobby.defaultTeam1;
                          assignedTeam = "defaultTeam1";
-                         console.log('Assigning to Default Team 1');
-                    }
-                    // Check if payment teamId matches defaultTeam2
-                    else if (lobby.defaultTeam2?.teamId &&
-                         payment.teamId.toString() === lobby.defaultTeam2.teamId.toString()) {
+                         //@ts-ignore
+                    } else if (requestedTeamId === lobby.defaultTeam2?._id?.toString()) {
+                         // Check if player already in defaultTeam2
+                         const inTeam2 = lobby.defaultTeam2?.players?.some(p =>
+                              p.playerId.toString() === payment.playerId!.toString()
+                         );
+
+                         if (inTeam2) {
+                              return res.status(400).json({
+                                   message: "Player already joined team 2"
+                              });
+                         }
+
                          targetTeam = lobby.defaultTeam2;
                          assignedTeam = "defaultTeam2";
-
-                    }
-                    // If no match found, assign to the team with fewer players
-                    else {
-                         console.log('Team ID not matching, assigning to team with fewer players');
-                         const team1PlayerCount = lobby.defaultTeam1?.players?.length || 0;
-                         const team2PlayerCount = lobby.defaultTeam2?.players?.length || 0;
-
-                         if (team1PlayerCount <= team2PlayerCount) {
-                              targetTeam = lobby.defaultTeam1;
-                              assignedTeam = "defaultTeam1";
-                         } else {
-                              targetTeam = lobby.defaultTeam2;
-                              assignedTeam = "defaultTeam2";
-                         }
-                         console.log(`Team 1 players: ${team1PlayerCount}, Team 2 players: ${team2PlayerCount}`);
+                    } else {
+                         return res.status(400).json({ message: "Invalid team selection" });
                     }
 
-                    if (!targetTeam) {
-                         return res.status(400).json({ message: "No valid team found in lobby" });
-                    }
-
-                    if (!targetTeam.players) {
-                         targetTeam.players = [];
-                    }
-
-                    // Check if player already exists in any team
-                    const playerExistsInTeam1 = lobby.defaultTeam1?.players?.some(
-                         //@ts-ignore
-                         (p: any) => p.playerId.toString() === payment.playerId.toString()
-                    );
-                    //@ts-ignore
-                    const playerExistsInTeam2 = lobby.defaultTeam2?.players?.some(
-                         //@ts-ignore
-                         (p: any) => p.playerId.toString() === payment.playerId.toString()
-                    );
-
-                    if (playerExistsInTeam1 || playerExistsInTeam2) {
-                         return res.status(400).json({ message: "Player already exists in a team" });
-                    }
-
-                    if (
-                         payment.matchFormat &&
-                         (!targetTeam.matchFormat || targetTeam.matchFormat === "") &&
-                         targetTeam.players.length === 0
-                    ) {
+                    // Set match format for first player
+                    if (payment.matchFormat && (!targetTeam.matchFormat || targetTeam.matchFormat === "") && targetTeam.players.length === 0) {
                          targetTeam.matchFormat = payment.matchFormat;
-
-                         if (assignedTeam === "defaultTeam1") {
-                              lobby.markModified("defaultTeam1.matchFormat");
-                         }
-                         if (assignedTeam === "defaultTeam2") {
-                              lobby.markModified("defaultTeam2.matchFormat");
-                         }
+                         lobby.markModified(`${assignedTeam}.matchFormat`);
                     }
 
-                    //@ts-ignore
+                    // Add player
                     targetTeam.players.push(playerData);
-
                } else {
-
-                    let targetTeam = null;
-
-                    if (lobby.team1?.teamId &&
-                         payment.teamId.toString() === lobby.team1.teamId.toString()) {
+                    // Team match (non-solo)
+                    if (lobby.team1?.teamId && payment.teamId.toString() === lobby.team1.teamId.toString()) {
                          targetTeam = lobby.team1;
                          assignedTeam = "team1";
-                    } else if (lobby.team2?.teamId &&
-                         payment.teamId.toString() === lobby.team2.teamId.toString()) {
+                    } else if (lobby.team2?.teamId && payment.teamId.toString() === lobby.team2.teamId.toString()) {
                          targetTeam = lobby.team2;
                          assignedTeam = "team2";
-                    }
-
-                    if (!targetTeam) {
+                    } else {
                          return res.status(400).json({ message: "Team not found in lobby" });
                     }
 
-                    if (!targetTeam.players) {
-                         targetTeam.players = [];
-                    }
+                    if (!targetTeam.players) targetTeam.players = [];
 
-                    if (
-                         payment.matchFormat &&
-                         (!targetTeam.matchFormat || targetTeam.matchFormat === "") &&
-                         targetTeam.players.length === 0
-                    ) {
+                    if (payment.matchFormat && (!targetTeam.matchFormat || targetTeam.matchFormat === "") && targetTeam.players.length === 0) {
                          targetTeam.matchFormat = payment.matchFormat;
-
-                         if (assignedTeam === "team1") {
-                              lobby.markModified("team1.matchFormat");
-                         }
-                         if (assignedTeam === "team2") {
-                              lobby.markModified("team2.matchFormat");
-                         }
+                         if (assignedTeam === "team1") lobby.markModified("team1.matchFormat");
+                         if (assignedTeam === "team2") lobby.markModified("team2.matchFormat");
                     }
 
-
-
-
-                    //@ts-ignore
                     targetTeam.players.push(playerData);
-
                }
 
                // Update user match count
-               const profile = await userModel.findById(payment.playerId);
-               if (profile) {
-                    await userModel.findByIdAndUpdate(
-                         payment.playerId,
-                         { $inc: { match: 1 } },
-                         { new: true }
-                    );
-               }
+               await userModel.findByIdAndUpdate(payment.playerId, { $inc: { match: 1 } });
 
                await lobby.save();
+
                return res.json({
                     success: true,
                     message: "Payment successful and player added",
-                    assignedTeam: assignedTeam
+                    assignedTeam: assignedTeam,
+                    guest_player: playerData.guest_player,
                });
           }
 
+          // Tournament fee handling
           if (payment.paymentType === "tournament fee") {
                const tournament = await TournamentModel.findById(payment.tournamentId);
                if (!tournament) return res.status(404).json({ message: "Tournament not found" });
 
-               if (!payment.teamId) {
-                    return res.status(400).json({ message: "Team ID missing for tournament fee payment" });
-               }
+               if (!payment.teamId) return res.status(400).json({ message: "Team ID missing for tournament fee payment" });
 
                const result = await TournamentModel.findByIdAndUpdate(
                     payment.tournamentId,
@@ -484,15 +447,16 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                return res.json({
                     success: true,
                     message: "Payment successful and team added to tournament",
-                    data: result
+                    data: result,
                });
           }
-
      } catch (err) {
           console.error(err);
           res.status(500).json({ message: "Internal server error" });
      }
 };
+
+
 
 
 export const paymentCancel = async (req: Request, res: Response) => {

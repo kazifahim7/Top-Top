@@ -144,24 +144,28 @@ const acceptRefundRequest = async (payload: {
           throw error;
      }
 };
-const exit_lobby = async (payload: { lobbyId: string | Types.ObjectId, currentUserId: string | Types.ObjectId }, playerId: string | Types.ObjectId) => {
+const exit_lobby = async (
+     payload: {
+          lobbyId: string | Types.ObjectId;
+          currentUserId: string | Types.ObjectId;
+     },
+     playerId: string | Types.ObjectId
+) => {
      const session = await mongoose.startSession();
      session.startTransaction();
 
      try {
-          const { lobbyId } = payload;
-
-          const lobbyObjectId = new Types.ObjectId(lobbyId);
+          const lobbyObjectId = new Types.ObjectId(payload.lobbyId);
           const playerObjectId = new Types.ObjectId(playerId);
           const currentUserObjectId = new Types.ObjectId(payload.currentUserId);
 
-          // Ensure the player can only remove themselves
+        
           if (!playerObjectId.equals(currentUserObjectId)) {
                throw new Error("You can only remove yourself from the lobby.");
           }
 
-          // Remove player from all possible teams
-          const lobbyUpdate = await LobbyModel.updateOne(
+          //  Remove player from all possible teams
+          await LobbyModel.updateOne(
                { _id: lobbyObjectId },
                {
                     $pull: {
@@ -174,12 +178,47 @@ const exit_lobby = async (payload: { lobbyId: string | Types.ObjectId, currentUs
                { session }
           );
 
-          console.log("Lobby update result:", lobbyUpdate);
+          //  Fetch updated lobby inside transaction
+          const lobby = await LobbyModel.findById(lobbyObjectId).session(session);
+          if (!lobby) {
+               throw new Error("Lobby not found");
+          }
 
+          //  Reset matchFormat if team players are empty
+          const updateData: Record<string, any> = {};
+
+          if (lobby.team1?.players?.length === 0) {
+               updateData["team1.matchFormat"] = "";
+          }
+
+          if (lobby.team2?.players?.length === 0) {
+               updateData["team2.matchFormat"] = "";
+          }
+
+          if (lobby.defaultTeam1?.players?.length === 0) {
+               updateData["defaultTeam1.matchFormat"] = "";
+          }
+
+          if (lobby.defaultTeam2?.players?.length === 0) {
+               updateData["defaultTeam2.matchFormat"] = "";
+          }
+
+          if (Object.keys(updateData).length > 0) {
+               await LobbyModel.updateOne(
+                    { _id: lobbyObjectId },
+                    { $set: updateData },
+                    { session }
+               );
+          }
+
+          //  Commit transaction
           await session.commitTransaction();
           session.endSession();
 
-          return lobbyUpdate;
+          return {
+               success: true,
+               message: "Successfully exited lobby",
+          };
      } catch (error) {
           await session.abortTransaction();
           session.endSession();
@@ -187,6 +226,7 @@ const exit_lobby = async (payload: { lobbyId: string | Types.ObjectId, currentUs
           throw error;
      }
 };
+
 export const refundService = {
      sendRefundRequest,
      allRefundRequest,

@@ -13,11 +13,12 @@ const PlayerStatsSchema = new Schema({
     veryGoodMoment: { type: Number, default: 0 },
     rating: { type: Number, default: 6.5 },
     matchPosition: { type: String },
+    guest_player: { type: Boolean, default: false }
 });
 const TeamSchema = new Schema({
     teamId: { type: Schema.Types.ObjectId, ref: "Team", required: true },
     players: { type: [PlayerStatsSchema], default: [] },
-    matchFormat: { type: String },
+    matchFormat: { type: String }
 });
 const DefaultTeamSchema = new Schema({
     teamName: { type: String },

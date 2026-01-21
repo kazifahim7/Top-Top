@@ -12,11 +12,13 @@ export interface PlayerStats {
     rating: number;
     goodMoment: number;
     veryGoodMoment: number;
+    guest_player?: boolean;
 }
 export interface Team {
     teamId: Types.ObjectId;
     players: PlayerStats[];
     matchFormat?: string;
+    guest_players?: PlayerStats[];
 }
 export interface DefaultTeam {
     teamId: any;

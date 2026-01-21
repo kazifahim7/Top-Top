@@ -1,10 +1,12 @@
 import { model, Schema } from "mongoose";
+import { boolean } from "zod";
 const PaymentSchema = new Schema({
     lobbyId: { type: Schema.Types.ObjectId, ref: "Lobby" },
     playerId: { type: Schema.Types.ObjectId, ref: "Players" },
     ExtraPlayerId: { type: Schema.Types.ObjectId, ref: "Players" },
     teamId: { type: Schema.Types.ObjectId, ref: "Team" },
     price: { type: Number, required: true },
+    guest_player: { type: Boolean, default: false },
     matchPosition: {
         type: String,
         enum: [
