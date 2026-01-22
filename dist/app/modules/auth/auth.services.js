@@ -5,16 +5,18 @@ import AppError from '../../Error/AppError.js';
 import config from '../../config/index.js';
 import QueryBuilder from '../../builder/QueryBuilder.js';
 import { LobbyModel } from '../Lobby/lobby.model.js';
-import { email } from 'zod';
 import OtpModel from './auth.otpmodel.js';
 import emailSender from '../../utils/sendEmail.js';
 import { TeamModel } from '../Team/team.model.js';
+import { sendOtpSMS } from '../../utils/twilio.js';
 const createUserIntoDB = async (payload) => {
     const isUserAlreadyExist = await userModel.findOne({ email: payload?.email });
     if (isUserAlreadyExist) {
         throw new AppError(401, "This user Already exists");
     }
     payload.password = await bcrypt.hash(payload.password, Number(config.salt_round));
+    // const setOtpInMobile = await sendOtpSMS(payload?.mobile!,"1234")
+    // console.log(setOtpInMobile,"otp send to mobile")
     const result = await userModel.create(payload);
     return result;
 };

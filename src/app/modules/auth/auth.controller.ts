@@ -19,7 +19,8 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
           data: {
                _id: result?._id,
                fullName: result?.FullName,
-               email: result?.email
+               email: result?.email,
+               userName:result?.userName
           }
      })
 
