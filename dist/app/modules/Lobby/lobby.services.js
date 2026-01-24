@@ -3,6 +3,7 @@ import { LobbyModel } from "./lobby.model.js";
 import QueryBuilder from "../../builder/QueryBuilder.js";
 import { userModel } from "../auth/auth.model.js";
 import AppError from "../../Error/AppError.js";
+import { TeamModel } from "../Team/team.model.js";
 const createMatch = async (payload, id, role) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -30,6 +31,20 @@ const createMatch = async (payload, id, role) => {
         ...finalData,
         organizer: new Types.ObjectId(id),
     });
+    if (result && payload.team1?.teamId && payload.team2?.teamId) {
+        const teamId1 = payload.team1?.teamId;
+        const teamId2 = payload.team2?.teamId;
+        const isTeams1Exist = await TeamModel.findById(teamId1);
+        if (!isTeams1Exist) {
+            throw new AppError(404, "not found");
+        }
+        const isTeams2Exist = await TeamModel.findById(teamId2);
+        if (!isTeams2Exist) {
+            throw new AppError(404, "not found");
+        }
+        await TeamModel.findByIdAndUpdate(teamId1, { $inc: { totalMatch: 1 } });
+        await TeamModel.findByIdAndUpdate(teamId2, { $inc: { totalMatch: 1 } });
+    }
     return result;
 };
 const allMatch = async (query) => {

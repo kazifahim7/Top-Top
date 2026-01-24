@@ -36,7 +36,7 @@ const playerRanking = async (options) => {
     return result;
 };
 const teamRanking = async (options) => {
-    const { filterBy = "all", sortField = "avgRating", sortOrder = "desc", matchField, matchValue } = options;
+    const { filterBy = "all", sortField = "win", sortOrder = "desc", matchField, matchValue } = options;
     const now = new Date();
     let startDate;
     if (filterBy === "weekly") {
@@ -49,13 +49,18 @@ const teamRanking = async (options) => {
     }
     const matchStage = {};
     if (filterBy !== "all" && startDate) {
-        matchStage.createdAt = { $gte: startDate, $lte: now };
+        matchStage.updatedAt = { $gte: startDate, $lte: now };
     }
     if (matchField && matchValue !== undefined) {
         matchStage[matchField] = matchValue;
     }
+    // ✅ Filter: win must be at least 1
+    matchStage.win = { $gte: 1 };
     const sortDirection = sortOrder === "asc" ? 1 : -1;
     const result = await TeamModel.aggregate([
+        {
+            $match: matchStage
+        },
         {
             $lookup: {
                 from: "players",
@@ -65,18 +70,71 @@ const teamRanking = async (options) => {
             }
         },
         {
-            $match: {
-                "playersData.0": { $exists: true },
-                ...matchStage
-            }
-        },
-        {
             $addFields: {
-                avgRating: { $avg: "$playersData.rating" }
+                avgRating: { $avg: "$playersData.rating" },
+                winPercentage: {
+                    $cond: [
+                        { $eq: ["$totalMatch", 0] },
+                        0,
+                        { $multiply: [{ $divide: ["$win", "$totalMatch"] }, 100] }
+                    ]
+                },
+                goalDifference: { $subtract: ["$goal", "$carryGoal"] }
             }
         },
         {
-            $sort: { [sortField]: sortDirection }
+            $sort: {
+                win: sortDirection,
+                winPercentage: sortDirection,
+                goalDifference: sortDirection,
+                goal: sortDirection,
+                [sortField]: sortDirection
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                teams: { $push: "$$ROOT" }
+            }
+        },
+        {
+            $unwind: {
+                path: "$teams",
+                includeArrayIndex: "ranking"
+            }
+        },
+        {
+            $replaceRoot: {
+                newRoot: {
+                    $mergeObjects: [
+                        "$teams",
+                        { ranking: { $add: ["$ranking", 1] } }
+                    ]
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                teamName: 1,
+                userName: 1,
+                image: 1,
+                totalMatch: 1,
+                win: 1,
+                draw: 1,
+                loss: 1,
+                goal: 1,
+                carryGoal: 1,
+                winPercentage: 1,
+                goalDifference: 1,
+                avgRating: 1,
+                ranking: 1,
+                players: 1,
+                teamOwner: 1,
+                teamCaptain: 1,
+                createdAt: 1,
+                updatedAt: 1
+            }
         }
     ]);
     return result;
