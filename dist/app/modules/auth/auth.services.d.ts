@@ -176,6 +176,15 @@ export declare const authService: {
         } & {
             __v: number;
         }) | null;
+        stats: {
+            matchesPlayed: number;
+            goalsPerGame: number;
+            assistsPerGame: number;
+            savesPerGame: number;
+            cleanSheets: number;
+            winRatio: number;
+        };
+        media: string[];
         allLobbies: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
             _id: unknown;
         }> & {

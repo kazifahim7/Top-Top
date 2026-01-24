@@ -283,8 +283,79 @@ export const changePassword = async (payload: { oldPassword: string, newPassword
 };
 
 
+
+const calculatePlayerStats = (lobbies: any[], playerId: string) => {
+     const matchesPlayed = lobbies.length;
+
+     let totalGoals = 0;
+     let totalAssists = 0;
+     let totalSaves = 0;
+     let cleanSheets = 0;
+     let wins = 0;
+
+     lobbies.forEach(lobby => {
+          const teams = [
+               lobby.team1?.players,
+               lobby.team2?.players,
+               lobby.defaultTeam1?.players,
+               lobby.defaultTeam2?.players,
+          ];
+
+          teams.forEach(players => {
+               if (!players) return;
+
+               const player = players.find(
+                    (p: any) => p.playerId?.toString() === playerId
+               );
+
+               if (player) {
+                    totalGoals += player.goal || 0;
+                    totalAssists += player.assists || 0;
+                    totalSaves += player.save || 0;
+
+                    // clean sheet (basic)
+                    if ((player.save || 0) > 0 && (player.goal || 0) === 0) {
+                         cleanSheets++;
+                    }
+               }
+          });
+
+          // win logic (simple)
+          if (lobby.goalTeam1 !== undefined && lobby.goalTeam2 !== undefined) {
+               if (lobby.goalTeam1 > lobby.goalTeam2) wins++;
+          }
+     });
+
+     return {
+          matchesPlayed, // ✅ total lobby count
+          goalsPerGame: matchesPlayed ? +(totalGoals / matchesPlayed).toFixed(1) : 0,
+          assistsPerGame: matchesPlayed ? +(totalAssists / matchesPlayed).toFixed(1) : 0,
+          savesPerGame: matchesPlayed ? +(totalSaves / matchesPlayed).toFixed(1) : 0,
+          cleanSheets,
+          winRatio: matchesPlayed ? Math.round((wins / matchesPlayed) * 100) : 0,
+     };
+};
+
+const collectLobbyMedia = (lobbies: any[]) => {
+     const mediaSet = new Set<string>();
+
+     lobbies.forEach(lobby => {
+          if (Array.isArray(lobby.media)) {
+               lobby.media.forEach((m: string) => {
+                    if (m) mediaSet.add(m);
+               });
+          }
+     });
+
+     return Array.from(mediaSet);
+};
+
+
+
 const playerProfile = async (id: string) => {
-     const result = await userModel.findById(id)
+     console.log(id)
+     const result = await userModel.findById(id);
+
      const allLobbies = await LobbyModel.find({
           $or: [
                { "team1.players.playerId": id },
@@ -292,15 +363,22 @@ const playerProfile = async (id: string) => {
                { "defaultTeam1.players.playerId": id },
                { "defaultTeam2.players.playerId": id },
           ],
-     }).populate("team1.teamId")
-          .populate("team2.teamId")
+     })
+          .populate("team1.teamId")
+          .populate("team2.teamId");
 
+     const stats = calculatePlayerStats(allLobbies, id);
+     const media = collectLobbyMedia(allLobbies);
 
      return {
           result,
-          allLobbies
-     }
-}
+          stats,       // matchesPlayed = allLobbies.length
+          media,       // all lobby media merged
+          allLobbies,  // joined matches
+     };
+};
+
+
 
 
 
