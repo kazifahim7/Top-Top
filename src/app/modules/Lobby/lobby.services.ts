@@ -347,6 +347,51 @@ const singlelobby = async (lobbyId: string) => {
                     as: "defaultTeam2Players",
                },
           },
+          {
+               $lookup: {
+                    from: "players",
+                    let: {
+                         playerIds: { $ifNull: ["$team1Data.players", []] },
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: { $in: ["$_id", "$$playerIds"] },
+                              },
+                         },
+                         {
+                              $project: {
+                                   password: 0,
+                              },
+                         },
+                    ],
+                    as: "team1Players",
+               },
+          },
+
+          {
+               $lookup: {
+                    from: "players",
+                    let: {
+                         playerIds: { $ifNull: ["$team2Data.players", []] },
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: { $in: ["$_id", "$$playerIds"] },
+                              },
+                         },
+                         {
+                              $project: {
+                                   password: 0,
+                              },
+                         },
+                    ],
+                    as: "team2Players",
+               },
+          },
+
+
      ]);
 
      return lobbies[0] || null;
