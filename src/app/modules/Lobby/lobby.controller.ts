@@ -108,8 +108,9 @@ const organizerLobby = catchAsync(async (req: Request, res: Response) => {
 const assignLobby = catchAsync(async (req: Request, res: Response) => {
      const id = req.params?.id;
      const data=req.body
+     const adminId=req.user.id
 
-     const result = await lobbyService.assignLobby(id!,data)
+     const result = await lobbyService.assignLobby(id!, data, adminId)
 
      res.status(200).json({
           success: true,
@@ -122,8 +123,8 @@ const assignLobby = catchAsync(async (req: Request, res: Response) => {
 const assigntournament = catchAsync(async (req: Request, res: Response) => {
      const id = req.params?.id;
      const data=req.body
-
-     const result = await lobbyService.assigntournament(id!,data)
+     const adminId = req.user.id
+     const result = await lobbyService.assigntournament(id!, data, adminId)
 
      res.status(200).json({
           success: true,

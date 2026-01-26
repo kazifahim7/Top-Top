@@ -529,20 +529,28 @@ const organizerLobby = async (id) => {
         hostTournaments
     };
 };
-const assignLobby = async (id, data) => {
+const assignLobby = async (id, data, adminId) => {
     const organizerId = new Types.ObjectId(id);
+    const admin = new Types.ObjectId(adminId);
     const lobby = await LobbyModel.findById(data.lobbyId);
     if (!lobby) {
-        throw new Error("Lobby not found");
+        throw new AppError(404, "Lobby not found");
+    }
+    if (admin !== lobby.organizer) {
+        throw new AppError(403, "this lobby created by other organizer");
     }
     const result = await LobbyModel.findByIdAndUpdate(data.lobbyId, { organizer: organizerId }, { new: true });
     return result;
 };
-const assigntournament = async (id, data) => {
+const assigntournament = async (id, data, adminId) => {
     const organizerId = new Types.ObjectId(id);
+    const admin = new Types.ObjectId(adminId);
     const lobby = await TournamentModel.findById(data.tournamentId);
     if (!lobby) {
-        throw new Error("Lobby not found");
+        throw new AppError(404, "Tournament not found");
+    }
+    if (admin !== lobby.organizer) {
+        throw new AppError(403, "this Tournament created by other organizer");
     }
     const result = await TournamentModel.findByIdAndUpdate(data.tournamentId, { organizer: organizerId }, { new: true });
     return result;

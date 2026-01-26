@@ -69,14 +69,14 @@ export declare const lobbyService: {
     }>;
     assignLobby: (id: string, data: {
         lobbyId: string;
-    }) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+    }, adminId: string) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;
     }> & {
         __v: number;
     }) | null>;
     assigntournament: (id: string, data: {
         tournamentId: string;
-    }) => Promise<(mongoose.Document<unknown, {}, import("../Tournament/Tournament.interface.js").ITournament, {}, {}> & import("../Tournament/Tournament.interface.js").ITournament & {
+    }, adminId: string) => Promise<(mongoose.Document<unknown, {}, import("../Tournament/Tournament.interface.js").ITournament, {}, {}> & import("../Tournament/Tournament.interface.js").ITournament & {
         _id: Types.ObjectId;
     } & {
         __v: number;
