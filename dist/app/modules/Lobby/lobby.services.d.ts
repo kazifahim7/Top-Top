@@ -49,6 +49,18 @@ export declare const lobbyService: {
     }> & {
         __v: number;
     })[]>;
+    organizerLobby: (id: string) => Promise<{
+        upcomingLobby: (mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+            _id: unknown;
+        }> & {
+            __v: number;
+        })[];
+        completeLobby: (mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+            _id: unknown;
+        }> & {
+            __v: number;
+        })[];
+    }>;
 };
 export {};
 //# sourceMappingURL=lobby.services.d.ts.map

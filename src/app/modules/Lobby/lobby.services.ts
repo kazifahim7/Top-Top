@@ -585,6 +585,15 @@ const myUpcomingLobby = async (id: string) => {
      return result;
 };
 
+const organizerLobby=async(id:string)=>{
+     const upcomingLobby = await LobbyModel.find({ organizer: id, lobbyStatus:"ongoing"})
+     const completeLobby = await LobbyModel.find({ organizer: id, lobbyStatus:"completed"})
+     return {
+          upcomingLobby,
+          completeLobby
+     }
+}
+
 
 
 
@@ -596,5 +605,6 @@ export const lobbyService = {
      updateLobbyInfo,
      deleteLobby,
      singlelobby,
-     myUpcomingLobby
+     myUpcomingLobby,
+     organizerLobby
 }

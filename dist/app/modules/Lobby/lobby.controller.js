@@ -72,6 +72,15 @@ const myUpcomingLobby = catchAsync(async (req, res) => {
         data: result
     });
 });
+const organizerLobby = catchAsync(async (req, res) => {
+    const id = req.params?.id;
+    const result = await lobbyService.organizerLobby(id);
+    res.status(200).json({
+        success: true,
+        message: "Organizer upcoming lobby retrieved successfully",
+        data: result
+    });
+});
 export const lobbyController = {
     createMatch,
     allMatch,
@@ -79,6 +88,7 @@ export const lobbyController = {
     lobbyInFo,
     deleteLobby,
     singlelobby,
-    myUpcomingLobby
+    myUpcomingLobby,
+    organizerLobby
 };
 //# sourceMappingURL=lobby.controller.js.map

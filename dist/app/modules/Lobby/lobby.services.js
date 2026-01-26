@@ -489,6 +489,14 @@ const myUpcomingLobby = async (id) => {
     });
     return result;
 };
+const organizerLobby = async (id) => {
+    const upcomingLobby = await LobbyModel.find({ organizer: id, lobbyStatus: "ongoing" });
+    const completeLobby = await LobbyModel.find({ organizer: id, lobbyStatus: "completed" });
+    return {
+        upcomingLobby,
+        completeLobby
+    };
+};
 export const lobbyService = {
     createMatch,
     allMatch,
@@ -496,6 +504,7 @@ export const lobbyService = {
     updateLobbyInfo,
     deleteLobby,
     singlelobby,
-    myUpcomingLobby
+    myUpcomingLobby,
+    organizerLobby
 };
 //# sourceMappingURL=lobby.services.js.map

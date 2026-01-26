@@ -92,6 +92,19 @@ const myUpcomingLobby = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const organizerLobby = catchAsync(async (req: Request, res: Response) => {
+     const id = req.params?.id;
+
+     const result = await lobbyService.organizerLobby(id!)
+
+     res.status(200).json({
+          success: true,
+          message: "Organizer upcoming lobby retrieved successfully",
+          data: result
+     })
+
+
+})
 
 
 
@@ -103,5 +116,6 @@ export const lobbyController={
      lobbyInFo,
      deleteLobby,
      singlelobby,
-     myUpcomingLobby
+     myUpcomingLobby,
+     organizerLobby
 }
