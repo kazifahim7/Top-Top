@@ -644,8 +644,8 @@ const assignLobby = async (id: string, data: { lobbyId: string }, adminId:string
      if (!lobby) {
           throw new AppError(404,"Lobby not found");
      }
-     if(admin !== lobby.organizer){
-          throw new AppError(403, "this lobby created by other organizer");
+     if (!admin.equals(lobby.organizer)) {
+          throw new AppError(403, "This lobby was created by another organizer");
      }
      const result = await LobbyModel.findByIdAndUpdate(data.lobbyId, { organizer: organizerId }, { new: true })
      return result;
@@ -659,8 +659,8 @@ const assigntournament = async (id: string, data: { tournamentId: string }, admi
           throw new AppError(404,"Tournament not found");
      }
 
-     if (admin !== lobby.organizer) {
-          throw new AppError(403, "this Tournament created by other organizer");
+     if (!admin.equals(lobby.organizer)) {
+          throw new AppError(403, "This tournament was created by another organizer");
      }
 
 
