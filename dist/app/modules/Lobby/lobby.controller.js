@@ -91,6 +91,16 @@ const assignLobby = catchAsync(async (req, res) => {
         data: result
     });
 });
+const assigntournament = catchAsync(async (req, res) => {
+    const id = req.params?.id;
+    const data = req.body;
+    const result = await lobbyService.assigntournament(id, data);
+    res.status(200).json({
+        success: true,
+        message: "Assign Tournament successfully",
+        data: result
+    });
+});
 export const lobbyController = {
     createMatch,
     allMatch,
@@ -100,6 +110,7 @@ export const lobbyController = {
     singlelobby,
     myUpcomingLobby,
     organizerLobby,
-    assignLobby
+    assignLobby,
+    assigntournament
 };
 //# sourceMappingURL=lobby.controller.js.map

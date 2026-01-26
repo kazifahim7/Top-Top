@@ -5,6 +5,7 @@ import { userModel } from "../auth/auth.model.js";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
 import { PaymentModel } from "../Payment/payment.model.js";
+import { TournamentModel } from "../Tournament/Tournament.model.js";
 const createMatch = async (payload, id, role) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -518,12 +519,14 @@ const organizerLobby = async (id) => {
             },
         },
     ]);
+    const hostTournaments = await TournamentModel.findOne({ organizer: organizerId });
     const totalEarning = earningResult.length > 0 ? earningResult[0].totalEarning : 0;
     // 4️⃣ Final response
     return {
         upcomingLobby,
         completeLobby,
         totalEarning,
+        hostTournaments
     };
 };
 const assignLobby = async (id, data) => {
@@ -535,6 +538,15 @@ const assignLobby = async (id, data) => {
     const result = await LobbyModel.findByIdAndUpdate(data.lobbyId, { organizer: organizerId }, { new: true });
     return result;
 };
+const assigntournament = async (id, data) => {
+    const organizerId = new Types.ObjectId(id);
+    const lobby = await TournamentModel.findById(data.tournamentId);
+    if (!lobby) {
+        throw new Error("Lobby not found");
+    }
+    const result = await TournamentModel.findByIdAndUpdate(data.tournamentId, { organizer: organizerId }, { new: true });
+    return result;
+};
 export const lobbyService = {
     createMatch,
     allMatch,
@@ -544,6 +556,7 @@ export const lobbyService = {
     singlelobby,
     myUpcomingLobby,
     organizerLobby,
-    assignLobby
+    assignLobby,
+    assigntournament
 };
 //# sourceMappingURL=lobby.services.js.map

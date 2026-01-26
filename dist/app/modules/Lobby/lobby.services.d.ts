@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import type { LobbyDocument } from "./lobby.interface.js";
 interface UpdatePlayerStatsDTO {
     lobbyId: string;
@@ -61,12 +61,24 @@ export declare const lobbyService: {
             __v: number;
         })[];
         totalEarning: any;
+        hostTournaments: (mongoose.Document<unknown, {}, import("../Tournament/Tournament.interface.js").ITournament, {}, {}> & import("../Tournament/Tournament.interface.js").ITournament & {
+            _id: Types.ObjectId;
+        } & {
+            __v: number;
+        }) | null;
     }>;
     assignLobby: (id: string, data: {
         lobbyId: string;
     }) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;
     }> & {
+        __v: number;
+    }) | null>;
+    assigntournament: (id: string, data: {
+        tournamentId: string;
+    }) => Promise<(mongoose.Document<unknown, {}, import("../Tournament/Tournament.interface.js").ITournament, {}, {}> & import("../Tournament/Tournament.interface.js").ITournament & {
+        _id: Types.ObjectId;
+    } & {
         __v: number;
     }) | null>;
 };

@@ -6,14 +6,15 @@ import { userModel } from "../auth/auth.model.js";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
 import { PaymentModel } from "../Payment/payment.model.js";
+import { TournamentModel } from "../Tournament/Tournament.model.js";
 
-const createMatch = async (payload: LobbyDocument, id: string,role:string) => {
-     
+const createMatch = async (payload: LobbyDocument, id: string, role: string) => {
+
      const now = new Date();
      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-   
+
      const lobbyCount = await LobbyModel.countDocuments({
           organizer: id,
           createdAt: { $gte: startOfMonth, $lte: endOfMonth },
@@ -21,10 +22,10 @@ const createMatch = async (payload: LobbyDocument, id: string,role:string) => {
 
 
      if (lobbyCount >= 16 && role === "organizer") {
-          throw new AppError(403,"You have reached your monthly lobby limit (16). Please contact admin for payment.");
+          throw new AppError(403, "You have reached your monthly lobby limit (16). Please contact admin for payment.");
      }
 
-    
+
      let finalData = {};
      if (payload.matchType === "solo") {
           finalData = {
@@ -42,24 +43,24 @@ const createMatch = async (payload: LobbyDocument, id: string,role:string) => {
           organizer: new Types.ObjectId(id),
      });
 
-     if (result && payload.team1?.teamId && payload.team2?.teamId){
+     if (result && payload.team1?.teamId && payload.team2?.teamId) {
           const teamId1 = payload.team1?.teamId
-          const teamId2 = payload.team2?.teamId 
-          const isTeams1Exist=await TeamModel.findById(teamId1)
-          if(!isTeams1Exist){
-               throw new AppError(404,"not found");
-               
+          const teamId2 = payload.team2?.teamId
+          const isTeams1Exist = await TeamModel.findById(teamId1)
+          if (!isTeams1Exist) {
+               throw new AppError(404, "not found");
+
           }
           const isTeams2Exist = await TeamModel.findById(teamId2)
-          if(!isTeams2Exist){
-               throw new AppError(404,"not found");
-               
+          if (!isTeams2Exist) {
+               throw new AppError(404, "not found");
+
           }
-          await TeamModel.findByIdAndUpdate(teamId1,{$inc:{totalMatch:1}})
-          await TeamModel.findByIdAndUpdate(teamId2,{$inc:{totalMatch:1}})
+          await TeamModel.findByIdAndUpdate(teamId1, { $inc: { totalMatch: 1 } })
+          await TeamModel.findByIdAndUpdate(teamId2, { $inc: { totalMatch: 1 } })
      }
 
-     
+
 
      return result;
 };
@@ -557,7 +558,7 @@ const updateLobbyInfo = async (id: string, payload: Record<string, unknown>) => 
      return result
 }
 
-const deleteLobby = async (id:string)=>{
+const deleteLobby = async (id: string) => {
      const result = await LobbyModel.findByIdAndDelete(id)
 
      return result
@@ -621,6 +622,8 @@ const organizerLobby = async (id: string) => {
           },
      ]);
 
+     const hostTournaments = await TournamentModel.findOne({ organizer: organizerId })
+
      const totalEarning =
           earningResult.length > 0 ? earningResult[0].totalEarning : 0;
 
@@ -629,17 +632,28 @@ const organizerLobby = async (id: string) => {
           upcomingLobby,
           completeLobby,
           totalEarning,
+          hostTournaments
      };
 };
 
 
-const assignLobby = async(id:string, data:{lobbyId:string} )=>{
+const assignLobby = async (id: string, data: { lobbyId: string }) => {
      const organizerId = new Types.ObjectId(id);
      const lobby = await LobbyModel.findById(data.lobbyId);
      if (!lobby) {
           throw new Error("Lobby not found");
      }
-     const result = await LobbyModel.findByIdAndUpdate(data.lobbyId, { organizer: organizerId },{new:true})
+     const result = await LobbyModel.findByIdAndUpdate(data.lobbyId, { organizer: organizerId }, { new: true })
+     return result;
+}
+
+const assigntournament = async (id: string, data: { tournamentId: string }) => {
+     const organizerId = new Types.ObjectId(id);
+     const lobby = await TournamentModel.findById(data.tournamentId);
+     if (!lobby) {
+          throw new Error("Lobby not found");
+     }
+     const result = await TournamentModel.findByIdAndUpdate(data.tournamentId, { organizer: organizerId }, { new: true })
      return result;
 }
 
@@ -649,7 +663,7 @@ const assignLobby = async(id:string, data:{lobbyId:string} )=>{
 
 
 export const lobbyService = {
-     createMatch ,
+     createMatch,
      allMatch,
      updatePlayerStats,
      updateLobbyInfo,
@@ -657,6 +671,7 @@ export const lobbyService = {
      singlelobby,
      myUpcomingLobby,
      organizerLobby,
-     assignLobby
-     
+     assignLobby,
+     assigntournament
+
 }

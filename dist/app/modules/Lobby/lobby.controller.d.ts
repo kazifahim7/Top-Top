@@ -9,5 +9,6 @@ export declare const lobbyController: {
     myUpcomingLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
     organizerLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
     assignLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    assigntournament: (req: Request, res: Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=lobby.controller.d.ts.map

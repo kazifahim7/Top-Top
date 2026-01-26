@@ -33,7 +33,7 @@ const DefaultTeamSchema = new Schema<DefaultTeam>({
 });
 
 const LocationSchema = new Schema<GeoLocation>({
-     lat: { type: Number, required: true },
+     lat: { type: Number, required: true },     
      lng: { type: Number, required: true },
      address: { type: String, required: true }
 });
