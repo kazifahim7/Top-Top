@@ -8,7 +8,7 @@ const router = express.Router()
 router.post(
      "/create-tournament",
      upload.fields([{ name: "images", maxCount: 6 }]),
-     auth("organizer"),
+     auth("organizer","admin"),
      (req, _res, next) => {
           if (req.body.data) {
                let parsedData;

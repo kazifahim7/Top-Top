@@ -3,7 +3,7 @@ import { upload } from '../../utils/multer.js';
 import { TournamentController } from './Tournament.controller.js';
 import auth from '../../middleware/auth.js';
 const router = express.Router();
-router.post("/create-tournament", upload.fields([{ name: "images", maxCount: 6 }]), auth("organizer"), (req, _res, next) => {
+router.post("/create-tournament", upload.fields([{ name: "images", maxCount: 6 }]), auth("organizer", "admin"), (req, _res, next) => {
     if (req.body.data) {
         let parsedData;
         try {
