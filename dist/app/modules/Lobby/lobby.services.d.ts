@@ -65,7 +65,7 @@ export declare const lobbyService: {
             _id: Types.ObjectId;
         } & {
             __v: number;
-        }) | null;
+        })[];
     }>;
     assignLobby: (id: string, data: {
         lobbyId: string;

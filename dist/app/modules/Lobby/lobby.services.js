@@ -519,7 +519,7 @@ const organizerLobby = async (id) => {
             },
         },
     ]);
-    const hostTournaments = await TournamentModel.findOne({ organizer: organizerId });
+    const hostTournaments = await TournamentModel.find({ organizer: organizerId });
     const totalEarning = earningResult.length > 0 ? earningResult[0].totalEarning : 0;
     // 4️⃣ Final response
     return {

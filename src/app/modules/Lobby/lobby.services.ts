@@ -622,7 +622,7 @@ const organizerLobby = async (id: string) => {
           },
      ]);
 
-     const hostTournaments = await TournamentModel.findOne({ organizer: organizerId })
+     const hostTournaments = await TournamentModel.find({ organizer: organizerId })
 
      const totalEarning =
           earningResult.length > 0 ? earningResult[0].totalEarning : 0;
