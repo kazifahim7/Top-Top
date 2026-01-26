@@ -30,6 +30,7 @@ router.delete("/delete/:id",auth("admin"),lobbyController.deleteLobby)
 router.post("/my-upcoming-match",auth("player"),lobbyController.myUpcomingLobby)
 
 router.get("/organizer-lobby/:id",auth("admin"),lobbyController.organizerLobby)
+router.put("/assign-lobby/:id",auth("admin"),lobbyController.assignLobby)
 
 
 

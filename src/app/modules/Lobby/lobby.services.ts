@@ -5,6 +5,7 @@ import QueryBuilder from "../../builder/QueryBuilder.js";
 import { userModel } from "../auth/auth.model.js";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
+import { PaymentModel } from "../Payment/payment.model.js";
 
 const createMatch = async (payload: LobbyDocument, id: string,role:string) => {
      
@@ -585,14 +586,63 @@ const myUpcomingLobby = async (id: string) => {
      return result;
 };
 
-const organizerLobby=async(id:string)=>{
-     const upcomingLobby = await LobbyModel.find({ organizer: id, lobbyStatus:"ongoing"})
-     const completeLobby = await LobbyModel.find({ organizer: id, lobbyStatus:"completed"})
+const organizerLobby = async (id: string) => {
+     const organizerId = new Types.ObjectId(id);
+
+     // 1️⃣ Get organizer lobbies
+     const upcomingLobby = await LobbyModel.find({
+          organizer: organizerId,
+          lobbyStatus: "ongoing",
+     }).populate("team1.teamId team2.teamId");
+
+     const completeLobby = await LobbyModel.find({
+          organizer: organizerId,
+          lobbyStatus: "completed",
+     });
+
+     // 2️⃣ Collect all lobby ids
+     const lobbyIds = [...upcomingLobby, ...completeLobby].map(
+          (lobby) => lobby._id
+     );
+
+     // 3️⃣ Calculate total earning
+     const earningResult = await PaymentModel.aggregate([
+          {
+               $match: {
+                    lobbyId: { $in: lobbyIds },
+                    status: "success",
+               },
+          },
+          {
+               $group: {
+                    _id: null,
+                    totalEarning: { $sum: "$price" },
+               },
+          },
+     ]);
+
+     const totalEarning =
+          earningResult.length > 0 ? earningResult[0].totalEarning : 0;
+
+     // 4️⃣ Final response
      return {
           upcomingLobby,
-          completeLobby
+          completeLobby,
+          totalEarning,
+     };
+};
+
+
+const assignLobby = async(id:string, data:{lobbyId:string} )=>{
+     const organizerId = new Types.ObjectId(id);
+     const lobby = await LobbyModel.findById(data.lobbyId);
+     if (!lobby) {
+          throw new Error("Lobby not found");
      }
+     const result = await LobbyModel.findByIdAndUpdate(data.lobbyId, { organizer: organizerId },{new:true})
+     return result;
 }
+
 
 
 
@@ -606,5 +656,7 @@ export const lobbyService = {
      deleteLobby,
      singlelobby,
      myUpcomingLobby,
-     organizerLobby
+     organizerLobby,
+     assignLobby
+     
 }

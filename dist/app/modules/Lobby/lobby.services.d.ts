@@ -60,7 +60,15 @@ export declare const lobbyService: {
         }> & {
             __v: number;
         })[];
+        totalEarning: any;
     }>;
+    assignLobby: (id: string, data: {
+        lobbyId: string;
+    }) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+        _id: unknown;
+    }> & {
+        __v: number;
+    }) | null>;
 };
 export {};
 //# sourceMappingURL=lobby.services.d.ts.map

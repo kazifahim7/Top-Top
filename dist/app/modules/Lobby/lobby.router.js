@@ -23,5 +23,6 @@ router.put("/:lobbyId/lobby-info", upload.fields([
 router.delete("/delete/:id", auth("admin"), lobbyController.deleteLobby);
 router.post("/my-upcoming-match", auth("player"), lobbyController.myUpcomingLobby);
 router.get("/organizer-lobby/:id", auth("admin"), lobbyController.organizerLobby);
+router.put("/assign-lobby/:id", auth("admin"), lobbyController.assignLobby);
 export const lobbyRouter = router;
 //# sourceMappingURL=lobby.router.js.map
