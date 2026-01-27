@@ -759,8 +759,8 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      matchRating += (data.assists || 0) * 0.5;
      matchRating += (data.contribution || 0) * 0.25;
      matchRating += (data.save || 0) * 0.5;
-     matchRating += (data.veryGoodMoment || 0) * 0.3;  // Added for consistency
-     matchRating += (data.goodMoment || 0) * 0.15;    // Added for consistency
+     matchRating += (data.veryGoodMoment || 0) * 0.25;  // Added for consistency
+     matchRating += (data.goodMoment || 0) * 0.25;    // Added for consistency
 
      // Clamp rating between 0 and 10 (optional but good practice)
      matchRating = Math.max(0, Math.min(10, matchRating));
