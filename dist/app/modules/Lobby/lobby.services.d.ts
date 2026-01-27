@@ -6,19 +6,11 @@ interface UpdatePlayerStatsDTO {
     redCard?: number;
     yellowCard?: number;
     goal?: number;
-    assist?: number;
+    assists?: number;
     contribution?: number;
     save?: number;
-}
-interface UpdatePlayerStatsDTO {
-    lobbyId: string;
-    playerId: string;
-    redCard?: number;
-    yellowCard?: number;
-    goal?: number;
-    assist?: number;
-    contribution?: number;
-    save?: number;
+    goodMoment?: number;
+    veryGoodMoment?: number;
 }
 export declare const updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
     lobbyPlayer: any;

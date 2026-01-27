@@ -339,7 +339,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     goal: 0,
                     tackle: 0,
                     save: 0,
-                    rating: 0,
+                    rating: 6.5,
                     guest_player: payment.guest_player ?? false,
                };
 

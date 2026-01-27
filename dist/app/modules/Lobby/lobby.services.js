@@ -266,7 +266,151 @@ const singlelobby = async (lobbyId) => {
                 _id: new Types.ObjectId(lobbyId),
             },
         },
-        /* ================= TEAM 1 ================= */
+        /* ================= TEAM 1 JOINED PLAYERS WITH MATCH STATS ================= */
+        {
+            $lookup: {
+                from: "players",
+                let: {
+                    team1Players: { $ifNull: ["$team1.players", []] },
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: [
+                                    "$_id",
+                                    {
+                                        $map: {
+                                            input: "$$team1Players",
+                                            as: "p",
+                                            in: "$$p.playerId",
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            password: 0,
+                        },
+                    },
+                    {
+                        $addFields: {
+                            matchStats: {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: "$$team1Players",
+                                            as: "mp",
+                                            cond: {
+                                                $eq: ["$$mp.playerId", "$_id"],
+                                            },
+                                        },
+                                    },
+                                    0,
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $addFields: {
+                            redCard: "$matchStats.redCard",
+                            yellowCard: "$matchStats.yellowCard",
+                            contribution: "$matchStats.contribution",
+                            assists: "$matchStats.assists",
+                            goal: "$matchStats.goal",
+                            tackle: "$matchStats.tackle",
+                            save: "$matchStats.save",
+                            goodMoment: "$matchStats.goodMoment",
+                            veryGoodMoment: "$matchStats.veryGoodMoment",
+                            rating: "$matchStats.rating",
+                            matchPosition: "$matchStats.matchPosition",
+                            guest_player: "$matchStats.guest_player",
+                        },
+                    },
+                    {
+                        $project: {
+                            matchStats: 0,
+                        },
+                    },
+                ],
+                as: "team1JoinedPlayers",
+            },
+        },
+        /* ================= TEAM 2 JOINED PLAYERS WITH MATCH STATS ================= */
+        {
+            $lookup: {
+                from: "players",
+                let: {
+                    team2Players: { $ifNull: ["$team2.players", []] },
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: [
+                                    "$_id",
+                                    {
+                                        $map: {
+                                            input: "$$team2Players",
+                                            as: "p",
+                                            in: "$$p.playerId",
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            password: 0,
+                        },
+                    },
+                    {
+                        $addFields: {
+                            matchStats: {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: "$$team2Players",
+                                            as: "mp",
+                                            cond: {
+                                                $eq: ["$$mp.playerId", "$_id"],
+                                            },
+                                        },
+                                    },
+                                    0,
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $addFields: {
+                            redCard: "$matchStats.redCard",
+                            yellowCard: "$matchStats.yellowCard",
+                            contribution: "$matchStats.contribution",
+                            assists: "$matchStats.assists",
+                            goal: "$matchStats.goal",
+                            tackle: "$matchStats.tackle",
+                            save: "$matchStats.save",
+                            goodMoment: "$matchStats.goodMoment",
+                            veryGoodMoment: "$matchStats.veryGoodMoment",
+                            rating: "$matchStats.rating",
+                            matchPosition: "$matchStats.matchPosition",
+                            guest_player: "$matchStats.guest_player",
+                        },
+                    },
+                    {
+                        $project: {
+                            matchStats: 0,
+                        },
+                    },
+                ],
+                as: "team2JoinedPlayers",
+            },
+        },
+        /* ================= TEAM 1 DATA ================= */
         {
             $lookup: {
                 from: "teams",
@@ -281,34 +425,7 @@ const singlelobby = async (lobbyId) => {
                 preserveNullAndEmptyArrays: true,
             },
         },
-        {
-            $lookup: {
-                from: "players",
-                let: {
-                    playerIds: {
-                        $map: {
-                            input: { $ifNull: ["$team1.players", []] },
-                            as: "p",
-                            in: "$$p.playerId",
-                        },
-                    },
-                },
-                pipeline: [
-                    {
-                        $match: {
-                            $expr: { $in: ["$_id", "$$playerIds"] },
-                        },
-                    },
-                    {
-                        $project: {
-                            password: 0,
-                        },
-                    },
-                ],
-                as: "team1JoinedPlayers",
-            },
-        },
-        /* ================= TEAM 2 ================= */
+        /* ================= TEAM 2 DATA ================= */
         {
             $lookup: {
                 from: "teams",
@@ -321,33 +438,6 @@ const singlelobby = async (lobbyId) => {
             $unwind: {
                 path: "$team2Data",
                 preserveNullAndEmptyArrays: true,
-            },
-        },
-        {
-            $lookup: {
-                from: "players",
-                let: {
-                    playerIds: {
-                        $map: {
-                            input: { $ifNull: ["$team2.players", []] },
-                            as: "p",
-                            in: "$$p.playerId",
-                        },
-                    },
-                },
-                pipeline: [
-                    {
-                        $match: {
-                            $expr: { $in: ["$_id", "$$playerIds"] },
-                        },
-                    },
-                    {
-                        $project: {
-                            password: 0,
-                        },
-                    },
-                ],
-                as: "team2JoinedPlayers",
             },
         },
         /* ================= ORGANIZER ================= */
@@ -365,51 +455,100 @@ const singlelobby = async (lobbyId) => {
                 preserveNullAndEmptyArrays: true,
             },
         },
-        /* ================= DEFAULT TEAM 1 ================= */
+        /* ================= DEFAULT TEAM 1 PLAYERS WITH MATCH STATS ================= */
         {
             $lookup: {
                 from: "players",
                 let: {
-                    playerIds: {
-                        $map: {
-                            input: { $ifNull: ["$defaultTeam1.players", []] },
-                            as: "p",
-                            in: "$$p.playerId",
-                        },
-                    },
+                    defaultTeam1Players: { $ifNull: ["$defaultTeam1.players", []] },
                 },
                 pipeline: [
                     {
                         $match: {
-                            $expr: { $in: ["$_id", "$$playerIds"] },
+                            $expr: {
+                                $in: [
+                                    "$_id",
+                                    {
+                                        $map: {
+                                            input: "$$defaultTeam1Players",
+                                            as: "p",
+                                            in: "$$p.playerId",
+                                        },
+                                    },
+                                ],
+                            },
                         },
                     },
                     {
                         $project: {
                             password: 0,
+                        },
+                    },
+                    {
+                        $addFields: {
+                            matchStats: {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: "$$defaultTeam1Players",
+                                            as: "mp",
+                                            cond: {
+                                                $eq: ["$$mp.playerId", "$_id"],
+                                            },
+                                        },
+                                    },
+                                    0,
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $addFields: {
+                            redCard: "$matchStats.redCard",
+                            yellowCard: "$matchStats.yellowCard",
+                            contribution: "$matchStats.contribution",
+                            assists: "$matchStats.assists",
+                            goal: "$matchStats.goal",
+                            tackle: "$matchStats.tackle",
+                            save: "$matchStats.save",
+                            goodMoment: "$matchStats.goodMoment",
+                            veryGoodMoment: "$matchStats.veryGoodMoment",
+                            rating: "$matchStats.rating",
+                            matchPosition: "$matchStats.matchPosition",
+                            guest_player: "$matchStats.guest_player",
+                        },
+                    },
+                    {
+                        $project: {
+                            matchStats: 0,
                         },
                     },
                 ],
                 as: "defaultTeam1Players",
             },
         },
-        /* ================= DEFAULT TEAM 2 ================= */
+        /* ================= DEFAULT TEAM 2 PLAYERS WITH MATCH STATS ================= */
         {
             $lookup: {
                 from: "players",
                 let: {
-                    playerIds: {
-                        $map: {
-                            input: { $ifNull: ["$defaultTeam2.players", []] },
-                            as: "p",
-                            in: "$$p.playerId",
-                        },
-                    },
+                    defaultTeam2Players: { $ifNull: ["$defaultTeam2.players", []] },
                 },
                 pipeline: [
                     {
                         $match: {
-                            $expr: { $in: ["$_id", "$$playerIds"] },
+                            $expr: {
+                                $in: [
+                                    "$_id",
+                                    {
+                                        $map: {
+                                            input: "$$defaultTeam2Players",
+                                            as: "p",
+                                            in: "$$p.playerId",
+                                        },
+                                    },
+                                ],
+                            },
                         },
                     },
                     {
@@ -417,10 +556,50 @@ const singlelobby = async (lobbyId) => {
                             password: 0,
                         },
                     },
+                    {
+                        $addFields: {
+                            matchStats: {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: "$$defaultTeam2Players",
+                                            as: "mp",
+                                            cond: {
+                                                $eq: ["$$mp.playerId", "$_id"],
+                                            },
+                                        },
+                                    },
+                                    0,
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        $addFields: {
+                            redCard: "$matchStats.redCard",
+                            yellowCard: "$matchStats.yellowCard",
+                            contribution: "$matchStats.contribution",
+                            assists: "$matchStats.assists",
+                            goal: "$matchStats.goal",
+                            tackle: "$matchStats.tackle",
+                            save: "$matchStats.save",
+                            goodMoment: "$matchStats.goodMoment",
+                            veryGoodMoment: "$matchStats.veryGoodMoment",
+                            rating: "$matchStats.rating",
+                            matchPosition: "$matchStats.matchPosition",
+                            guest_player: "$matchStats.guest_player",
+                        },
+                    },
+                    {
+                        $project: {
+                            matchStats: 0,
+                        },
+                    },
                 ],
                 as: "defaultTeam2Players",
             },
         },
+        /* ================= TEAM 1 PLAYERS FROM TEAM DATA ================= */
         {
             $lookup: {
                 from: "players",
@@ -442,6 +621,7 @@ const singlelobby = async (lobbyId) => {
                 as: "team1Players",
             },
         },
+        /* ================= TEAM 2 PLAYERS FROM TEAM DATA ================= */
         {
             $lookup: {
                 from: "players",
@@ -496,13 +676,13 @@ export const updatePlayerStats = async (data) => {
     // -------------------
     // Update lobby player stats
     // -------------------
-    ["redCard", "yellowCard", "goal", "assist", "contribution", "save"].forEach(field => {
+    ["redCard", "yellowCard", "goal", "assists", "contribution", "save", "veryGoodMoment", "goodMoment"].forEach(field => {
         if (data[field] !== undefined) {
             player[field] += data[field];
         }
     });
     // Calculate match rating for this match
-    let matchRating = 6.5;
+    let matchRating = player.rating || 6.5;
     matchRating -= player.redCard * 0.5;
     matchRating -= player.yellowCard * 0.25;
     matchRating += player.goal * 0.5;
@@ -560,7 +740,7 @@ export const updatePlayerStats = async (data) => {
             redCard: data.redCard || 0,
             yellowCard: data.yellowCard || 0,
             goal: data.goal || 0,
-            assists: data.assist || 0,
+            assists: data.assists || 0,
             contribution: data.contribution || 0,
             save: data.save || 0,
         },

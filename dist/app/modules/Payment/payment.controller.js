@@ -272,7 +272,7 @@ export const paymentSuccess = async (req, res) => {
                 goal: 0,
                 tackle: 0,
                 save: 0,
-                rating: 0,
+                rating: 6.5,
                 guest_player: payment.guest_player ?? false,
             };
             let targetTeam = null;

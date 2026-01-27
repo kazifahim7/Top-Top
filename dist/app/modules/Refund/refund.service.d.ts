@@ -34,5 +34,12 @@ export declare const refundService: {
         success: boolean;
         message: string;
     }>;
+    exit_lobby_organizer: (payload: {
+        lobbyId: string | Types.ObjectId;
+        currentUserId: string | Types.ObjectId;
+    }, playerId: string | Types.ObjectId) => Promise<{
+        success: boolean;
+        message: string;
+    }>;
 };
 //# sourceMappingURL=refund.service.d.ts.map

@@ -4,5 +4,6 @@ export declare const refundController: {
     allRefundRequest: (req: Request, res: Response, next: import("express").NextFunction) => void;
     acceptRefundRequest: (req: Request, res: Response, next: import("express").NextFunction) => void;
     exit_lobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    exit_lobby_organizer: (req: Request, res: Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=refund.controller.d.ts.map
