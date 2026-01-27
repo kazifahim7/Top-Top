@@ -746,23 +746,34 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      if (!player || !teamKey) throw new Error("Player not found in any team");
 
      // -------------------
-     // Update lobby player stats
+     // Calculate match rating BEFORE updating stats
      // -------------------
-     (["redCard", "yellowCard", "goal", "assists", "contribution", "save","veryGoodMoment","goodMoment"] as (keyof UpdatePlayerStatsDTO)[]).forEach(field => {
+     let matchRating = player.rating || 6.5;
+
+     // Subtract penalties for NEW cards only (data contains the increments)
+     matchRating -= (data.redCard || 0) * 0.5;
+     matchRating -= (data.yellowCard || 0) * 0.25;
+
+     // Add bonuses for NEW stats only
+     matchRating += (data.goal || 0) * 0.5;
+     matchRating += (data.assists || 0) * 0.5;
+     matchRating += (data.contribution || 0) * 0.25;
+     matchRating += (data.save || 0) * 0.5;
+     matchRating += (data.veryGoodMoment || 0) * 0.3;  // Added for consistency
+     matchRating += (data.goodMoment || 0) * 0.15;    // Added for consistency
+
+     // Clamp rating between 0 and 10 (optional but good practice)
+     matchRating = Math.max(0, Math.min(10, matchRating));
+     player.rating = parseFloat(matchRating.toFixed(2));
+
+     // -------------------
+     // Update lobby player stats (AFTER rating calculation)
+     // -------------------
+     (["redCard", "yellowCard", "goal", "assists", "contribution", "save", "veryGoodMoment", "goodMoment"] as (keyof UpdatePlayerStatsDTO)[]).forEach(field => {
           if (data[field] !== undefined) {
                player[field] += data[field]!;
           }
      });
-
-     // Calculate match rating for this match
-     let matchRating = player.rating || 6.5;
-     matchRating -= player.redCard * 0.5;
-     matchRating -= player.yellowCard * 0.25;
-     matchRating += player.goal * 0.5;
-     matchRating += player.assists * 0.5;
-     matchRating += player.contribution * 0.25;
-     matchRating += player.save * 0.5;
-     player.rating = parseFloat(matchRating.toFixed(2));
 
      // Update team goals if real team
      if (data.goal && data.goal > 0) {
@@ -797,16 +808,11 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
                const p = team.players.find(pl => pl.playerId.toString() === data.playerId);
                if (!p) return;
 
-               let rating = 6.5;
-               rating -= (p.redCard || 0) * 0.5;
-               rating -= (p.yellowCard || 0) * 0.25;
-               rating += (p.goal || 0) * 0.5;
-               rating += (p.assists || 0) * 0.5;
-               rating += (p.contribution || 0) * 0.25;
-               rating += (p.save || 0) * 0.5;
-
-               totalRating += rating;
-               matchCount++;
+               // Use the already calculated rating from each lobby
+               if (p.rating) {
+                    totalRating += p.rating;
+                    matchCount++;
+               }
           });
      });
 
