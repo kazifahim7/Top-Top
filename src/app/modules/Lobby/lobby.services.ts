@@ -177,6 +177,122 @@ const allMatch = async (query: Record<string, unknown>) => {
 
      return lobbies;
 };
+const organizerMatch = async (query: Record<string, unknown>,orgId:string) => {
+     const search = query.searchTerms || "";
+
+     const lobbies = await LobbyModel.aggregate([
+          {
+               $match:{
+                    organizer: new Types.ObjectId(orgId)
+               }
+          },
+          {
+               $lookup: {
+                    from: "teams",
+                    localField: "team1.teamId",
+                    foreignField: "_id",
+                    as: "team1Data"
+               }
+          },
+          { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
+
+          {
+               $lookup: {
+                    from: "teams",
+                    localField: "team2.teamId",
+                    foreignField: "_id",
+                    as: "team2Data"
+               }
+          },
+          { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
+
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "team1Data.players",
+                    foreignField: "_id",
+                    as: "team1Players"
+               }
+          },
+
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "team2Data.players",
+                    foreignField: "_id",
+                    as: "team2Players"
+               }
+          },
+
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "organizer",
+                    foreignField: "_id",
+                    as: "organizerData"
+               }
+          },
+          { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+
+          // FIXED: Add $ifNull to handle undefined playerIds
+          {
+               $lookup: {
+                    from: "players",
+                    let: {
+                         playerIds: {
+                              $ifNull: ["$defaultTeam1.players.playerId", []]
+                         }
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"]
+                                   }
+                              }
+                         }
+                    ],
+                    as: "defaultTeam1Players"
+               }
+          },
+
+          // FIXED: Add $ifNull to handle undefined playerIds
+          {
+               $lookup: {
+                    from: "players",
+                    let: {
+                         playerIds: {
+                              $ifNull: ["$defaultTeam2.players.playerId", []]
+                         }
+                    },
+                    pipeline: [
+                         {
+                              $match: {
+                                   $expr: {
+                                        $in: ["$_id", "$$playerIds"]
+                                   }
+                              }
+                         }
+                    ],
+                    as: "defaultTeam2Players"
+               }
+          },
+
+          {
+               $match: {
+                    $or: [
+                         { title: { $regex: search, $options: "i" } },
+                         { "team1Data.teamName": { $regex: search, $options: "i" } },
+                         { "team2Data.teamName": { $regex: search, $options: "i" } },
+                         { "team1Players.name": { $regex: search, $options: "i" } },
+                         { "team2Players.name": { $regex: search, $options: "i" } },
+                    ]
+               }
+          }
+     ]);
+
+     return lobbies;
+};
 
 
 const singlelobby = async (lobbyId: string) => {
@@ -683,6 +799,7 @@ export const lobbyService = {
      myUpcomingLobby,
      organizerLobby,
      assignLobby,
-     assigntournament
+     assigntournament,
+     organizerMatch
 
 }

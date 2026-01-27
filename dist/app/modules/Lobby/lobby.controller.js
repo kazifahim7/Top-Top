@@ -21,6 +21,17 @@ const allMatch = catchAsync(async (req, res) => {
         data: result
     });
 });
+const organizerMatch = catchAsync(async (req, res) => {
+    const query = req.query;
+    const orgId = req?.user?.id;
+    console.log(orgId);
+    const result = await lobbyService.organizerMatch(query, orgId);
+    res.status(200).json({
+        success: true,
+        message: "All lobby successfully",
+        data: result
+    });
+});
 const singlelobby = catchAsync(async (req, res) => {
     const query = req.params?.id;
     const result = await lobbyService.singlelobby(query);
@@ -113,6 +124,7 @@ export const lobbyController = {
     myUpcomingLobby,
     organizerLobby,
     assignLobby,
-    assigntournament
+    assigntournament,
+    organizerMatch
 };
 //# sourceMappingURL=lobby.controller.js.map

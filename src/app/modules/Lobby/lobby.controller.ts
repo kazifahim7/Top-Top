@@ -24,6 +24,18 @@ const allMatch = catchAsync(async (req: Request, res: Response) => {
           data: result
      })
 })
+const organizerMatch = catchAsync(async (req: Request, res: Response) => {
+
+     const query = req.query
+     const orgId=req?.user?.id
+     console.log(orgId)
+     const result = await lobbyService.organizerMatch(query, orgId)
+     res.status(200).json({
+          success: true,
+          message: "All lobby successfully",
+          data: result
+     })
+})
 const singlelobby = catchAsync(async (req: Request, res: Response) => {
    
      const query = req.params?.id
@@ -148,5 +160,6 @@ export const lobbyController={
      myUpcomingLobby,
      organizerLobby,
      assignLobby,
-     assigntournament
+     assigntournament,
+     organizerMatch
 }

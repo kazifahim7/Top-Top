@@ -6,6 +6,7 @@ const router = express.Router();
 router.post("/create-match", auth("organizer", "admin"), lobbyController.createMatch);
 router.get("/all-match", lobbyController.allMatch);
 router.get("/:id", lobbyController.singlelobby);
+router.post("/all-organizer-match", auth("organizer"), lobbyController.organizerMatch);
 router.put("/:lobbyId/player", auth("organizer", "admin"), lobbyController.updatePlayerState);
 router.put("/:lobbyId/lobby-info", upload.fields([
     { name: "images", maxCount: 6 }
