@@ -35,6 +35,15 @@ const allTournament = catchAsync(async (req, res) => {
           data: result
      })
 })
+const organizerTournament = catchAsync(async (req, res) => {
+     const id =req.user.id
+     const result = await TournamentService.organizerTournament(id)
+     res.status(200).json({
+          success: true,
+          message: "Tournament retrieved successfully",
+          data: result
+     })
+})
 
 const updateTournament = catchAsync(async (req, res) => {
 
@@ -103,7 +112,8 @@ export const TournamentController = {
      deleteTournament,
      allTournament,
      qualifyTeamsController,
-     getTopPlayers
+     getTopPlayers,
+     organizerTournament
 }
 
 

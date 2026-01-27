@@ -51,4 +51,6 @@ router.post("/:tournamentId/qualify", TournamentController.qualifyTeamsControlle
 
 router.get("/:tournamentId/top-players", TournamentController.getTopPlayers);
 
+router.get('/all-tournament-organizer', auth("organizer"), TournamentController.organizerTournament)
+
 export const tournamentRouter = router

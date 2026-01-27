@@ -35,5 +35,10 @@ export declare const TournamentService: {
         tournament: string;
         topPlayers: any[];
     }>;
+    organizerTournament: (id: string) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    })[]>;
 };
 //# sourceMappingURL=Tournament.service.d.ts.map

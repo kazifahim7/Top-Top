@@ -19,6 +19,10 @@ const allTournament = async () => {
      const result = await TournamentModel.find().populate("winner qualifiedTeams teams organizer")
      return result
 }
+const organizerTournament = async (id:string) => {
+     const result = await TournamentModel.find({organizer:id}).populate("winner qualifiedTeams teams organizer")
+     return result
+}
 
 
 const updateTournament = async (id: string, payload: Partial<ITournament>) => {
@@ -109,6 +113,7 @@ export const TournamentService = {
      updateTournament,
      deleteTournament,
      qualifyTeamsService,
-     getTopPlayers
+     getTopPlayers,
+     organizerTournament
 }
 
