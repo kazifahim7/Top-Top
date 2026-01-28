@@ -17,26 +17,24 @@ export declare const teamsService: {
         __v: number;
     })[]>;
     myTeam: (id: string) => Promise<{
-        myTeam: (import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+        myTeam: null;
+        upcomingMatch: never[];
+        upcomingMatchTournament: never[];
+        completeMatch: never[];
+        completeMatchTournament: never[];
+    } | {
+        myTeam: import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
             _id: Types.ObjectId;
         } & {
             __v: number;
-        }) | null;
-        upcomingMatch: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
-            _id: unknown;
-        }> & {
-            __v: number;
-        })[];
+        };
+        upcomingMatch: any[];
         upcomingMatchTournament: (import("mongoose").Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, import("mongoose").DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
             _id: Types.ObjectId;
         } & {
             __v: number;
         })[];
-        completeMatch: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
-            _id: unknown;
-        }> & {
-            __v: number;
-        })[];
+        completeMatch: any[];
         completeMatchTournament: (import("mongoose").Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, import("mongoose").DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
             _id: Types.ObjectId;
         } & {
