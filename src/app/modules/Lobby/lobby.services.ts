@@ -777,8 +777,11 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
      // Update team goals if real team
      if (data.goal && data.goal > 0) {
-          if (teamKey === "team1") lobby.goalTeam1 += data.goal;
-          else if (teamKey === "team2") lobby.goalTeam2 += data.goal;
+          if (teamKey === "team1" || teamKey === "defaultTeam1") {
+               lobby.goalTeam1 += data.goal;
+          } else if (teamKey === "team2" || teamKey === "defaultTeam2") {
+               lobby.goalTeam2 += data.goal;
+          }
      }
 
      await lobby.save();
