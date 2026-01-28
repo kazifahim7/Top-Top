@@ -389,7 +389,7 @@ export const paymentCancel = async (req, res) => {
     }
 };
 export const allPaymentHistory = catchAsync(async (req, res) => {
-    const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId  playerId tournamentId").select("-stripePaymentIntentId"), req.query).filter().search(["status", "method"]).sort();
+    const paymentQuery = new QueryBuilder(PaymentModel.find().populate("lobbyId  playerId tournamentId teamId").select("-stripePaymentIntentId"), req.query).filter().search(["status", "method"]).sort();
     const result = await paymentQuery.modelQuery;
     res.status(200).json({
         success: true,
