@@ -773,15 +773,114 @@ const myUpcomingLobby = async (id) => {
         throw new Error("Invalid player ID");
     }
     const playerObjectId = new mongoose.Types.ObjectId(id);
-    const result = await LobbyModel.find({
-        lobbyStatus: "ongoing",
-        $or: [
-            { "team1.players.playerId": playerObjectId },
-            { "team2.players.playerId": playerObjectId },
-            { "defaultTeam1.players.playerId": playerObjectId },
-            { "defaultTeam2.players.playerId": playerObjectId },
-        ],
-    });
+    const result = await LobbyModel.aggregate([
+        {
+            $match: {
+                lobbyStatus: "ongoing",
+                $or: [
+                    { "team1.players.playerId": playerObjectId },
+                    { "team2.players.playerId": playerObjectId },
+                    { "defaultTeam1.players.playerId": playerObjectId },
+                    { "defaultTeam2.players.playerId": playerObjectId },
+                ],
+            }
+        },
+        // Same lookup patterns as allMatch
+        {
+            $lookup: {
+                from: "teams",
+                localField: "team1.teamId",
+                foreignField: "_id",
+                as: "team1Data"
+            }
+        },
+        { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
+        {
+            $lookup: {
+                from: "teams",
+                localField: "team2.teamId",
+                foreignField: "_id",
+                as: "team2Data"
+            }
+        },
+        { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
+        {
+            $lookup: {
+                from: "players",
+                localField: "team1Data.players",
+                foreignField: "_id",
+                as: "team1Players"
+            }
+        },
+        {
+            $lookup: {
+                from: "players",
+                localField: "team2Data.players",
+                foreignField: "_id",
+                as: "team2Players"
+            }
+        },
+        {
+            $lookup: {
+                from: "players",
+                localField: "organizer",
+                foreignField: "_id",
+                as: "organizerData"
+            }
+        },
+        { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+        {
+            $lookup: {
+                from: "players",
+                let: {
+                    playerIds: {
+                        $ifNull: ["$defaultTeam1.players.playerId", []]
+                    }
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"]
+                            }
+                        }
+                    }
+                ],
+                as: "defaultTeam1Players"
+            }
+        },
+        {
+            $lookup: {
+                from: "players",
+                let: {
+                    playerIds: {
+                        $ifNull: ["$defaultTeam2.players.playerId", []]
+                    }
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"]
+                            }
+                        }
+                    }
+                ],
+                as: "defaultTeam2Players"
+            }
+        },
+        // Additional filter to ensure the specific player is in the lobby
+        {
+            $match: {
+                $or: [
+                    { "team1Players._id": playerObjectId },
+                    { "team2Players._id": playerObjectId },
+                    { "defaultTeam1Players._id": playerObjectId },
+                    { "defaultTeam2Players._id": playerObjectId },
+                ]
+            }
+        }
+    ]);
     return result;
 };
 const organizerLobby = async (id) => {

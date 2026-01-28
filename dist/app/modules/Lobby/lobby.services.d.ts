@@ -36,11 +36,7 @@ export declare const lobbyService: {
         __v: number;
     }) | null>;
     singlelobby: (lobbyId: string) => Promise<any>;
-    myUpcomingLobby: (id: string) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
-        _id: unknown;
-    }> & {
-        __v: number;
-    })[]>;
+    myUpcomingLobby: (id: string) => Promise<any[]>;
     organizerLobby: (id: string) => Promise<{
         upcomingLobby: (mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
             _id: unknown;
