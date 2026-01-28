@@ -62,19 +62,26 @@ const updatePlayerState = catchAsync(async (req: Request, res: Response) => {
 const lobbyInFo = catchAsync(async (req: Request, res: Response) => {
      const id = req.params?.lobbyId;
      const data = req.body
+     console.log(id, data)
 
      const imageFiles = (req.files as any).images || [];
      const uploadedUrls = await Promise.all(imageFiles.map((file: any) => uploadToS3(file)));
-     data.media.push(...uploadedUrls);
+
+     if (uploadedUrls.length > 0) {
+          // Initialize media array if it doesn't exist
+          if (!data.media) {
+               data.media = [];
+          }
+          data.media.push(...uploadedUrls);
+     }
+
      const result = await lobbyService.updateLobbyInfo(id!, data)
 
      res.status(200).json({
           success: true,
-          message: "lobby  update successfully ",
+          message: "lobby update successfully",
           data: result
      })
-
-
 })
 const deleteLobby = catchAsync(async (req: Request, res: Response) => {
      const id = req.params?.id;
