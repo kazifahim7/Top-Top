@@ -1,4 +1,5 @@
 import { StandingModel } from "../PointTable/pointtable.model.js";
+import { TournamentModel } from "../Tournament/Tournament.model.js";
 import type { IMatch } from "./match.interface.js";
 import { MatchModel } from "./match.model.js";
 
@@ -27,17 +28,20 @@ const deleteMatch = async(id:string)=>{
 
 
 export const updateMatchAndStanding = async (
-     id: string,
+     matchId: string,
      scoreA: number,
      scoreB: number
 ) => {
-     const match = await MatchModel.findById(id);
+     const match = await MatchModel.findById(matchId);
      if (!match) throw new Error("Match not found");
 
      if (match.status === "Completed") {
           throw new Error("Match already completed and standings updated.");
      }
 
+     // Get tournament
+     const tournament = await TournamentModel.findById(match.tournament);
+     if (!tournament) throw new Error("Tournament not found");
 
      //  Update match info
      match.scoreA = scoreA;
@@ -52,6 +56,13 @@ export const updateMatchAndStanding = async (
      await updateStanding(match.tournament.toString(), match.teamA.toString(), scoreA, scoreB);
      await updateStanding(match.tournament.toString(), match.teamB.toString(), scoreB, scoreA);
 
+     // Check if this is a final match and update tournament winner
+     if (match.group === "Final" && match.winner) {
+          tournament.winner = match.winner;
+          tournament.status = "completed";
+          await tournament.save();
+     }
+
      return match;
 };
 
@@ -61,7 +72,10 @@ const updateStanding = async (
      scored: number,
      conceded: number
 ) => {
-     let standing = await StandingModel.findOne({ tournament: tournamentId, team: teamId });
+     let standing = await StandingModel.findOne({
+          tournament: tournamentId,
+          team: teamId
+     });
 
      if (!standing) {
           standing = new StandingModel({
