@@ -18,6 +18,8 @@ const tournamentSchema = new Schema({
     status: { type: String, enum: ["active", "block"], default: "active" },
     organizer: { type: Schema.Types.ObjectId, ref: "Players" },
     imageUrl: { type: String }
+}, {
+    timestamps: true
 });
 export const TournamentModel = model("Tournament", tournamentSchema);
 //# sourceMappingURL=Tournament.model.js.map

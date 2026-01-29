@@ -10,6 +10,6 @@ const standingSchema = new Schema({
      goalsFor: { type: Number, default: 0 },
      goalsAgainst: { type: Number, default: 0 },
      points: { type: Number, default: 0 },
-});
+},{timestamps:true});
 
 export const StandingModel = model("Standing", standingSchema);

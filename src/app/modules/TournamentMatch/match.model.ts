@@ -40,6 +40,9 @@ const matchSchema = new Schema<IMatch>({
      },
 
      winner: { type: Schema.Types.ObjectId, ref: "Team", default: null },
-});
+},{
+     timestamps:true
+}
+);
 
 export const MatchModel = model("Match", matchSchema);

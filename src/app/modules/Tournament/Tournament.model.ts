@@ -21,6 +21,9 @@ const tournamentSchema = new Schema<ITournament>({
      organizer: { type: Schema.Types.ObjectId, ref: "Players" },
      imageUrl: { type: String }
           
-});
+},{
+     timestamps:true
+}
+);
 
 export const TournamentModel = model<ITournament>("Tournament", tournamentSchema);

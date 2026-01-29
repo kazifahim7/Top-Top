@@ -1,5 +1,8 @@
 export declare const pointTableService: {
     getPointTable: (id: string) => Promise<(import("mongoose").Document<unknown, {}, {
+        createdAt: NativeDate;
+        updatedAt: NativeDate;
+    } & {
         win: number;
         draw: number;
         loss: number;
@@ -25,7 +28,12 @@ export declare const pointTableService: {
         goalsFor: number;
         goalsAgainst: number;
         points: number;
-    }, {}, import("mongoose").DefaultSchemaOptions> & {
+    }, {}, {
+        timestamps: true;
+    }> & {
+        createdAt: NativeDate;
+        updatedAt: NativeDate;
+    } & {
         win: number;
         draw: number;
         loss: number;

@@ -1,5 +1,8 @@
 import { Schema, Types } from "mongoose";
 export declare const StandingModel: import("mongoose").Model<{
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+} & {
     win: number;
     draw: number;
     loss: number;
@@ -26,6 +29,9 @@ export declare const StandingModel: import("mongoose").Model<{
     goalsAgainst: number;
     points: number;
 }, {}, {}, {}, import("mongoose").Document<unknown, {}, {
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+} & {
     win: number;
     draw: number;
     loss: number;
@@ -51,7 +57,12 @@ export declare const StandingModel: import("mongoose").Model<{
     goalsFor: number;
     goalsAgainst: number;
     points: number;
-}, {}, import("mongoose").DefaultSchemaOptions> & {
+}, {}, {
+    timestamps: true;
+}> & {
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+} & {
     win: number;
     draw: number;
     loss: number;
@@ -81,7 +92,12 @@ export declare const StandingModel: import("mongoose").Model<{
     _id: Types.ObjectId;
 } & {
     __v: number;
-}, Schema<any, import("mongoose").Model<any, any, any, any, any, any>, {}, {}, {}, {}, import("mongoose").DefaultSchemaOptions, {
+}, Schema<any, import("mongoose").Model<any, any, any, any, any, any>, {}, {}, {}, {}, {
+    timestamps: true;
+}, {
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+} & {
     win: number;
     draw: number;
     loss: number;
@@ -108,6 +124,9 @@ export declare const StandingModel: import("mongoose").Model<{
     goalsAgainst: number;
     points: number;
 }, import("mongoose").Document<unknown, {}, import("mongoose").FlatRecord<{
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+} & {
     win: number;
     draw: number;
     loss: number;
@@ -133,7 +152,12 @@ export declare const StandingModel: import("mongoose").Model<{
     goalsFor: number;
     goalsAgainst: number;
     points: number;
-}>, {}, import("mongoose").ResolveSchemaOptions<import("mongoose").DefaultSchemaOptions>> & import("mongoose").FlatRecord<{
+}>, {}, import("mongoose").ResolveSchemaOptions<{
+    timestamps: true;
+}>> & import("mongoose").FlatRecord<{
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+} & {
     win: number;
     draw: number;
     loss: number;
