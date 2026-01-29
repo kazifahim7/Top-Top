@@ -42,7 +42,7 @@ export const updateMatchAndStanding = async (
 
      // Get tournament
      const tournament = await TournamentModel.findById(match.tournament);
-     if (!tournament) throw new Error("Tournament not found");
+     if (!tournament) throw new AppError(404,"Tournament not found");
 
      //  Update match info
      match.scoreA = scoreA;
