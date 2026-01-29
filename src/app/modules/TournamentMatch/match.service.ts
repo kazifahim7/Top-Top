@@ -1,3 +1,4 @@
+import AppError from "../../Error/AppError.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import type { IMatch } from "./match.interface.js";
@@ -33,10 +34,10 @@ export const updateMatchAndStanding = async (
      scoreB: number
 ) => {
      const match = await MatchModel.findById(matchId);
-     if (!match) throw new Error("Match not found");
+     if (!match) throw new AppError(404,"Match not found");
 
      if (match.status === "Completed") {
-          throw new Error("Match already completed and standings updated.");
+          throw new AppError(403,"Match already completed and standings updated.");
      }
 
      // Get tournament
