@@ -48,7 +48,7 @@ const deleteTournament = async (id: string) => {
    
      const tournament = await TournamentModel.findById(tournamentId);
      if (!tournament) {
-          throw new Error("Tournament not found");
+          throw new AppError(404,"Tournament not found");
      }
 
      
@@ -59,7 +59,7 @@ const deleteTournament = async (id: string) => {
      );
 
      if (uniqueTeams.length === 0) {
-          throw new Error("All teams already qualified or invalid");
+          throw new AppError(403,"All teams already qualified or invalid");
      }
 
   
