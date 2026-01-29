@@ -20,7 +20,7 @@ export declare const tournamentMatchService: {
     } & {
         __v: number;
     }) | null>;
-    allMatch: () => Promise<(import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+    allMatch: (id: string) => Promise<(import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
         _id: import("mongoose").Types.ObjectId;
     } & {
         __v: number;

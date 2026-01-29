@@ -9,7 +9,7 @@ const createMatch = catchAsync(async (req, res) => {
     });
 });
 const allMatch = catchAsync(async (req, res) => {
-    const result = await tournamentMatchService.allMatch();
+    const result = await tournamentMatchService.allMatch(req?.params?.id);
     res.status(200).json({
         success: true,
         message: "All TOurnament match are retrieved  successfully",

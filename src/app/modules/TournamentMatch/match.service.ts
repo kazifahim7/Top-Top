@@ -7,8 +7,8 @@ const createMatch = async (payload: IMatch) => {
      return result ;
 }
 
-const allMatch = async()=>{
-     const result = await MatchModel.find().populate("winner teamB teamA tournament")
+const allMatch = async(id:string)=>{
+     const result = await MatchModel.find({tournament:id}).populate("winner teamB teamA tournament")
      return result;
 }
 
