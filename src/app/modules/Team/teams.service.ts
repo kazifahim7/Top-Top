@@ -180,7 +180,7 @@ const myTeam = async (id: string) => {
      })
           .populate("teamA")
           .populate("teamB")
-          .populate("tournamentId");
+          .populate("tournament");
 
      const completeMatchTournament = await MatchModel.find({
           $or: [{ teamA: teamId }, { teamB: teamId }],
@@ -188,7 +188,7 @@ const myTeam = async (id: string) => {
      })
           .populate("teamA")
           .populate("teamB")
-          .populate("tournamentId");
+          .populate("tournament");
 
      return {
           myTeam,
