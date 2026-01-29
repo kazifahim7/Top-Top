@@ -27,11 +27,11 @@ const deleteMatch = async(id:string)=>{
 
 
 export const updateMatchAndStanding = async (
-     matchId: string,
+     id: string,
      scoreA: number,
      scoreB: number
 ) => {
-     const match = await MatchModel.findById(matchId);
+     const match = await MatchModel.findById(id);
      if (!match) throw new Error("Match not found");
 
      if (match.status === "Completed") {
