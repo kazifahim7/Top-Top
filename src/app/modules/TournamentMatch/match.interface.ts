@@ -21,5 +21,7 @@ export interface IMatch {
      scoreA: number;
      scoreB: number;
      status: "Pending" | "Completed";
+     time:string,
+     date:Date
      winner?: Types.ObjectId | null;
 }

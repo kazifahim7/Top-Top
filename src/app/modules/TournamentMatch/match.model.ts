@@ -29,6 +29,8 @@ const matchSchema = new Schema<IMatch>({
 
      teamA: { type: Schema.Types.ObjectId, ref: "Team", required: true },
      teamB: { type: Schema.Types.ObjectId, ref: "Team", required: true },
+     time:{type:String},
+     date:{type:Date},
 
      scoreA: { type: Number, default: 0 },
      scoreB: { type: Number, default: 0 },
