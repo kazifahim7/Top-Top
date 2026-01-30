@@ -1,4 +1,6 @@
+import AppError from "../../Error/AppError.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
+import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { MatchModel } from "./match.model.js";
 const createMatch = async (payload) => {
     const result = await MatchModel.create(payload);
@@ -19,10 +21,14 @@ const deleteMatch = async (id) => {
 export const updateMatchAndStanding = async (matchId, scoreA, scoreB) => {
     const match = await MatchModel.findById(matchId);
     if (!match)
-        throw new Error("Match not found");
+        throw new AppError(404, "Match not found");
     if (match.status === "Completed") {
-        throw new Error("Match already completed and standings updated.");
+        throw new AppError(403, "Match already completed and standings updated.");
     }
+    // Get tournament
+    const tournament = await TournamentModel.findById(match.tournament);
+    if (!tournament)
+        throw new AppError(404, "Tournament not found");
     //  Update match info
     match.scoreA = scoreA;
     match.scoreB = scoreB;
@@ -33,10 +39,19 @@ export const updateMatchAndStanding = async (matchId, scoreA, scoreB) => {
     //  Update standings for both teams
     await updateStanding(match.tournament.toString(), match.teamA.toString(), scoreA, scoreB);
     await updateStanding(match.tournament.toString(), match.teamB.toString(), scoreB, scoreA);
+    // Check if this is a final match and update tournament winner
+    if (match.group === "Final" && match.winner) {
+        tournament.winner = match.winner;
+        tournament.status = "completed";
+        await tournament.save();
+    }
     return match;
 };
 const updateStanding = async (tournamentId, teamId, scored, conceded) => {
-    let standing = await StandingModel.findOne({ tournament: tournamentId, team: teamId });
+    let standing = await StandingModel.findOne({
+        tournament: tournamentId,
+        team: teamId
+    });
     if (!standing) {
         standing = new StandingModel({
             tournament: tournamentId,

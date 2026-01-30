@@ -94,7 +94,7 @@ const getTopPlayers = catchAsync(async (req, res) => {
      res.status(200).json({
           success: true,
           message: "Tournament Top player coming successfully",
-          data: {}
+          data: result
      })
 })
 

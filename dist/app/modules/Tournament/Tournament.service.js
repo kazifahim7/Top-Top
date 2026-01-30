@@ -36,12 +36,12 @@ const deleteTournament = async (id) => {
 const qualifyTeamsService = async (tournamentId, teamIds) => {
     const tournament = await TournamentModel.findById(tournamentId);
     if (!tournament) {
-        throw new Error("Tournament not found");
+        throw new AppError(404, "Tournament not found");
     }
     const currentQualified = tournament.qualifiedTeams.map((id) => id.toString());
     const uniqueTeams = teamIds.filter((id) => !currentQualified.includes(id.toString()));
     if (uniqueTeams.length === 0) {
-        throw new Error("All teams already qualified or invalid");
+        throw new AppError(403, "All teams already qualified or invalid");
     }
     tournament.qualifiedTeams.push(...uniqueTeams.map((id) => new Types.ObjectId(id)));
     await tournament.save();
