@@ -13,6 +13,7 @@ export interface PlayerStats {
     goodMoment: number;
     veryGoodMoment: number;
     guest_player?: boolean;
+    mainRating?: number;
 }
 export interface Team {
     teamId: Types.ObjectId;
@@ -59,5 +60,7 @@ export interface LobbyDocument extends Document {
     goalTeam2: number;
     organizer: Types.ObjectId;
     matchPublished?: boolean;
+    team1AvgMatchRatingBefore?: number;
+    team2AvgMatchRatingBefore?: number;
 }
 //# sourceMappingURL=lobby.interface.d.ts.map

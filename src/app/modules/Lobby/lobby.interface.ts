@@ -13,7 +13,8 @@ export interface PlayerStats {
      rating: number;
      goodMoment:number,
      veryGoodMoment:number,
-     guest_player?:boolean
+     guest_player?:boolean,
+     mainRating?:number
 }
 
 export interface Team {
@@ -64,5 +65,7 @@ export interface LobbyDocument extends Document {
      goalTeam1: number;
      goalTeam2: number;
      organizer: Types.ObjectId;
-     matchPublished?:boolean
+     matchPublished?:boolean,
+     team1AvgMatchRatingBefore?:number
+     team2AvgMatchRatingBefore?:number
 }

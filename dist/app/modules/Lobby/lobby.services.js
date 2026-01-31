@@ -52,6 +52,7 @@ const createMatch = async (payload, id, role) => {
 const allMatch = async (query) => {
     const search = query.searchTerms || "";
     const lobbies = await LobbyModel.aggregate([
+        // Team 1 Data lookup (যদি থাকে)
         {
             $lookup: {
                 from: "teams",
@@ -61,6 +62,7 @@ const allMatch = async (query) => {
             }
         },
         { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
+        // Team 2 Data lookup (যদি থাকে)
         {
             $lookup: {
                 from: "teams",
@@ -70,22 +72,25 @@ const allMatch = async (query) => {
             }
         },
         { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
+        // Team 1 এর সব প্লেয়ার (team1Data.players থেকে)
         {
             $lookup: {
                 from: "players",
                 localField: "team1Data.players",
                 foreignField: "_id",
-                as: "team1Players"
+                as: "team1AllPlayers"
             }
         },
+        // Team 2 এর সব প্লেয়ার (team2Data.players থেকে)
         {
             $lookup: {
                 from: "players",
                 localField: "team2Data.players",
                 foreignField: "_id",
-                as: "team2Players"
+                as: "team2AllPlayers"
             }
         },
+        // Organizer Data
         {
             $lookup: {
                 from: "players",
@@ -95,13 +100,22 @@ const allMatch = async (query) => {
             }
         },
         { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
-        // FIXED: Add $ifNull to handle undefined playerIds
+        // Solo match এর জন্য Default Team 1 এর জয়েন করা প্লেয়ার
         {
             $lookup: {
                 from: "players",
                 let: {
                     playerIds: {
-                        $ifNull: ["$defaultTeam1.players.playerId", []]
+                        $ifNull: [
+                            {
+                                $map: {
+                                    input: { $ifNull: ["$defaultTeam1.players", []] },
+                                    as: "player",
+                                    in: { $toObjectId: "$$player.playerId" }
+                                }
+                            },
+                            []
+                        ]
                     }
                 },
                 pipeline: [
@@ -113,16 +127,25 @@ const allMatch = async (query) => {
                         }
                     }
                 ],
-                as: "defaultTeam1Players"
+                as: "joinedDefaultTeam1Players"
             }
         },
-        // FIXED: Add $ifNull to handle undefined playerIds
+        // Solo match এর জন্য Default Team 2 এর জয়েন করা প্লেয়ার
         {
             $lookup: {
                 from: "players",
                 let: {
                     playerIds: {
-                        $ifNull: ["$defaultTeam2.players.playerId", []]
+                        $ifNull: [
+                            {
+                                $map: {
+                                    input: { $ifNull: ["$defaultTeam2.players", []] },
+                                    as: "player",
+                                    in: { $toObjectId: "$$player.playerId" }
+                                }
+                            },
+                            []
+                        ]
                     }
                 },
                 pipeline: [
@@ -134,17 +157,89 @@ const allMatch = async (query) => {
                         }
                     }
                 ],
-                as: "defaultTeam2Players"
+                as: "joinedDefaultTeam2Players"
             }
         },
+        // Team match এর জন্য Team 1 এর জয়েন করা প্লেয়ার
+        {
+            $lookup: {
+                from: "players",
+                let: {
+                    playerIds: {
+                        $ifNull: [
+                            {
+                                $map: {
+                                    input: { $ifNull: ["$team1.players", []] },
+                                    as: "player",
+                                    in: { $toObjectId: "$$player.playerId" }
+                                }
+                            },
+                            []
+                        ]
+                    }
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"]
+                            }
+                        }
+                    }
+                ],
+                as: "joinedTeam1Players"
+            }
+        },
+        // Team match এর জন্য Team 2 এর জয়েন করা প্লেয়ার
+        {
+            $lookup: {
+                from: "players",
+                let: {
+                    playerIds: {
+                        $ifNull: [
+                            {
+                                $map: {
+                                    input: { $ifNull: ["$team2.players", []] },
+                                    as: "player",
+                                    in: { $toObjectId: "$$player.playerId" }
+                                }
+                            },
+                            []
+                        ]
+                    }
+                },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $in: ["$_id", "$$playerIds"]
+                            }
+                        }
+                    }
+                ],
+                as: "joinedTeam2Players"
+            }
+        },
+        // সার্চ ফিল্টার
         {
             $match: {
                 $or: [
                     { title: { $regex: search, $options: "i" } },
+                    // Team match এর জন্য
                     { "team1Data.teamName": { $regex: search, $options: "i" } },
                     { "team2Data.teamName": { $regex: search, $options: "i" } },
-                    { "team1Players.name": { $regex: search, $options: "i" } },
-                    { "team2Players.name": { $regex: search, $options: "i" } },
+                    // Solo match এর জন্য
+                    { "defaultTeam1.teamName": { $regex: search, $options: "i" } },
+                    { "defaultTeam2.teamName": { $regex: search, $options: "i" } },
+                    // Team 1 এর সব প্লেয়ারদের নাম
+                    { "team1AllPlayers.FullName": { $regex: search, $options: "i" } },
+                    { "team2AllPlayers.FullName": { $regex: search, $options: "i" } },
+                    // Team match জয়েন করা প্লেয়ার
+                    { "joinedTeam1Players.FullName": { $regex: search, $options: "i" } },
+                    { "joinedTeam2Players.FullName": { $regex: search, $options: "i" } },
+                    // Solo match জয়েন করা প্লেয়ার
+                    { "joinedDefaultTeam1Players.FullName": { $regex: search, $options: "i" } },
+                    { "joinedDefaultTeam2Players.FullName": { $regex: search, $options: "i" } }
                 ]
             }
         }

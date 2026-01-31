@@ -14,6 +14,7 @@ const PlayerStatsSchema = new Schema<PlayerStats>({
      goodMoment: { type: Number, default: 0 },
      veryGoodMoment: { type: Number, default: 0 },
      rating: { type: Number, default: 6.5 },
+     mainRating: { type: Number },
      matchPosition: { type: String },
      guest_player:{type:Boolean,default:false}
 });
@@ -66,7 +67,10 @@ const LobbySchema = new Schema<LobbyDocument>(
           goalTeam1: { type: Number, default: 0 },
           goalTeam2: { type: Number, default: 0 },
           organizer: { type: Schema.Types.ObjectId, ref: "players" },
-          matchPublished: { type: boolean, default: false }
+          matchPublished: { type: boolean, default: false },
+          team1AvgMatchRatingBefore: { type: Number, default: 0 },
+          team2AvgMatchRatingBefore: { type: Number, default: 0 },
+
      },
      { timestamps: true }
 );

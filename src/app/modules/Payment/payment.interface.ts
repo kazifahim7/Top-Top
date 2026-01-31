@@ -13,11 +13,8 @@ export interface Payment {
      defaultTeam?: string,
      method?: string,
      matchFormat?:string
-     paymentType:"team fee"|"tournament fee";
-   
-         
-          tournamentId: Schema.Types.ObjectId
-   
+     paymentType:"team fee"|"tournament fee";   
+     tournamentId: Schema.Types.ObjectId
      createdAt: Date;
      updatedAt: Date;
 }

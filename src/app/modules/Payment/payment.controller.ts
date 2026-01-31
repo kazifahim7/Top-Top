@@ -328,7 +328,11 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     return res.status(400).json({ message: "Team ID missing for team fee payment" });
                }
 
-               // Player data with guest_player flag
+               // Get player's current rating from database
+               const player = await userModel.findById(payment.playerId);
+               if (!player) return res.status(404).json({ message: "Player not found" });
+
+               // Player data with guest_player flag and mainRating
                const playerData = {
                     playerId: payment.playerId,
                     matchPosition: payment.matchPosition || "",
@@ -339,12 +343,23 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     goal: 0,
                     tackle: 0,
                     save: 0,
-                    rating: 6.5,
+                    rating: 6.5, // লবির জন্য rating (সবসময় 6.5)
+                    mainRating: player.rating, // ডাটাবেসের আসল rating
                     guest_player: payment.guest_player ?? false,
                };
 
                let targetTeam: any = null;
                let assignedTeam = "";
+
+               // Function to calculate average MAIN rating (mainRating ব্যবহার করে)
+               const calculateAverageMainRating = (players: any[]) => {
+                    if (!players || players.length === 0) return 0;
+                    const sum = players.reduce((total: number, player: any) => {
+                         // যদি পুরানো ডেটাতে mainRating না থাকে, তাহলে rating ব্যবহার করবে
+                         return total + (player.mainRating || player.rating || 0);
+                    }, 0);
+                    return sum / players.length;
+               };
 
                if (lobby.matchType === "solo") {
                     // FIXED: Check if player already exists in the SPECIFIC team they requested
@@ -393,6 +408,15 @@ export const paymentSuccess = async (req: Request, res: Response) => {
 
                     // Add player
                     targetTeam.players.push(playerData);
+
+                    // Calculate average main ratings for both teams AFTER adding new player
+                    if (lobby.defaultTeam1?.players) {
+                         lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(lobby.defaultTeam1.players);
+                    }
+                    if (lobby.defaultTeam2?.players) {
+                         lobby.team2AvgMatchRatingBefore = calculateAverageMainRating(lobby.defaultTeam2.players);
+                    }
+
                } else {
                     // Team match (non-solo)
                     if (lobby.team1?.teamId && payment.teamId.toString() === lobby.team1.teamId.toString()) {
@@ -414,6 +438,14 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     }
 
                     targetTeam.players.push(playerData);
+
+                    // Calculate average main ratings for both teams AFTER adding new player
+                    if (lobby.team1?.players) {
+                         lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(lobby.team1.players);
+                    }
+                    if (lobby.team2?.players) {
+                         lobby.team2AvgMatchRatingBefore = calculateAverageMainRating(lobby.team2.players);
+                    }
                }
 
                // Update user match count
@@ -426,6 +458,8 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     message: "Payment successful and player added",
                     assignedTeam: assignedTeam,
                     guest_player: playerData.guest_player,
+                    team1AvgMainRating: lobby.team1AvgMatchRatingBefore,
+                    team2AvgMainRating: lobby.team2AvgMatchRatingBefore,
                });
           }
 
