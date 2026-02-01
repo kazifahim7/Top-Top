@@ -1,39 +1,62 @@
 import { Schema, model, Types } from "mongoose";
+import { string } from "zod";
+const PlayerStatsSchema = new Schema({
+    playerId: { type: Schema.Types.ObjectId, ref: "players", required: true },
+    redCard: { type: Number, default: 0 },
+    yellowCard: { type: Number, default: 0 },
+    contribution: { type: Number, default: 0 },
+    assists: { type: Number, default: 0 },
+    goal: { type: Number, default: 0 },
+    tackle: { type: Number, default: 0 },
+    save: { type: Number, default: 0 },
+    goodMoment: { type: Number, default: 0 },
+    veryGoodMoment: { type: Number, default: 0 },
+    rating: { type: Number, default: 6.5 },
+    matchPosition: { type: String },
+    guest_player: { type: Boolean, default: false }
+});
 const matchSchema = new Schema({
     tournament: { type: Schema.Types.ObjectId, ref: "Tournament", required: true },
     // League or Knockout
     stage: {
         type: String,
-        enum: ["League", "Knockout"],
+        enum: ["League", "Knockout", "Both"],
         default: "League"
     },
-    // Match round (for Knockout and League)
     group: {
         type: String,
         enum: [
-            "GroupMatch",
-            "QuarterFinal1",
-            "QuarterFinal2",
-            "QuarterFinal3",
-            "QuarterFinal4",
-            "SemiFinal1",
-            "SemiFinal2",
+            "LeagueMatch",
+            "GroupStage",
+            "RoundOf32",
+            "RoundOf16",
+            "QuarterFinal",
+            "SemiFinal",
             "Final"
         ],
-        default: "GroupMatch"
+        default: "LeagueMatch"
     },
     teamA: { type: Schema.Types.ObjectId, ref: "Team", required: true },
     teamB: { type: Schema.Types.ObjectId, ref: "Team", required: true },
     time: { type: String },
     date: { type: Date },
+    teamAPlayers: { type: [PlayerStatsSchema], default: [] },
+    teamBPlayers: { type: [PlayerStatsSchema], default: [] },
     scoreA: { type: Number, default: 0 },
     scoreB: { type: Number, default: 0 },
     status: {
         type: String,
-        enum: ["Pending", "Completed", "block"],
+        enum: ["Pending", "Completed", "block", "start"],
         default: "Pending"
     },
+    motm: { type: Schema.Types.ObjectId, ref: "players" },
+    organizer: { type: Schema.Types.ObjectId, ref: "players" },
+    media: { type: [String] },
+    team1MatchFormat: { type: String },
+    team2MatchFormat: { type: String },
     winner: { type: Schema.Types.ObjectId, ref: "Team", default: null },
+    team1AvgMatchRatingBefore: { type: Number, default: 0 },
+    team2AvgMatchRatingBefore: { type: Number, default: 0 },
 }, {
     timestamps: true
 });

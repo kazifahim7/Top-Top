@@ -206,12 +206,22 @@ export const joinLobby = async (req: Request, res: Response) => {
           } else if (paymentType === "tournament fee") {
                const tournament = await TournamentModel.findById(tournamentId);
                if (!tournament) throw new AppError(404, "Tournament Not Found");
-               if (tournament.teams.length >= tournament.maxTeam) throw new AppError(403, "Team is full");
+              
 
                const findTeam = await TeamModel.findOne({ teamOwner: playerId });
                if (!findTeam) throw new AppError(404, "Team not Found");
-               if (tournament.teams.some(t => t.toString() === findTeam._id.toString()))
-                    throw new AppError(400, "Team already exists");
+               if (tournament.type === "Both" || tournament.type === "League"){
+                    if (tournament.teams.length >= tournament.maxTeam) throw new AppError(403, "Team is full");
+                    if (tournament.teams.some(t => t.toString() === findTeam._id.toString()))
+                         throw new AppError(400, "Team already exists");
+               }
+
+               if (tournament.type === "Knockout") {
+                    if (tournament.qualifiedTeams.length >= tournament.maxTeam) throw new AppError(403, "Team is full");
+                    if (tournament.qualifiedTeams.some(t => t.toString() === findTeam._id.toString()))
+                         throw new AppError(400, "Team already exists");
+               }
+              
 
                // Create Payment Record (pending)
                payment = await PaymentModel.create({
@@ -469,12 +479,23 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                if (!tournament) return res.status(404).json({ message: "Tournament not found" });
 
                if (!payment.teamId) return res.status(400).json({ message: "Team ID missing for tournament fee payment" });
+               let result;
+               
+               if (tournament.type === "League" || tournament.type === "Both"){
+                     result = await TournamentModel.findByIdAndUpdate(
+                         payment.tournamentId,
+                         { $addToSet: { teams: payment.teamId } },
+                         { new: true }
+                    );
+               }else{
+                    result = await TournamentModel.findByIdAndUpdate(
+                         payment.tournamentId,
+                         { $addToSet: { qualifiedTeams: payment.teamId } },
+                         { new: true }
+                    );
+               }
 
-               const result = await TournamentModel.findByIdAndUpdate(
-                    payment.tournamentId,
-                    { $addToSet: { teams: payment.teamId } },
-                    { new: true }
-               );
+
 
                await StandingModel.create({ tournament: tournament._id, team: payment.teamId });
 

@@ -1,7 +1,7 @@
 import type { Types } from "mongoose";
 export interface ITournament {
     name: string;
-    type: "Standing" | "Knockout";
+    type: "League" | "Knockout" | "Both";
     price: number;
     location: {
         lat: number;

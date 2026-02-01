@@ -1,7 +1,7 @@
 import { model, Schema } from "mongoose";
 const tournamentSchema = new Schema({
     name: { type: String, required: true },
-    type: { type: String, enum: ["Standing", "Knockout"], default: "Standing" },
+    type: { type: String, enum: ["League", "Knockout", "Both"], default: "League" },
     price: { type: Number, default: 0 },
     location: {
         lat: { type: Number, required: true },

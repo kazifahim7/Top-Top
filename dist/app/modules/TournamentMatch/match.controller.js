@@ -45,11 +45,35 @@ const updateMatch = catchAsync(async (req, res) => {
         data: updatedMatch
     });
 });
+const addPlayers = catchAsync(async (req, res) => {
+    const { matchId } = req.params;
+    const data = req.body;
+    const userId = req.user._id;
+    const updatedMatch = await tournamentMatchService.addPlayers(matchId, data, userId);
+    res.status(200).json({
+        success: true,
+        message: "Player(s) & match format added successfully",
+        data: updatedMatch
+    });
+});
+const removePlayerFromMatch = catchAsync(async (req, res) => {
+    const { matchId } = req.params;
+    const data = req.body;
+    const userId = req.user._id;
+    const updatedMatch = await tournamentMatchService.removePlayerFromMatch(matchId, data, userId);
+    res.status(200).json({
+        success: true,
+        message: "Player remove successfully",
+        data: updatedMatch
+    });
+});
 export const tournamentMatchController = {
     createMatch,
     deleteMatch,
     allMatch,
     singleMatch,
-    updateMatch
+    updateMatch,
+    addPlayers,
+    removePlayerFromMatch
 };
 //# sourceMappingURL=match.controller.js.map
