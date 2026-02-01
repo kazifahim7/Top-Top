@@ -18,7 +18,8 @@ interface AddPlayersData {
      players: PlayerData[];
 }
 
-const createMatch = async (payload: IMatch) => {
+const createMatch = async (payload: IMatch,id:string) => {
+     payload.organizer = new Types.ObjectId(id);
      const result = await MatchModel.create(payload)
      return result ;
 }
@@ -28,9 +29,22 @@ const allMatch = async(id:string)=>{
      return result;
 }
 
-const singleMatch = async(id:string)=>{
-     const result = await MatchModel.findById(id).populate("winner teamB teamA tournament")
-     return result
+const singleMatch = async (id: string) => {
+     const result = await MatchModel.findById(id)
+          .populate("winner")
+          .populate("teamA")
+          .populate("teamB")
+          .populate("tournament")
+          .populate({
+               path: "teamA",
+               populate: { path: "players" }
+          })
+          .populate({
+               path: "teamB",
+               populate: { path: "players" }
+          });
+
+     return result;
 }
 
 const deleteMatch = async(id:string)=>{

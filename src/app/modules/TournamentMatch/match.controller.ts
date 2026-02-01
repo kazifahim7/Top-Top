@@ -2,7 +2,7 @@ import catchAsync from "../../utils/catcgAsync.js";
 import { tournamentMatchService } from "./match.service.js";
 
 const createMatch = catchAsync(async (req, res) => {
-     const result = await tournamentMatchService.createMatch(req.body)
+     const result = await tournamentMatchService.createMatch(req.body,req?.user?.id)
      res.status(200).json({
           success: true,
           message: "Match created successfully",

@@ -25,7 +25,7 @@ export declare const removePlayerFromMatch: (matchId: string, data: RemovePlayer
     __v: number;
 }>;
 export declare const tournamentMatchService: {
-    createMatch: (payload: IMatch) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+    createMatch: (payload: IMatch, id: string) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
         _id: Types.ObjectId;
     } & {
         __v: number;

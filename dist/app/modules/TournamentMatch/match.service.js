@@ -5,7 +5,8 @@ import { TeamModel } from "../Team/team.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { MatchModel } from "./match.model.js";
 import { Types } from "mongoose";
-const createMatch = async (payload) => {
+const createMatch = async (payload, id) => {
+    payload.organizer = new Types.ObjectId(id);
     const result = await MatchModel.create(payload);
     return result;
 };
@@ -14,7 +15,19 @@ const allMatch = async (id) => {
     return result;
 };
 const singleMatch = async (id) => {
-    const result = await MatchModel.findById(id).populate("winner teamB teamA tournament");
+    const result = await MatchModel.findById(id)
+        .populate("winner")
+        .populate("teamA")
+        .populate("teamB")
+        .populate("tournament")
+        .populate({
+        path: "teamA",
+        populate: { path: "players" }
+    })
+        .populate({
+        path: "teamB",
+        populate: { path: "players" }
+    });
     return result;
 };
 const deleteMatch = async (id) => {
