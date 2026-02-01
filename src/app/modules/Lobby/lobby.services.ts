@@ -7,6 +7,7 @@ import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
 import { PaymentModel } from "../Payment/payment.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
+import { getPlayerOverallRating } from "../../utils/getRating.js";
 
 const createMatch = async (payload: LobbyDocument, id: string, role: string) => {
 
@@ -860,9 +861,9 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      matchRating += (data.goal || 0) * 0.5;
      matchRating += (data.assists || 0) * 0.5;
      matchRating += (data.contribution || 0) * 0.25;
-     matchRating += (data.save || 0) * 0.5;
-     matchRating += (data.veryGoodMoment || 0) * 0.25;  // Added for consistency
-     matchRating += (data.goodMoment || 0) * 0.25;    // Added for consistency
+     matchRating += (data.save || 0) * 0.25;
+     matchRating += (data.veryGoodMoment || 0) * 0.25;  
+     matchRating += (data.goodMoment || 0) * 0.5;    
 
      // Clamp rating between 0 and 10 (optional but good practice)
      matchRating = Math.max(0, Math.min(10, matchRating));
@@ -891,37 +892,8 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      // -------------------
      // Recalculate profile rating from all lobbies
      // -------------------
-     const objectId = new Types.ObjectId(data.playerId);
-
-     const allLobbies = await LobbyModel.find({
-          $or: [
-               { "team1.players.playerId": objectId },
-               { "team2.players.playerId": objectId },
-               { "defaultTeam1.players.playerId": objectId },
-               { "defaultTeam2.players.playerId": objectId },
-          ],
-     });
-
-     let totalRating = 0;
-     let matchCount = 0;
-
-     allLobbies.forEach(lobbyItem => {
-          teams.forEach(key => {
-               const team = lobbyItem[key];
-               if (!team?.players?.length) return;
-
-               const p = team.players.find(pl => pl.playerId.toString() === data.playerId);
-               if (!p) return;
-
-               // Use the already calculated rating from each lobby
-               if (p.rating) {
-                    totalRating += p.rating;
-                    matchCount++;
-               }
-          });
-     });
-
-     const averageRating = matchCount ? totalRating / matchCount : 6.5;
+     const { averageRating, matchCount } =
+               await getPlayerOverallRating(data.playerId);
 
      // -------------------
      // Update player profile stats + rating

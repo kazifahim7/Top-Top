@@ -10,7 +10,7 @@ interface AddPlayersData {
     matchFormat?: string;
     players: PlayerData[];
 }
-export declare const updateMatchAndStanding: (matchId: string, scoreA: number, scoreB: number) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+export declare const updateMatchAndStanding: (matchId: string, data: Partial<IMatch>) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
     _id: Types.ObjectId;
 } & {
     __v: number;
@@ -23,6 +23,21 @@ export declare const removePlayerFromMatch: (matchId: string, data: RemovePlayer
     _id: Types.ObjectId;
 } & {
     __v: number;
+}>;
+interface UpdatePlayerStatsDTO {
+    matchId: string;
+    playerId: string;
+    redCard?: number;
+    yellowCard?: number;
+    goal?: number;
+    assists?: number;
+    contribution?: number;
+    save?: number;
+    goodMoment?: number;
+    veryGoodMoment?: number;
+}
+export declare const updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
+    matchPlayer: any;
 }>;
 export declare const tournamentMatchService: {
     createMatch: (payload: IMatch, id: string) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
@@ -45,7 +60,7 @@ export declare const tournamentMatchService: {
     } & {
         __v: number;
     })[]>;
-    updateMatchAndStanding: (matchId: string, scoreA: number, scoreB: number) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+    updateMatchAndStanding: (matchId: string, data: Partial<IMatch>) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
         _id: Types.ObjectId;
     } & {
         __v: number;
@@ -59,6 +74,9 @@ export declare const tournamentMatchService: {
         _id: Types.ObjectId;
     } & {
         __v: number;
+    }>;
+    updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
+        matchPlayer: any;
     }>;
 };
 export {};

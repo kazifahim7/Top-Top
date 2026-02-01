@@ -1,4 +1,6 @@
 import AppError from "../../Error/AppError.js";
+import { getPlayerOverallRating } from "../../utils/getRating.js";
+import { roundRating } from "../../utils/roundRating.js";
 import { userModel } from "../auth/auth.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 import { TeamModel } from "../Team/team.model.js";
@@ -34,28 +36,43 @@ const deleteMatch = async (id) => {
     const result = await MatchModel.findByIdAndDelete(id);
     return result;
 };
-export const updateMatchAndStanding = async (matchId, scoreA, scoreB) => {
+export const updateMatchAndStanding = async (matchId, data) => {
     const match = await MatchModel.findById(matchId);
     if (!match)
         throw new AppError(404, "Match not found");
     if (match.status === "Completed") {
-        throw new AppError(403, "Match already completed and standings updated.");
+        throw new AppError(403, "Match already completed");
     }
-    // Get tournament
     const tournament = await TournamentModel.findById(match.tournament);
     if (!tournament)
         throw new AppError(404, "Tournament not found");
-    //  Update match info
-    match.scoreA = scoreA;
-    match.scoreB = scoreB;
+    // ---------- ONLY ALLOWED UPDATES ----------
+    if (typeof data.scoreA === "number")
+        match.scoreA = data.scoreA;
+    if (typeof data.scoreB === "number")
+        match.scoreB = data.scoreB;
+    if (data.media?.length) {
+        match.media = [...(match.media || []), ...data.media];
+    }
+    if (data.motm) {
+        match.motm = data.motm;
+    }
+    // ---------- Auto Winner ----------
+    if (typeof match.scoreA === "number" &&
+        typeof match.scoreB === "number") {
+        match.winner =
+            match.scoreA > match.scoreB
+                ? match.teamA
+                : match.scoreB > match.scoreA
+                    ? match.teamB
+                    : null;
+    }
     match.status = "Completed";
-    match.winner =
-        scoreA > scoreB ? match.teamA : scoreB > scoreA ? match.teamB : null;
     await match.save();
-    //  Update standings for both teams
-    await updateStanding(match.tournament.toString(), match.teamA.toString(), scoreA, scoreB);
-    await updateStanding(match.tournament.toString(), match.teamB.toString(), scoreB, scoreA);
-    // Check if this is a final match and update tournament winner
+    // ---------- Update Standings ----------
+    await updateStanding(match.tournament.toString(), match.teamA.toString(), match.scoreA, match.scoreB);
+    await updateStanding(match.tournament.toString(), match.teamB.toString(), match.scoreB, match.scoreA);
+    // ---------- Final Match ----------
     if (match.group === "Final" && match.winner) {
         tournament.winner = match.winner;
         tournament.status = "completed";
@@ -222,6 +239,79 @@ export const removePlayerFromMatch = async (matchId, data, userId) => {
     const result = await match.save();
     return result;
 };
+export const updatePlayerStats = async (data) => {
+    const match = await MatchModel.findById(data.matchId);
+    if (!match)
+        throw new Error("Match not found");
+    let player = null;
+    let teamKey = null;
+    // -------- Find player ----------
+    player = match.teamAPlayers.find(p => p.playerId.toString() === data.playerId);
+    if (player) {
+        teamKey = "A";
+    }
+    else {
+        player = match.teamBPlayers.find(p => p.playerId.toString() === data.playerId);
+        if (player)
+            teamKey = "B";
+    }
+    if (!player || !teamKey) {
+        throw new Error("Player not found in match");
+    }
+    // -------- Rating calculation ----------
+    let matchRating = player.rating ?? 6.5;
+    matchRating -= (data.redCard ?? 0) * 0.5;
+    matchRating -= (data.yellowCard ?? 0) * 0.25;
+    matchRating += (data.goal ?? 0) * 0.5;
+    matchRating += (data.assists ?? 0) * 0.5;
+    matchRating += (data.contribution ?? 0) * 0.25;
+    matchRating += (data.save ?? 0) * 0.25;
+    matchRating += (data.goodMoment ?? 0) * 0.25;
+    matchRating += (data.veryGoodMoment ?? 0) * 0.5;
+    // matchRating = Math.max(0, Math.min(10, matchRating));
+    // Number(matchRating.toFixed(2));
+    player.rating = roundRating(matchRating);
+    // -------- Update stats ----------
+    const fields = [
+        "redCard",
+        "yellowCard",
+        "goal",
+        "assists",
+        "contribution",
+        "save",
+        "goodMoment",
+        "veryGoodMoment",
+    ];
+    fields.forEach(field => {
+        if (data[field] !== undefined) {
+            player[field] += data[field];
+        }
+    });
+    // -------- Update match score ----------
+    if (data.goal && data.goal > 0) {
+        if (teamKey === "A")
+            match.scoreA += data.goal;
+        if (teamKey === "B")
+            match.scoreB += data.goal;
+    }
+    await match.save();
+    // -------- Recalculate player avg rating ----------
+    const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
+    // -------- Update player profile ----------
+    await userModel.findByIdAndUpdate(data.playerId, {
+        $inc: {
+            redCard: data.redCard ?? 0,
+            yellowCard: data.yellowCard ?? 0,
+            goal: data.goal ?? 0,
+            assists: data.assists ?? 0,
+            contribution: data.contribution ?? 0,
+            save: data.save ?? 0,
+        },
+        match: matchCount,
+        rating: Number(averageRating.toFixed(2)),
+    }, { new: true });
+    return { matchPlayer: player };
+};
 export const tournamentMatchService = {
     createMatch,
     singleMatch,
@@ -229,6 +319,7 @@ export const tournamentMatchService = {
     allMatch,
     updateMatchAndStanding,
     addPlayers,
-    removePlayerFromMatch
+    removePlayerFromMatch,
+    updatePlayerStats
 };
 //# sourceMappingURL=match.service.js.map

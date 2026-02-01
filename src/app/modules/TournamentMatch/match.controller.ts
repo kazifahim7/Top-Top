@@ -1,4 +1,5 @@
 import catchAsync from "../../utils/catcgAsync.js";
+import { uploadToS3 } from "../../utils/multer.js";
 import { tournamentMatchService } from "./match.service.js";
 
 const createMatch = catchAsync(async (req, res) => {
@@ -34,14 +35,22 @@ const deleteMatch = catchAsync(async (req, res) => {
      })
 })
 const updateMatch = catchAsync(async (req, res) => {
-     const { id } = req.params;
-     const { scoreA, scoreB } = req.body;
 
-     if (typeof scoreA !== "number" || typeof scoreB !== "number") {
-          return res.status(400).json({ success: false, message: "Invalid scores" });
+     const id = req.params?.id;
+     const data = req.body
+
+
+     const imageFiles = (req.files as any).images || [];
+     const uploadedUrls = await Promise.all(imageFiles.map((file: any) => uploadToS3(file)));
+
+     if (uploadedUrls.length > 0) {
+          // Initialize media array if it doesn't exist
+          if (!data.media) {
+               data.media = [];
+          }
+          data.media.push(...uploadedUrls);
      }
-
-     const updatedMatch = await tournamentMatchService.updateMatchAndStanding(id!, scoreA, scoreB);
+     const updatedMatch = await tournamentMatchService.updateMatchAndStanding(id!, data);
      res.status(200).json({
           success: true,
           message: " match are updated  successfully",
@@ -76,12 +85,27 @@ const removePlayerFromMatch = catchAsync(async (req, res) => {
 })
 
 
+
+const updatePlayerState = catchAsync(async (req, res)=> {
+   
+     const data = req.body
+     data.matchId = req.params?.matchId
+     const result = await tournamentMatchService.updatePlayerStats(data)
+     res.status(200).json({
+          success: true,
+          message: "updated successfully",
+          data: result
+     })
+})
+
+
 export const tournamentMatchController = {
      createMatch,
      deleteMatch,
      allMatch,
      singleMatch,
      updateMatch,
+     updatePlayerState,
      addPlayers,
      removePlayerFromMatch 
 
