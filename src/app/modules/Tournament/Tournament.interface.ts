@@ -10,7 +10,7 @@ export interface ITournament   {
      };
      startDate: Date;
      duration: number; 
-     fieldSize: 5 | 7 | 11;
+     fieldSize: 5 | 7 | 11 | 8 | 9 | 10;
      teams: Types.ObjectId[];
      qualifiedTeams: Types.ObjectId[];
      winner?: Types.ObjectId | null;

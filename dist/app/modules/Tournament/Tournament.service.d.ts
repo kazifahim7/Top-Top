@@ -31,10 +31,7 @@ export declare const TournamentService: {
     } & {
         __v: number;
     }>;
-    getTopPlayers: (tournamentId: string) => Promise<{
-        tournament: string;
-        topPlayers: any[];
-    }>;
+    getTopPlayers: (tournamentId: string) => Promise<any[]>;
     organizerTournament: (id: string) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
         _id: Types.ObjectId;
     } & {

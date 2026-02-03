@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import { TournamentModel } from "./Tournament.model.js";
+import { MatchModel } from "../TournamentMatch/match.model.js";
 const createTournament = async (payload) => {
     const result = await TournamentModel.create(payload);
     return result;
@@ -48,33 +49,62 @@ const qualifyTeamsService = async (tournamentId, teamIds) => {
     return tournament;
 };
 const getTopPlayers = async (tournamentId) => {
-    const tournament = await TournamentModel.findById(tournamentId)
-        .populate({
-        path: "teams",
-        populate: {
-            path: "players",
-            model: "Players",
+    const topPlayers = await MatchModel.aggregate([
+        {
+            $match: {
+                tournament: new Types.ObjectId(tournamentId),
+                status: "Completed"
+            }
         },
-    })
-        .lean();
-    if (!tournament) {
-        throw new AppError(404, "Tournament not found");
-    }
-    // allPlayers বের করা
-    let allPlayers = [];
-    tournament.teams.forEach((team) => {
-        if (team.players && Array.isArray(team.players)) {
-            allPlayers = [...allPlayers, ...team.players];
+        // teamAPlayers + teamBPlayers merge
+        {
+            $project: {
+                players: {
+                    $concatArrays: ["$teamAPlayers", "$teamBPlayers"]
+                }
+            }
+        },
+        { $unwind: "$players" },
+        // guest player বাদ
+        {
+            $match: {
+                "players.guest_player": false
+            }
+        },
+        // group by playerId
+        {
+            $group: {
+                _id: "$players.playerId",
+                avgRating: { $avg: "$players.rating" },
+                totalMatches: { $sum: 1 }
+            }
+        },
+        // highest rating first
+        { $sort: { avgRating: -1 } },
+        // top 10
+        { $limit: 10 },
+        // player info populate
+        {
+            $lookup: {
+                from: "players",
+                localField: "_id",
+                foreignField: "_id",
+                as: "player"
+            }
+        },
+        { $unwind: "$player" },
+        {
+            $project: {
+                _id: 0,
+                playerId: "$player._id",
+                name: "$player.name",
+                image: "$player.image",
+                avgRating: { $round: ["$avgRating", 2] },
+                totalMatches: 1
+            }
         }
-    });
-    // rating অনুযায়ী sort
-    const sortedPlayers = allPlayers
-        .filter((p) => p.rating > 0)
-        .sort((a, b) => b.rating - a.rating);
-    return {
-        tournament: tournament.name,
-        topPlayers: sortedPlayers,
-    };
+    ]);
+    return topPlayers;
 };
 export const TournamentService = {
     createTournament,
