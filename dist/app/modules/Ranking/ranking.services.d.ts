@@ -1,9 +1,13 @@
+import type { TCreateProfile } from "../auth/auth.interface.js";
 interface RankingOptions {
     filterBy?: "weekly" | "monthly" | "all";
     sortField?: string;
     sortOrder?: "asc" | "desc";
-    matchField?: string;
+    matchField?: keyof TCreateProfile;
     matchValue?: any;
+    nationality?: string;
+    age?: string | number;
+    position?: string;
 }
 export declare const playerRankingService: {
     playerRanking: (options: RankingOptions) => Promise<any[]>;

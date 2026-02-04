@@ -1,32 +1,45 @@
 import { userModel } from "../auth/auth.model.js";
 import { TeamModel } from "../Team/team.model.js";
 const playerRanking = async (options) => {
-    const { filterBy = "all", sortField = "rating", sortOrder = "desc" } = options;
+    const { filterBy = "all", sortField = "rating", sortOrder = "desc", matchField, matchValue, nationality, age, position, } = options;
     const now = new Date();
     let startDate;
-    // Date filter only for weekly & monthly
+    // 📅 date filter
     if (filterBy === "weekly") {
         startDate = new Date();
-        startDate.setDate(now.getDate() - 7); // last 7 days
+        startDate.setDate(now.getDate() - 7);
     }
     else if (filterBy === "monthly") {
         startDate = new Date();
-        startDate.setMonth(now.getMonth() - 1); // last 1 month
+        startDate.setMonth(now.getMonth() - 1);
     }
-    // Minimum match threshold
+    // 🎯 min match rule
     const minMatches = filterBy === "weekly" ? 2 : filterBy === "monthly" ? 4 : 15;
-    // Match stage
-    const matchStage = {};
-    // All-time ranking → only match count
-    if (filterBy === "all") {
-        matchStage.match = { $gte: minMatches };
+    // 🔍 base match stage
+    const matchStage = {
+        role: "player",
+        isBlocked: "active",
+        match: { $gte: minMatches },
+    };
+    // ⏱ time filter
+    if (startDate) {
+        matchStage.updatedAt = { $gte: startDate, $lte: now };
     }
-    else {
-        // Weekly / Monthly → match count AND updatedAt filter
-        matchStage.match = { $gte: minMatches };
-        if (startDate) {
-            matchStage.updatedAt = { $gte: startDate, $lte: now };
-        }
+    // 📊 stats filter (goal / rating / assist)
+    if (matchField && matchValue) {
+        matchStage[matchField] = matchValue;
+    }
+    // 🌍 nationality filter
+    if (nationality) {
+        matchStage.nationality = nationality;
+    }
+    // 🎂 age filter
+    if (age) {
+        matchStage.age = age.toString();
+    }
+    // 🧍 position filter (array field)
+    if (position) {
+        matchStage.position = { $in: [position] };
     }
     const sortDirection = sortOrder === "asc" ? 1 : -1;
     const result = await userModel.aggregate([

@@ -1,55 +1,95 @@
+import type { TCreateProfile } from "../auth/auth.interface.js";
 import { userModel } from "../auth/auth.model.js"
 import { TeamModel } from "../Team/team.model.js";
 
 interface RankingOptions {
-     filterBy?: "weekly" | "monthly" | "all";
-     sortField?: string;          
-     sortOrder?: "asc" | "desc";  
-     matchField?: string;         
-     matchValue?: any;            
+  filterBy?: "weekly" | "monthly" | "all";
+
+  // sorting
+  sortField?: string;
+  sortOrder?: "asc" | "desc";
+
+  // stats filter (goal, rating, assists...)
+  matchField?: keyof TCreateProfile;
+  matchValue?: any;
+
+  // profile filters
+  nationality?: string;
+  age?: string | number;
+  position?: string; // "ST", "GK"
 }
 
+
 const playerRanking = async (options: RankingOptions) => {
-     const { filterBy = "all", sortField = "rating", sortOrder = "desc" } = options;
+  const {
+    filterBy = "all",
+    sortField = "rating",
+    sortOrder = "desc",
+    matchField,
+    matchValue,
+    nationality,
+    age,
+    position,
+  } = options;
 
-     const now = new Date();
-     let startDate: Date | undefined;
+  const now = new Date();
+  let startDate: Date | undefined;
 
-     // Date filter only for weekly & monthly
-     if (filterBy === "weekly") {
-          startDate = new Date();
-          startDate.setDate(now.getDate() - 7); // last 7 days
-     } else if (filterBy === "monthly") {
-          startDate = new Date();
-          startDate.setMonth(now.getMonth() - 1); // last 1 month
-     }
+  // 📅 date filter
+  if (filterBy === "weekly") {
+    startDate = new Date();
+    startDate.setDate(now.getDate() - 7);
+  } else if (filterBy === "monthly") {
+    startDate = new Date();
+    startDate.setMonth(now.getMonth() - 1);
+  }
 
-     // Minimum match threshold
-     const minMatches = filterBy === "weekly" ? 2 : filterBy === "monthly" ? 4 : 15;
+  // 🎯 min match rule
+  const minMatches =
+    filterBy === "weekly" ? 2 : filterBy === "monthly" ? 4 : 15;
 
-     // Match stage
-     const matchStage: any = {};
+  // 🔍 base match stage
+  const matchStage: any = {
+    role: "player",
+    isBlocked: "active",
+    match: { $gte: minMatches },
+  };
 
-     // All-time ranking → only match count
-     if (filterBy === "all") {
-          matchStage.match = { $gte: minMatches };
-     } else {
-          // Weekly / Monthly → match count AND updatedAt filter
-          matchStage.match = { $gte: minMatches };
-          if (startDate) {
-               matchStage.updatedAt = { $gte: startDate, $lte: now };
-          }
-     }
+  // ⏱ time filter
+  if (startDate) {
+    matchStage.updatedAt = { $gte: startDate, $lte: now };
+  }
 
-     const sortDirection = sortOrder === "asc" ? 1 : -1;
+  // 📊 stats filter (goal / rating / assist)
+  if (matchField && matchValue) {
+    matchStage[matchField] = matchValue;
+  }
 
-     const result = await userModel.aggregate([
-          { $match: matchStage },
-          { $sort: { [sortField]: sortDirection } },
-     ]);
+  // 🌍 nationality filter
+  if (nationality) {
+    matchStage.nationality = nationality;
+  }
 
-     return result;
+  // 🎂 age filter
+  if (age) {
+    matchStage.age = age.toString();
+  }
+
+  // 🧍 position filter (array field)
+  if (position) {
+    matchStage.position = { $in: [position] };
+  }
+
+  const sortDirection = sortOrder === "asc" ? 1 : -1;
+
+  const result = await userModel.aggregate([
+    { $match: matchStage },
+    { $sort: { [sortField]: sortDirection } },
+  ]);
+
+  return result;
 };
+
 
 const teamRanking = async (options: RankingOptions) => {
      const { filterBy = "all", sortField = "win", sortOrder = "desc", matchField, matchValue } = options;
