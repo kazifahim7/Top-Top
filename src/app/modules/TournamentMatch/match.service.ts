@@ -184,8 +184,8 @@ const addPlayers = async (
      const match = await MatchModel.findById(matchId);
      if (!match) throw new AppError(404, "Match not found");
 
-     if (match.status !== "Pending") {
-          throw new AppError(400, "Match already started or completed");
+     if (match.status === "Completed") {
+          throw new AppError(400, "Match already  completed");
      }
 
      // 2️⃣ Find Team
