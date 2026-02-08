@@ -37,6 +37,8 @@ const singleMatch = async (id: string) => {
           .populate("teamA")
           .populate("teamB")
           .populate("tournament")
+          .populate("organizer")
+          .populate("motm")
           .populate({
                path: "teamA",
                populate: { path: "players" }
