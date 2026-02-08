@@ -228,7 +228,8 @@ const addPlayers = async (
                throw new AppError(403,"Already exits");
                
           };
-          if (match[targetField].length >= tournamentExist.fieldSize){
+          const enteriedPlayer = match[targetField].filter((player)=>player.guest_player==true)
+          if (enteriedPlayer.length >= tournamentExist.fieldSize){
                throw new AppError(403, "Already team is full");
           }
 
