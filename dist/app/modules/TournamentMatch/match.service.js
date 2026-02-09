@@ -39,6 +39,12 @@ const singleMatch = async (id) => {
         .populate({
         path: "teamB",
         populate: { path: "teamOwner" }
+    }).populate({
+        path: "teamAPlayers",
+        populate: { path: "playerId" }
+    }).populate({
+        path: "teamBPlayers",
+        populate: { path: "playerId" }
     });
     return result;
 };

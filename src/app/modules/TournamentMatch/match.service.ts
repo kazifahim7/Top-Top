@@ -20,14 +20,14 @@ interface AddPlayersData {
      players: PlayerData[];
 }
 
-const createMatch = async (payload: IMatch,id:string) => {
+const createMatch = async (payload: IMatch, id: string) => {
      payload.organizer = new Types.ObjectId(id);
      const result = await MatchModel.create(payload)
-     return result ;
+     return result;
 }
 
-const allMatch = async(id:string)=>{
-     const result = await MatchModel.find({tournament:id}).populate("winner teamB teamA tournament")
+const allMatch = async (id: string) => {
+     const result = await MatchModel.find({ tournament: id }).populate("winner teamB teamA tournament")
      return result;
 }
 
@@ -54,12 +54,22 @@ const singleMatch = async (id: string) => {
           .populate({
                path: "teamB",
                populate: { path: "teamOwner" }
-          });
+          }).populate(
+               {
+                    path: "teamAPlayers",
+                    populate: { path: "playerId" }
+               }
+          ).populate(
+               {
+                    path: "teamBPlayers",
+                    populate: { path: "playerId" }
+               }
+          );
 
      return result;
 }
 
-const deleteMatch = async(id:string)=>{
+const deleteMatch = async (id: string) => {
      const result = await MatchModel.findByIdAndDelete(id)
      return result
 }
@@ -201,29 +211,29 @@ const addPlayers = async (
      // 2️⃣ Find Team
      const teamId = team === "A" ? match.teamA : match.teamB;
      const teamDoc = await TeamModel.findById(teamId);
-     console.log(teamDoc,"this the team details")
+     console.log(teamDoc, "this the team details")
      if (!teamDoc) throw new AppError(404, "Team not found");
 
      const tournamentExist = await TournamentModel.findOne(match.tournament)
-     if(!tournamentExist){
+     if (!tournamentExist) {
           throw new AppError(404, "Tournament  not found");
      }
 
      // 3️⃣ Check if user is team owner or captain
      const isOwner = String(teamDoc.teamOwner) === String(userId);
-     console.log(userId,"userid")
-     console.log(isOwner,"isowner")
+     console.log(userId, "userid")
+     console.log(isOwner, "isowner")
      const isCaptain = teamDoc.teamCaptain.some(
           id => String(id) === String(userId)
      );
-     console.log(isCaptain,"iscaptain")
+     console.log(isCaptain, "iscaptain")
      const isLeader = isOwner || isCaptain;
 
-     if(!isLeader){
+     if (!isLeader) {
           throw new AppError(403, "You can not add player");
      }
 
-     
+
 
      // 4️⃣ Set match format (Leader only)
      if (isLeader && matchFormat) {
@@ -238,12 +248,12 @@ const addPlayers = async (
           const exists = match[targetField].some(
                pl => String(pl.playerId) === String(p.playerId)
           );
-          if (exists){
-               throw new AppError(403,"Already exits");
-               
+          if (exists) {
+               throw new AppError(403, "Already exits");
+
           };
-          const enteriedPlayer = match[targetField].filter((player)=>player.guest_player==true)
-          if (enteriedPlayer.length >= tournamentExist.fieldSize){
+          const enteriedPlayer = match[targetField].filter((player) => player.guest_player == true)
+          if (enteriedPlayer.length >= tournamentExist.fieldSize) {
                throw new AppError(403, "Already team is full");
           }
 
@@ -369,9 +379,9 @@ interface UpdatePlayerStatsDTO {
      assists?: number;
      contribution?: number;
      save?: number;
-     goodMoment?:number;
-     veryGoodMoment?:number
-     
+     goodMoment?: number;
+     veryGoodMoment?: number
+
 }
 
 export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
