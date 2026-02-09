@@ -1,7 +1,7 @@
 import { model, Schema } from "mongoose";
 import { boolean } from "zod";
 const PlayerStatsSchema = new Schema({
-    playerId: { type: Schema.Types.ObjectId, ref: "players", required: true },
+    playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
     redCard: { type: Number, default: 0 },
     yellowCard: { type: Number, default: 0 },
     contribution: { type: Number, default: 0 },
@@ -49,7 +49,7 @@ const LobbySchema = new Schema({
     maxSlot: { type: Number, required: true },
     positionRequired: { type: [String], default: [] },
     media: { type: [String] },
-    motm: { type: Schema.Types.ObjectId, ref: "players" },
+    motm: { type: Schema.Types.ObjectId, ref: "Players" },
     note: { type: String },
     lobbyStatus: { type: String, enum: ["ongoing", "completed", "block"], default: "ongoing" },
     matchType: { type: String, enum: ["solo", "teams"], default: "solo" },
@@ -57,7 +57,7 @@ const LobbySchema = new Schema({
     privateKey: { type: String },
     goalTeam1: { type: Number, default: 0 },
     goalTeam2: { type: Number, default: 0 },
-    organizer: { type: Schema.Types.ObjectId, ref: "players" },
+    organizer: { type: Schema.Types.ObjectId, ref: "Players" },
     matchPublished: { type: boolean, default: false },
     team1AvgMatchRatingBefore: { type: Number, default: 0 },
     team2AvgMatchRatingBefore: { type: Number, default: 0 },

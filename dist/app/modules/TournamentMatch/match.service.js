@@ -22,6 +22,8 @@ const singleMatch = async (id) => {
         .populate("teamA")
         .populate("teamB")
         .populate("tournament")
+        .populate("organizer")
+        .populate("motm")
         .populate({
         path: "teamA",
         populate: { path: "players" }
@@ -122,8 +124,8 @@ const addPlayers = async (matchId, data, userId) => {
     const match = await MatchModel.findById(matchId);
     if (!match)
         throw new AppError(404, "Match not found");
-    if (match.status !== "Pending") {
-        throw new AppError(400, "Match already started or completed");
+    if (match.status === "Completed") {
+        throw new AppError(400, "Match already  completed");
     }
     // 2️⃣ Find Team
     const teamId = team === "A" ? match.teamA : match.teamB;
@@ -156,7 +158,8 @@ const addPlayers = async (matchId, data, userId) => {
             throw new AppError(403, "Already exits");
         }
         ;
-        if (match[targetField].length >= tournamentExist.fieldSize) {
+        const enteriedPlayer = match[targetField].filter((player) => player.guest_player == true);
+        if (enteriedPlayer.length >= tournamentExist.fieldSize) {
             throw new AppError(403, "Already team is full");
         }
         match[targetField].push({

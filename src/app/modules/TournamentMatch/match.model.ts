@@ -5,7 +5,7 @@ import { string } from "zod";
 
 
 const PlayerStatsSchema = new Schema<PlayerStats>({
-     playerId: { type: Schema.Types.ObjectId, ref: "players", required: true },
+     playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
      redCard: { type: Number, default: 0 },
      yellowCard: { type: Number, default: 0 },
      contribution: { type: Number, default: 0 },
@@ -63,8 +63,8 @@ const matchSchema = new Schema<IMatch>({
           enum: ["Pending", "Completed", "block","start"],
           default: "Pending"
      },
-     motm: { type: Schema.Types.ObjectId, ref: "players" },
-     organizer: { type: Schema.Types.ObjectId, ref: "players" },
+     motm: { type: Schema.Types.ObjectId, ref: "Players" },
+     organizer: { type: Schema.Types.ObjectId, ref: "Players" },
      media: { type: [String] },
      team1MatchFormat:{type:String},
      team2MatchFormat: { type: String },
