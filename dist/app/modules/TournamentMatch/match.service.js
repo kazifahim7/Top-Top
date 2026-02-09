@@ -144,7 +144,6 @@ const addPlayers = async (matchId, data, userId) => {
     // 2️⃣ Find Team
     const teamId = team === "A" ? match.teamA : match.teamB;
     const teamDoc = await TeamModel.findById(teamId);
-    console.log(teamDoc, "this the team details");
     if (!teamDoc)
         throw new AppError(404, "Team not found");
     const tournamentExist = await TournamentModel.findOne(match.tournament);
@@ -153,10 +152,7 @@ const addPlayers = async (matchId, data, userId) => {
     }
     // 3️⃣ Check if user is team owner or captain
     const isOwner = String(teamDoc.teamOwner) === String(userId);
-    console.log(userId, "userid");
-    console.log(isOwner, "isowner");
     const isCaptain = teamDoc.teamCaptain.some(id => String(id) === String(userId));
-    console.log(isCaptain, "iscaptain");
     const isLeader = isOwner || isCaptain;
     if (!isLeader) {
         throw new AppError(403, "You can not add player");
@@ -171,6 +167,10 @@ const addPlayers = async (matchId, data, userId) => {
     // 5️⃣ Add players
     const targetField = team === "A" ? "teamAPlayers" : "teamBPlayers";
     for (const p of players) {
+        const isTeamMember = teamDoc.players.some(id => String(id) === String(p.playerId));
+        if (!isTeamMember) {
+            throw new AppError(403, "Player is not in this team");
+        }
         const exists = match[targetField].some(pl => String(pl.playerId) === String(p.playerId));
         if (exists) {
             throw new AppError(403, "Already exits");
