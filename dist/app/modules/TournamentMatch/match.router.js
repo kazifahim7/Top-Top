@@ -22,8 +22,8 @@ router.patch('/update-tournamentMatch/:id', upload.fields([
     next();
 }, tournamentMatchController.updateMatch);
 //
-router.post('/:matchId/add-player', auth("players"), tournamentMatchController.addPlayers);
-router.delete('/:matchId/remove-player', auth("players"), tournamentMatchController.removePlayerFromMatch);
+router.post('/:matchId/add-player', auth("player"), tournamentMatchController.addPlayers);
+router.delete('/:matchId/remove-player', auth("player"), tournamentMatchController.removePlayerFromMatch);
 router.put("/:matchId/player", auth("organizer", "admin"), tournamentMatchController.updatePlayerState);
 export const tournamentMatch = router;
 //# sourceMappingURL=match.router.js.map
