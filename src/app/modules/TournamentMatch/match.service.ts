@@ -245,10 +245,12 @@ const addPlayers = async (
 
      for (const p of players) {
           const isTeamMember = teamDoc.players.some(
-               id => String(id) === String(p.playerId)
+               id => id.equals(p.playerId)
           );
 
-          if (!isTeamMember) {
+          const isTeamOwner = teamDoc.teamOwner.equals(p.playerId);
+
+          if (!isTeamMember && !isTeamOwner) {
                throw new AppError(403, "Player is not in this team");
           }
 

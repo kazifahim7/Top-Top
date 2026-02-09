@@ -168,7 +168,8 @@ const addPlayers = async (matchId, data, userId) => {
     const targetField = team === "A" ? "teamAPlayers" : "teamBPlayers";
     for (const p of players) {
         const isTeamMember = teamDoc.players.some(id => String(id) === String(p.playerId));
-        if (!isTeamMember) {
+        const isTeamOwner = String(teamDoc.teamOwner) == String(p.playerId);
+        if (!isTeamMember && !isTeamOwner) {
             throw new AppError(403, "Player is not in this team");
         }
         const exists = match[targetField].some(pl => String(pl.playerId) === String(p.playerId));
