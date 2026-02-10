@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import type { ITournament } from "./Tournament.interface.js";
+export declare const getTopPlayers: (tournamentId: string) => Promise<any[]>;
 export declare const TournamentService: {
     createTournament: (payload: ITournament) => Promise<import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
         _id: Types.ObjectId;

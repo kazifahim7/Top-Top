@@ -72,8 +72,10 @@ const deleteTournament = async (id: string) => {
 };
 
 
-const getTopPlayers = async (tournamentId: string) => {
+export const getTopPlayers = async (tournamentId: string) => {
      const topPlayers = await MatchModel.aggregate([
+
+          // ✅ only completed matches of this tournament
           {
                $match: {
                     tournament: new Types.ObjectId(tournamentId),
@@ -81,7 +83,7 @@ const getTopPlayers = async (tournamentId: string) => {
                }
           },
 
-          // teamAPlayers + teamBPlayers merge
+          // ✅ merge both team players arrays
           {
                $project: {
                     players: {
@@ -90,56 +92,68 @@ const getTopPlayers = async (tournamentId: string) => {
                }
           },
 
+          // ✅ flatten players
           { $unwind: "$players" },
 
-          // guest player বাদ
+          // ✅ remove guest players
           {
                $match: {
                     "players.guest_player": false
                }
           },
 
-          // group by playerId
+          // ✅ group by playerId
           {
                $group: {
-                    _id: "$players.playerId",
+                    _id: "$players.playerId",   // already ObjectId in your schema
                     avgRating: { $avg: "$players.rating" },
                     totalMatches: { $sum: 1 }
                }
           },
 
-          // highest rating first
+          // ✅ sort by rating
           { $sort: { avgRating: -1 } },
 
-          // top 10
+          // ✅ top 10
           { $limit: 10 },
 
-          // player info populate
+          // ✅ lookup player profile
           {
                $lookup: {
-                    from: "players",
+                    from: "players", // collection name from model('Players')
                     localField: "_id",
                     foreignField: "_id",
                     as: "player"
                }
           },
 
-          { $unwind: "$player" },
+          // ✅ unwind populated player
+          {
+               $unwind: {
+                    path: "$player",
+                    preserveNullAndEmptyArrays: false
+               }
+          },
 
+          // ✅ final output shape
           {
                $project: {
                     _id: 0,
                     playerId: "$player._id",
-                    name: "$player.name",
-                    image: "$player.image",
+                    name: "$player.FullName",
+                    userName: "$player.userName",
+                    image: "$player.imageUrl",
+                    position: "$player.position",
                     avgRating: { $round: ["$avgRating", 2] },
                     totalMatches: 1
                }
           }
+
      ]);
 
      return topPlayers;
 };
+
 
 
 export const TournamentService = {
