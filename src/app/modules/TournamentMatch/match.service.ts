@@ -434,7 +434,7 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
      // matchRating = Math.max(0, Math.min(10, matchRating));
      // Number(matchRating.toFixed(2));
-     player.rating = roundRating(matchRating)
+     player.rating = Number(matchRating)
 
      // -------- Update stats ----------
      const fields: (keyof UpdatePlayerStatsDTO)[] = [
@@ -461,6 +461,11 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      }
 
      await match.save();
+
+     console.log("Before rating:", player.rating);
+     console.log("Yellow:", data.yellowCard);
+     console.log("After rating:", matchRating);
+
 
      // -------- Recalculate player avg rating ----------
      const { averageRating, matchCount } =

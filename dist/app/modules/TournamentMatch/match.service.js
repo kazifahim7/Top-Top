@@ -167,8 +167,8 @@ const addPlayers = async (matchId, data, userId) => {
     // 5️⃣ Add players
     const targetField = team === "A" ? "teamAPlayers" : "teamBPlayers";
     for (const p of players) {
-        const isTeamMember = teamDoc.players.some(id => String(id) === String(p.playerId));
-        const isTeamOwner = String(teamDoc.teamOwner) == String(p.playerId);
+        const isTeamMember = teamDoc.players.some(id => id.equals(p.playerId));
+        const isTeamOwner = teamDoc.teamOwner.equals(p.playerId);
         if (!isTeamMember && !isTeamOwner) {
             throw new AppError(403, "Player is not in this team");
         }
@@ -292,7 +292,7 @@ export const updatePlayerStats = async (data) => {
     matchRating += (data.veryGoodMoment ?? 0) * 0.5;
     // matchRating = Math.max(0, Math.min(10, matchRating));
     // Number(matchRating.toFixed(2));
-    player.rating = roundRating(matchRating);
+    player.rating = Number(matchRating);
     // -------- Update stats ----------
     const fields = [
         "redCard",
@@ -317,6 +317,9 @@ export const updatePlayerStats = async (data) => {
             match.scoreB += data.goal;
     }
     await match.save();
+    console.log("Before rating:", player.rating);
+    console.log("Yellow:", data.yellowCard);
+    console.log("After rating:", matchRating);
     // -------- Recalculate player avg rating ----------
     const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
     // -------- Update player profile ----------
