@@ -950,10 +950,13 @@ const updateLobbyInfo = async (id: string, payload: Record<string, unknown>) => 
                const result = getMatchResult(goalTeam1, goalTeam2);
                team1Update.$inc[result] = 1; // Increment win, draw, or loss
 
+               // FIX: Use _id if populated, otherwise use the teamId directly
+               const team1Id = isLobbyExist.team1.teamId._id || isLobbyExist.team1.teamId;
+
                await TeamModel.findByIdAndUpdate(
-                    isLobbyExist.team1.teamId,
+                    team1Id,
                     team1Update,
-                    {new:true}
+                    { new: true }
                );
           }
 
@@ -971,8 +974,11 @@ const updateLobbyInfo = async (id: string, payload: Record<string, unknown>) => 
                const result = getMatchResult(goalTeam2, goalTeam1);
                team2Update.$inc[result] = 1; // Increment win, draw, or loss
 
+               // FIX: Use _id if populated, otherwise use the teamId directly
+               const team2Id = isLobbyExist.team2.teamId._id || isLobbyExist.team2.teamId;
+
                await TeamModel.findByIdAndUpdate(
-                    isLobbyExist.team2.teamId,
+                    team2Id,
                     team2Update,
                     { new: true }
                );

@@ -849,7 +849,9 @@ const updateLobbyInfo = async (id, payload) => {
             // Update win/draw/loss based on result
             const result = getMatchResult(goalTeam1, goalTeam2);
             team1Update.$inc[result] = 1; // Increment win, draw, or loss
-            await TeamModel.findByIdAndUpdate(isLobbyExist.team1.teamId, team1Update, { new: true });
+            // FIX: Use _id if populated, otherwise use the teamId directly
+            const team1Id = isLobbyExist.team1.teamId._id || isLobbyExist.team1.teamId;
+            await TeamModel.findByIdAndUpdate(team1Id, team1Update, { new: true });
         }
         // Update team2 overall statistics in TeamModel
         if (isLobbyExist.team2?.teamId) {
@@ -863,7 +865,9 @@ const updateLobbyInfo = async (id, payload) => {
             // Update win/draw/loss based on result (from team2's perspective)
             const result = getMatchResult(goalTeam2, goalTeam1);
             team2Update.$inc[result] = 1; // Increment win, draw, or loss
-            await TeamModel.findByIdAndUpdate(isLobbyExist.team2.teamId, team2Update, { new: true });
+            // FIX: Use _id if populated, otherwise use the teamId directly
+            const team2Id = isLobbyExist.team2.teamId._id || isLobbyExist.team2.teamId;
+            await TeamModel.findByIdAndUpdate(team2Id, team2Update, { new: true });
         }
     }
     // Update the lobby with payload data
