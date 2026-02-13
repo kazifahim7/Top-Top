@@ -67,6 +67,20 @@ const myTeam = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const singleTeam = catchAsync(async (req: Request, res: Response) => {
+     const id = req.params.id
+ 
+    
+     const result = await teamsService.singleTeam(id!)
+
+     res.status(200).json({
+          success: true,
+          message: " Teams landed  successfully",
+          data: result
+     })
+
+
+})
 const assignCaptain = catchAsync(async (req: Request, res: Response) => {
      const ownerId = req.user.id
      const teamId = req.params?.teamId 
@@ -164,5 +178,6 @@ export const TeamController ={
      acceptInvite,
      rejectInvite,
      myRequest,
-     DeleteTeam
+     DeleteTeam,
+     singleTeam
 }

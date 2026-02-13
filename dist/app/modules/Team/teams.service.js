@@ -175,6 +175,13 @@ const myTeam = async (id) => {
         completeMatchTournament
     };
 };
+const singleTeam = async (id) => {
+    const myTeam = await TeamModel.findById(id)
+        .populate("players")
+        .populate("teamOwner")
+        .populate("teamCaptain");
+    return myTeam;
+};
 const assignCaptain = async (ownerId, teamId, captainId) => {
     if (!captainId) {
         throw new AppError(400, "Captain ID is required");
@@ -328,6 +335,7 @@ export const teamsService = {
     acceptInvite,
     rejectInvite,
     myRequest,
-    DeleteTeam
+    DeleteTeam,
+    singleTeam
 };
 //# sourceMappingURL=teams.service.js.map

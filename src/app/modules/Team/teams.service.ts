@@ -198,6 +198,13 @@ const myTeam = async (id: string) => {
           completeMatchTournament
      };
 };
+const singleTeam = async(id:string)=>{
+     const myTeam = await TeamModel.findById(id)
+          .populate("players")
+          .populate("teamOwner")
+          .populate("teamCaptain");
+          return myTeam
+}
 const assignCaptain = async (ownerId: string, teamId: string, captainId: string) => {
      if (!captainId) {
           throw new AppError(400, "Captain ID is required");
@@ -412,5 +419,6 @@ export const teamsService = {
      acceptInvite,
      rejectInvite,
      myRequest,
-     DeleteTeam
+     DeleteTeam,
+     singleTeam
 }

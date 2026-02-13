@@ -11,5 +11,6 @@ export declare const TeamController: {
     rejectInvite: (req: Request, res: Response, next: import("express").NextFunction) => void;
     myRequest: (req: Request, res: Response, next: import("express").NextFunction) => void;
     DeleteTeam: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    singleTeam: (req: Request, res: Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=team.controller.d.ts.map
