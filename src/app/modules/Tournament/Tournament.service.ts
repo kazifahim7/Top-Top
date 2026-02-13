@@ -25,6 +25,7 @@ const allTournament = async () => {
           
      return result;
 }
+
 const organizerTournament = async (id: string) => {
      const result = await TournamentModel.find({
           organizer: id,
