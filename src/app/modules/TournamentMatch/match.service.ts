@@ -87,6 +87,7 @@ export const updateMatchAndStanding = async (
           .populate('teamB');
 
      if (!match) throw new AppError(404, "Match not found");
+     console.log(match, "fahim")
 
      if (match.status === "Completed") {
           throw new AppError(403, "Match already completed");
@@ -138,7 +139,8 @@ export const updateMatchAndStanding = async (
           const resultForA = getMatchResult(match.scoreA || 0, match.scoreB || 0);
           teamAUpdate.$inc[resultForA] = 1;
 
-          await TeamModel.findByIdAndUpdate(match.teamA, teamAUpdate);
+          // FIX: Use match.teamA._id instead of match.teamA
+          await TeamModel.findByIdAndUpdate(match.teamA._id, teamAUpdate);
      }
 
      if (match.teamB) {
@@ -154,21 +156,22 @@ export const updateMatchAndStanding = async (
           const resultForB = getMatchResult(match.scoreB || 0, match.scoreA || 0);
           teamBUpdate.$inc[resultForB] = 1;
 
-          await TeamModel.findByIdAndUpdate(match.teamB, teamBUpdate);
+          // FIX: Use match.teamB._id instead of match.teamB
+          await TeamModel.findByIdAndUpdate(match.teamB._id, teamBUpdate);
      }
 
      // ---------- Update Tournament Standings ----------
+     // FIX: Pass the IDs, not the populated documents
      await updateStanding(
           match.tournament.toString(),
-          match.teamA.toString(),
+          match.teamA._id.toString(), // Use _id instead of the whole document
           match.scoreA || 0,
           match.scoreB || 0
-        
      );
 
      await updateStanding(
           match.tournament.toString(),
-          match.teamB.toString(),
+          match.teamB._id.toString(), // Use _id instead of the whole document
           match.scoreB || 0,
           match.scoreA || 0
      );
