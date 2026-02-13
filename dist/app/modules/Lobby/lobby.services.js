@@ -826,14 +826,58 @@ export const updatePlayerStats = async (data) => {
     return { lobbyPlayer: player };
 };
 const updateLobbyInfo = async (id, payload) => {
-    const isLobbyExist = await LobbyModel.findById(id);
+    const isLobbyExist = await LobbyModel.findById(id)
+        .populate('team1.teamId')
+        .populate('team2.teamId');
     console.log(payload);
     if (!isLobbyExist) {
         throw new AppError(404, "This lobby Not Found");
     }
+    // Check if match type is "teams" and lobby is completed
+    if (isLobbyExist.matchType === "teams" && payload.lobbyStatus === "completed") {
+        const goalTeam1 = isLobbyExist.goalTeam1 || 0;
+        const goalTeam2 = isLobbyExist.goalTeam2 || 0;
+        // Update team1 overall statistics in TeamModel
+        if (isLobbyExist.team1?.teamId) {
+            const team1Update = {
+                $inc: {
+                    totalMatch: 1, // Increment total matches played
+                    goal: goalTeam1, // Add goals scored in this match
+                    carryGoal: goalTeam1 // Add carry goals from this match
+                }
+            };
+            // Update win/draw/loss based on result
+            const result = getMatchResult(goalTeam1, goalTeam2);
+            team1Update.$inc[result] = 1; // Increment win, draw, or loss
+            await TeamModel.findByIdAndUpdate(isLobbyExist.team1.teamId, team1Update, { new: true });
+        }
+        // Update team2 overall statistics in TeamModel
+        if (isLobbyExist.team2?.teamId) {
+            const team2Update = {
+                $inc: {
+                    totalMatch: 1, // Increment total matches played
+                    goal: goalTeam2, // Add goals scored in this match
+                    carryGoal: goalTeam2 // Add carry goals from this match
+                }
+            };
+            // Update win/draw/loss based on result (from team2's perspective)
+            const result = getMatchResult(goalTeam2, goalTeam1);
+            team2Update.$inc[result] = 1; // Increment win, draw, or loss
+            await TeamModel.findByIdAndUpdate(isLobbyExist.team2.teamId, team2Update, { new: true });
+        }
+    }
+    // Update the lobby with payload data
     const result = await LobbyModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
 };
+// Helper function to determine match result
+function getMatchResult(teamGoals, opponentGoals) {
+    if (teamGoals > opponentGoals)
+        return 'win';
+    if (teamGoals < opponentGoals)
+        return 'loss';
+    return 'draw';
+}
 const deleteLobby = async (id) => {
     const result = await LobbyModel.findByIdAndDelete(id);
     return result;

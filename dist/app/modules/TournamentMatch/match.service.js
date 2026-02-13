@@ -53,7 +53,9 @@ const deleteMatch = async (id) => {
     return result;
 };
 export const updateMatchAndStanding = async (matchId, data) => {
-    const match = await MatchModel.findById(matchId);
+    const match = await MatchModel.findById(matchId)
+        .populate('teamA')
+        .populate('teamB');
     if (!match)
         throw new AppError(404, "Match not found");
     if (match.status === "Completed") {
@@ -85,10 +87,37 @@ export const updateMatchAndStanding = async (matchId, data) => {
     }
     match.status = "Completed";
     await match.save();
-    // ---------- Update Standings ----------
-    await updateStanding(match.tournament.toString(), match.teamA.toString(), match.scoreA, match.scoreB);
-    await updateStanding(match.tournament.toString(), match.teamB.toString(), match.scoreB, match.scoreA);
-    // ---------- Final Match ----------
+    // ---------- Update Team Overall Statistics (Team Model) ----------
+    if (match.teamA) {
+        const teamAUpdate = {
+            $inc: {
+                totalMatch: 1,
+                goal: match.scoreA || 0,
+                carryGoal: match.scoreA || 0
+            }
+        };
+        // Update win/draw/loss for Team A
+        const resultForA = getMatchResult(match.scoreA || 0, match.scoreB || 0);
+        teamAUpdate.$inc[resultForA] = 1;
+        await TeamModel.findByIdAndUpdate(match.teamA, teamAUpdate);
+    }
+    if (match.teamB) {
+        const teamBUpdate = {
+            $inc: {
+                totalMatch: 1,
+                goal: match.scoreB || 0,
+                carryGoal: match.scoreB || 0
+            }
+        };
+        // Update win/draw/loss for Team B (from their perspective)
+        const resultForB = getMatchResult(match.scoreB || 0, match.scoreA || 0);
+        teamBUpdate.$inc[resultForB] = 1;
+        await TeamModel.findByIdAndUpdate(match.teamB, teamBUpdate);
+    }
+    // ---------- Update Tournament Standings ----------
+    await updateStanding(match.tournament.toString(), match.teamA.toString(), match.scoreA || 0, match.scoreB || 0);
+    await updateStanding(match.tournament.toString(), match.teamB.toString(), match.scoreB || 0, match.scoreA || 0);
+    // ---------- Final Match Winner ----------
     if (match.group === "Final" && match.winner) {
         tournament.winner = match.winner;
         tournament.status = "completed";
@@ -96,6 +125,14 @@ export const updateMatchAndStanding = async (matchId, data) => {
     }
     return match;
 };
+// Helper function to determine match result
+function getMatchResult(teamGoals, opponentGoals) {
+    if (teamGoals > opponentGoals)
+        return 'win';
+    if (teamGoals < opponentGoals)
+        return 'loss';
+    return 'draw';
+}
 const updateStanding = async (tournamentId, teamId, scored, conceded) => {
     let standing = await StandingModel.findOne({
         tournament: tournamentId,

@@ -36,6 +36,7 @@ router.patch('/update-tournament/:id', upload.fields([
 ]), (req, _res, next) => {
      if (req.body.data) {
           try {
+               console.log(req.body.data)
                req.body = { ...JSON.parse(req.body.data) };
           } catch (err) {
                return next(new Error("Invalid JSON in 'data' field"));
