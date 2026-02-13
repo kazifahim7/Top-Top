@@ -4,6 +4,10 @@ const goalSchema = new Schema({
         type: String,
         required: true,
     },
+    goalBy: {
+        type: Schema.Types.ObjectId,
+        ref: "Players"
+    },
     goalLink: {
         type: String,
         required: true,

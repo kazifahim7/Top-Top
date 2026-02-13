@@ -12,7 +12,7 @@ const createGoal = async (payload) => {
     return result;
 };
 const allGoal = async () => {
-    const goalsData = await GoalModel.find();
+    const goalsData = await GoalModel.find().populate("goalBy");
     return goalsData;
 };
 const deleteGoal = async (id) => {
