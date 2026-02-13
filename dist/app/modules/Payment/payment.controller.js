@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { PaymentModel } from "./payment.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { Types } from "mongoose";
+import { response } from "express";
 import config from "../../config/index.js";
 import catchAsync from "../../utils/catcgAsync.js";
 import QueryBuilder from "../../builder/QueryBuilder.js";
@@ -426,7 +427,11 @@ export const paymentCancel = async (req, res) => {
             return res.status(404).json({ message: "Payment not found" });
         payment.status = "failed";
         await payment.save();
-        res.json({ message: "Payment cancelled" });
+        res.json({
+            success: true,
+            message: "Payment cancelled",
+            result: {}
+        });
     }
     catch (err) {
         console.error(err);
@@ -471,4 +476,18 @@ export const allPaymentHistoryOrganizer = catchAsync(async (req, res) => {
         data: organizerPayments,
     });
 });
+export const makePaid = async (req, res) => {
+    const { paymentId } = req.query;
+    if (!paymentId)
+        return res.status(400).json({ message: "Payment ID missing" });
+    const payment = await PaymentModel.findById(paymentId);
+    if (!payment)
+        return res.status(404).json({ message: "Payment not found" });
+    const result = await PaymentModel.findByIdAndUpdate(paymentId, { status: "paid" }, { new: true });
+    return res.json({
+        success: true,
+        message: "Payment paid successfully",
+        result: result
+    });
+};
 //# sourceMappingURL=payment.controller.js.map

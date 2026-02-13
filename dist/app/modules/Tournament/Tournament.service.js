@@ -11,11 +11,25 @@ const singleTournament = async (id) => {
     return result;
 };
 const allTournament = async () => {
-    const result = await TournamentModel.find().populate("winner qualifiedTeams teams organizer");
+    const result = await TournamentModel.find({
+        $or: [
+            { status: "active" },
+            { status: "block" }
+        ]
+    })
+        .populate("winner")
+        .populate("qualifiedTeams")
+        .populate("teams")
+        .populate("organizer").sort({ createdAt: -1 });
     return result;
 };
 const organizerTournament = async (id) => {
-    const result = await TournamentModel.find({ organizer: id }).populate("winner qualifiedTeams teams organizer");
+    const result = await TournamentModel.find({
+        organizer: id,
+        status: { $in: ["active", "block"] }
+    })
+        .populate("winner qualifiedTeams teams organizer")
+        .sort({ status: 1, createdAt: -1 });
     return result;
 };
 const updateTournament = async (id, payload) => {

@@ -7,7 +7,7 @@ export interface Payment {
     price: number;
     guest_player?: boolean;
     matchPosition?: string;
-    status: "pending" | "success" | "failed" | "refund";
+    status: "pending" | "success" | "failed" | "refund" | "paid";
     stripePaymentIntentId?: string;
     defaultTeam?: string;
     method?: string;

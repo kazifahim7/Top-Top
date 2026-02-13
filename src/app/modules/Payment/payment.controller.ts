@@ -2,7 +2,7 @@ import Stripe from "stripe";
 import { PaymentModel } from "./payment.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
 import { Types } from "mongoose";
-import type { Request, Response } from "express";
+import { response, type Request, type Response } from "express";
 import config from "../../config/index.js";
 import catchAsync from "../../utils/catcgAsync.js";
 import QueryBuilder from "../../builder/QueryBuilder.js";
@@ -525,7 +525,14 @@ export const paymentCancel = async (req: Request, res: Response) => {
           payment.status = "failed";
           await payment.save();
 
-          res.json({ message: "Payment cancelled" });
+
+           res.json({
+               success: true,
+               message: "Payment cancelled",
+               result: {}
+          });
+
+         
      } catch (err) {
           console.error(err);
           res.status(500).json({ message: "Internal server error" });
@@ -585,4 +592,20 @@ export const allPaymentHistoryOrganizer = catchAsync(async (req, res) => {
           data: organizerPayments,
      });
 });
+
+
+export const makePaid = async(req:Request, res: Response)=>{
+     const { paymentId } = req.query;
+     if (!paymentId) return res.status(400).json({ message: "Payment ID missing" });
+
+     const payment = await PaymentModel.findById(paymentId);
+     if (!payment) return res.status(404).json({ message: "Payment not found" });
+
+     const result = await PaymentModel.findByIdAndUpdate(paymentId, { status : "paid"},{new:true})
+     return res.json({
+          success: true,
+          message: "Payment paid successfully",
+          result : result
+     });
+}
 

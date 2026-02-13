@@ -71,6 +71,12 @@ const allMatch = async (query: Record<string, unknown>) => {
      const search = query.searchTerms || "";
 
      const lobbies = await LobbyModel.aggregate([
+
+          {
+               $match: {
+                    lobbyStatus: "ongoing"
+               }
+          },
           // Team 1 Data lookup (যদি থাকে)
           {
                $lookup: {
@@ -284,6 +290,11 @@ const organizerMatch = async (query: Record<string, unknown>,orgId:string) => {
      const search = query.searchTerms || "";
 
      const lobbies = await LobbyModel.aggregate([
+          {
+               $match: {
+                    lobbyStatus: "ongoing"
+               }
+          },
           {
                $match:{
                     organizer: new Types.ObjectId(orgId)
