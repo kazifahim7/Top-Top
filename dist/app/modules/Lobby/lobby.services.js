@@ -764,9 +764,7 @@ export const updatePlayerStats = async (data) => {
         "defaultTeam1",
         "defaultTeam2",
     ];
-    // -------------------
     // Find player in any team
-    // -------------------
     for (const key of teams) {
         const team = lobby[key];
         if (team?.players?.length) {
@@ -779,33 +777,29 @@ export const updatePlayerStats = async (data) => {
     }
     if (!player || !teamKey)
         throw new Error("Player not found in any team");
-    // -------------------
     // Calculate match rating BEFORE updating stats
-    // -------------------
     let matchRating = player.rating || 6.5;
-    // Subtract penalties for NEW cards only (data contains the increments)
+    // Subtract/Add penalties for cards (negative values will subtract, positive will add)
     matchRating -= (data.redCard || 0) * 0.5;
     matchRating -= (data.yellowCard || 0) * 0.25;
-    // Add bonuses for NEW stats only
+    // Add/Subtract bonuses for stats (negative values will subtract)
     matchRating += (data.goal || 0) * 0.5;
     matchRating += (data.assists || 0) * 0.5;
     matchRating += (data.contribution || 0) * 0.25;
     matchRating += (data.save || 0) * 0.25;
     matchRating += (data.veryGoodMoment || 0) * 0.25;
     matchRating += (data.goodMoment || 0) * 0.5;
-    // Clamp rating between 0 and 10 (optional but good practice)
+    // Clamp rating between 0 and 10
     matchRating = Math.max(0, Math.min(10, matchRating));
     player.rating = parseFloat(matchRating.toFixed(2));
-    // -------------------
     // Update lobby player stats (AFTER rating calculation)
-    // -------------------
     ["redCard", "yellowCard", "goal", "assists", "contribution", "save", "veryGoodMoment", "goodMoment"].forEach(field => {
         if (data[field] !== undefined) {
             player[field] += data[field];
         }
     });
-    // Update team goals if real team
-    if (data.goal && data.goal > 0) {
+    // Update team goals if goal changed (handle both positive and negative)
+    if (data.goal !== undefined && data.goal !== 0) {
         if (teamKey === "team1" || teamKey === "defaultTeam1") {
             lobby.goalTeam1 += data.goal;
         }
@@ -814,13 +808,9 @@ export const updatePlayerStats = async (data) => {
         }
     }
     await lobby.save();
-    // -------------------
     // Recalculate profile rating from all lobbies
-    // -------------------
     const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
-    // -------------------
     // Update player profile stats + rating
-    // -------------------
     await userModel.findByIdAndUpdate(data.playerId, {
         $inc: {
             redCard: data.redCard || 0,

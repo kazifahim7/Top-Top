@@ -323,7 +323,7 @@ export const updatePlayerStats = async (data) => {
     if (!player || !teamKey) {
         throw new Error("Player not found in match");
     }
-    // -------- Rating calculation ----------
+    // -------- Rating calculation  ----------
     let matchRating = player.rating ?? 6.5;
     matchRating -= (data.redCard ?? 0) * 0.5;
     matchRating -= (data.yellowCard ?? 0) * 0.25;
@@ -333,9 +333,8 @@ export const updatePlayerStats = async (data) => {
     matchRating += (data.save ?? 0) * 0.25;
     matchRating += (data.goodMoment ?? 0) * 0.25;
     matchRating += (data.veryGoodMoment ?? 0) * 0.5;
-    // matchRating = Math.max(0, Math.min(10, matchRating));
-    // Number(matchRating.toFixed(2));
-    player.rating = Number(matchRating);
+    matchRating = Math.max(0, Math.min(10, matchRating));
+    player.rating = Number(matchRating.toFixed(2));
     // -------- Update stats ----------
     const fields = [
         "redCard",
@@ -352,8 +351,8 @@ export const updatePlayerStats = async (data) => {
             player[field] += data[field];
         }
     });
-    // -------- Update match score ----------
-    if (data.goal && data.goal > 0) {
+    // -------- Update match score  ----------
+    if (data.goal !== undefined && data.goal !== 0) {
         if (teamKey === "A")
             match.scoreA += data.goal;
         if (teamKey === "B")
@@ -365,7 +364,7 @@ export const updatePlayerStats = async (data) => {
     console.log("After rating:", matchRating);
     // -------- Recalculate player avg rating ----------
     const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
-    // -------- Update player profile ----------
+    // -------- Update player profile  ----------
     await userModel.findByIdAndUpdate(data.playerId, {
         $inc: {
             redCard: data.redCard ?? 0,
