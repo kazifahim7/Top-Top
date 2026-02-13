@@ -2,12 +2,13 @@ import type { IGoal } from "./goal.interface.js";
 import { GoalModel } from "./goal.model.js";
 
 const createGoal = async (payload: IGoal) => {
-     const { goalTitle, isScheduled, scheduledDate, goalLink } = payload;
+     const { goalTitle, isScheduled, scheduledDate, goalLink,goalBy } = payload;
 
      const newGoal = new GoalModel({
           goalTitle,
           goalLink,
           isScheduled,
+          goalBy,
           scheduledDate: isScheduled ? scheduledDate : null,
           status: isScheduled ? "pending" : "active",
      });

@@ -1,1 +1,1 @@
-{"version":3,"file":"goal.service.d.ts","sourceRoot":"","sources":["../../../../src/app/modules/FeatureGoal/goal.service.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,KAAK,EAAE,MAAM,qBAAqB,CAAC;AAoCjD,eAAO,MAAM,YAAY;0BAjCU,KAAK;;;;;;;;;;qBAqBV,MAAM;;;;;CAgBnC,CAAA"}
+{"version":3,"file":"goal.service.d.ts","sourceRoot":"","sources":["../../../../src/app/modules/FeatureGoal/goal.service.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,KAAK,EAAE,MAAM,qBAAqB,CAAC;AAqCjD,eAAO,MAAM,YAAY;0BAlCU,KAAK;;;;;;;;;;qBAsBV,MAAM;;;;;CAgBnC,CAAA"}
