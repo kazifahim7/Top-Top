@@ -53,11 +53,6 @@ const createMatch = async (payload, id, role) => {
 const allMatch = async (query) => {
     const search = query.searchTerms || "";
     const lobbies = await LobbyModel.aggregate([
-        {
-            $match: {
-                lobbyStatus: "ongoing"
-            }
-        },
         // Team 1 Data lookup (যদি থাকে)
         {
             $lookup: {

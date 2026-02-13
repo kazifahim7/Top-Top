@@ -17,12 +17,7 @@ const singleTournament = async (id: string) => {
 }
 
 const allTournament = async () => {
-     const result = await TournamentModel.find({
-          $or: [
-               { status: "active" },
-               { status: "block" }
-          ]
-     })
+     const result = await TournamentModel.find()
           .populate("winner")
           .populate("qualifiedTeams")
           .populate("teams")
