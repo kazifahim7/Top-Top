@@ -49,7 +49,8 @@ const myTeam = async (id: string) => {
                upcomingMatch: [],
                upcomingMatchTournament: [],
                completeMatch: [],
-               completeMatchTournament: []
+               completeMatchTournament: [],
+               media: [] // Empty media array when no team found
           };
      }
 
@@ -190,12 +191,21 @@ const myTeam = async (id: string) => {
           .populate("teamB")
           .populate("tournament");
 
+     // Extract all media from complete matches and complete tournament matches
+     const allMedia = [
+          // Get media from regular complete matches
+          ...completeMatch.flatMap(match => match.media || []),
+          // Get media from tournament complete matches
+          ...completeMatchTournament.flatMap(match => match.media || [])
+     ];
+
      return {
           myTeam,
           upcomingMatch,
           upcomingMatchTournament,
           completeMatch,
-          completeMatchTournament
+          completeMatchTournament,
+          media: allMedia // Array containing all media URLs from completed matches
      };
 };
 const singleTeam = async(id:string)=>{

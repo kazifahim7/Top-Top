@@ -22,6 +22,7 @@ export declare const teamsService: {
         upcomingMatchTournament: never[];
         completeMatch: never[];
         completeMatchTournament: never[];
+        media: never[];
     } | {
         myTeam: import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
             _id: Types.ObjectId;
@@ -40,6 +41,7 @@ export declare const teamsService: {
         } & {
             __v: number;
         })[];
+        media: any[];
     }>;
     assignCaptain: (ownerId: string, teamId: string, captainId: string) => Promise<Omit<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;

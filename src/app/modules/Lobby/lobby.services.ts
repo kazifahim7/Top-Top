@@ -72,8 +72,6 @@ const allMatch = async (query: Record<string, unknown>) => {
 
      const lobbies = await LobbyModel.aggregate([
 
-     
-          // Team 1 Data lookup (যদি থাকে)
           {
                $lookup: {
                     from: "teams",
