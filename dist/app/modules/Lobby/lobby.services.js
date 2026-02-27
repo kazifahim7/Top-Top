@@ -54,6 +54,11 @@ const allMatch = async (query) => {
     const search = query.searchTerms || "";
     const lobbies = await LobbyModel.aggregate([
         {
+            $match: {
+                lobbyStatus: { $ne: "inactive" }
+            }
+        },
+        {
             $lookup: {
                 from: "teams",
                 localField: "team1.teamId",
@@ -877,7 +882,7 @@ function getMatchResult(teamGoals, opponentGoals) {
     return 'draw';
 }
 const deleteLobby = async (id) => {
-    const result = await LobbyModel.findByIdAndDelete(id);
+    const result = await LobbyModel.findByIdAndUpdate(id, { lobbyStatus: "inactive" }, { new: true });
     return result;
 };
 const myUpcomingLobby = async (id) => {

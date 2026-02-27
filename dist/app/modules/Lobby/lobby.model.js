@@ -51,7 +51,7 @@ const LobbySchema = new Schema({
     media: { type: [String] },
     motm: { type: Schema.Types.ObjectId, ref: "Players" },
     note: { type: String },
-    lobbyStatus: { type: String, enum: ["ongoing", "completed", "block"], default: "ongoing" },
+    lobbyStatus: { type: String, enum: ["ongoing", "completed", "block", "inactive"], default: "ongoing" },
     matchType: { type: String, enum: ["solo", "teams"], default: "solo" },
     matchPrivacy: { type: String, enum: ["public", "private"], default: "public" },
     privateKey: { type: String },

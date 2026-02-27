@@ -17,7 +17,7 @@ const tournamentSchema = new Schema<ITournament>({
      qualifiedTeams: [{ type: Schema.Types.ObjectId, ref: "Team" }],
      winner: { type: Schema.Types.ObjectId, ref: "Team", default: null },
      maxTeam: { type: Number, default: 16 },
-     status: { type: String, enum: ["active", "block","completed"], default: "active" },
+     status: { type: String, enum: ["active", "block","completed","inactive"], default: "active" },
      organizer: { type: Schema.Types.ObjectId, ref: "Players" },
      imageUrl: { type: String }
           
