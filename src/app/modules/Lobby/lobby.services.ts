@@ -280,6 +280,9 @@ const allMatch = async (query: Record<string, unknown>) => {
                          { "joinedDefaultTeam2Players.FullName": { $regex: search, $options: "i" } }
                     ]
                }
+          },
+          {
+               $sort: { createdAt: -1 }
           }
      ]);
 

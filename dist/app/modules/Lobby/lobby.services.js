@@ -247,6 +247,9 @@ const allMatch = async (query) => {
                     { "joinedDefaultTeam2Players.FullName": { $regex: search, $options: "i" } }
                 ]
             }
+        },
+        {
+            $sort: { createdAt: -1 }
         }
     ]);
     return lobbies;
