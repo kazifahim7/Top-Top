@@ -29,9 +29,9 @@ router.patch('/update-tournamentMatch/:id',upload.fields([
 
 //
 
-router.post('/:matchId/add-player', auth("player"),tournamentMatchController.addPlayers)
-router.delete('/:matchId/remove-player', auth("player"), tournamentMatchController.removePlayerFromMatch)
-router.put("/:matchId/player", auth("organizer", "admin"), tournamentMatchController.updatePlayerState);
+router.post('/:matchId/add-player', auth("player", "admin", "organizer"),tournamentMatchController.addPlayers)
+router.delete('/:matchId/remove-player', auth("player", "admin", "organizer"), tournamentMatchController.removePlayerFromMatch)
+router.put("/:matchId/player", auth("player", "admin", "organizer"), tournamentMatchController.updatePlayerState);
 
 
 

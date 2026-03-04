@@ -29,7 +29,7 @@ router.get("/all-player", authController.allUsers)
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus)
 router.delete("/delete-player/:id", auth("admin"), authController.deletePlayer)
 
-router.post('/change-password', auth("player", "admin","organizer"),authController.changePassword)
+router.post('/change-password', auth("player","admin","organizer"),authController.changePassword)
 
 router.put("/update-profile", upload.fields([
      { name: "images", maxCount: 6 }
@@ -42,10 +42,10 @@ router.put("/update-profile", upload.fields([
           }
      }
      next();
-}, auth("player", "admin", "organizer"), authController.updateProfile)
+}, auth("player","admin","organizer"), authController.updateProfile)
 
 
-router.get("/user", auth("player", "admin","organizer"), authController.singleUser)
+router.get("/user", auth("player","admin","organizer"), authController.singleUser)
 
 // single player 
 

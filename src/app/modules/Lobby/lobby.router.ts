@@ -5,7 +5,7 @@ import { upload } from '../../utils/multer.js';
 
 const  router = express.Router()
 
-router.get("/my-upcoming-match",auth("player"), lobbyController.myUpcomingLobby)
+router.get("/my-upcoming-match", auth("player","admin"), lobbyController.myUpcomingLobby)
 
 router.post("/create-match", auth("organizer","admin"),lobbyController.createMatch)
 
@@ -35,7 +35,7 @@ router.get("/organizer-lobby/:id",auth("admin"),lobbyController.organizerLobby)
 
 router.put("/assign-lobby/:id",auth("admin"),lobbyController.assignLobby)
 
-router.put("/assign-tournament/:id", auth("admin"), lobbyController.assigntournament)
+router.put("/assign-tournament/:id",auth("admin"),lobbyController.assigntournament)
 
 
 

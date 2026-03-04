@@ -1,7 +1,7 @@
 export const TAdmin = {
      "FullName": "TopTopFootball",
      "email": "halit@toptopfootball.com",
-     "password": "admin1234",
+     "password": "admin12345",
      "role": "admin",
      "isBlocked": "active",
      "mobile": "+542541341345",
