@@ -190,10 +190,16 @@ export declare const authService: {
             cleanSheets: number;
             winRatio: number;
         };
+        tournamentStats: any;
         media: string[];
         allLobbies: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
             _id: unknown;
         }> & {
+            __v: number;
+        })[];
+        tournamentMatches: (import("mongoose").Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, import("mongoose").DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
+            _id: import("mongoose").Types.ObjectId;
+        } & {
             __v: number;
         })[];
     }>;

@@ -15,6 +15,7 @@ import OtpModel from './auth.otpmodel.js';
 import emailSender from '../../utils/sendEmail.js';
 import { TeamModel } from '../Team/team.model.js';
 import { sendOTP } from '../../utils/twilio.js';
+import { MatchModel } from '../TournamentMatch/match.model.js';
 
 
 
@@ -296,14 +297,31 @@ const calculatePlayerStats = (lobbies: any[], playerId: string) => {
      let wins = 0;
 
      lobbies.forEach(lobby => {
-          const teams = [
-               lobby.team1?.players,
-               lobby.team2?.players,
-               lobby.defaultTeam1?.players,
-               lobby.defaultTeam2?.players,
+          // Player কোন team এ ছিল এবং সেই team এর goal কত
+          let playerTeamGoal: number | null = null;
+          let opponentTeamGoal: number | null = null;
+
+          // teams match (team1/team2)
+          const teamSides = [
+               { players: lobby.team1?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
+               // team2 জিতলে goalTeam2 > goalTeam1
+               { players: lobby.team2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
           ];
 
-          teams.forEach(players => {
+          // solo match (defaultTeam1/defaultTeam2)
+          const defaultSides = [
+               { players: lobby.defaultTeam1?.players, myGoal: lobby.goalTeam1, oppGoal: lobby.goalTeam2 },
+               { players: lobby.defaultTeam2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
+          ];
+
+          const allSides = [
+               { players: lobby.team1?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
+               { players: lobby.team2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
+               { players: lobby.defaultTeam1?.players, myGoal: lobby.goalTeam1, oppGoal: lobby.goalTeam2 },
+               { players: lobby.defaultTeam2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
+          ];
+
+          allSides.forEach(({ players, myGoal, oppGoal }) => {
                if (!players) return;
 
                const player = players.find(
@@ -315,21 +333,25 @@ const calculatePlayerStats = (lobbies: any[], playerId: string) => {
                     totalAssists += player.assists || 0;
                     totalSaves += player.save || 0;
 
-                    // clean sheet (basic)
-                    if ((player.save || 0) > 0 && (player.goal || 0) === 0) {
+                    // player এর team এর goal track
+                    playerTeamGoal = myGoal;
+                    opponentTeamGoal = oppGoal;
+
+                    // clean sheet: goalkeeper যদি কোনো goal না খায়
+                    if (oppGoal === 0 && (player.save !== undefined)) {
                          cleanSheets++;
                     }
                }
           });
 
-          // win logic (simple)
-          if (lobby.goalTeam1 !== undefined && lobby.goalTeam2 !== undefined) {
-               if (lobby.goalTeam1 > lobby.goalTeam2) wins++;
+          // player এর team জিতেছে কিনা
+          if (playerTeamGoal !== null && opponentTeamGoal !== null) {
+               if (playerTeamGoal > opponentTeamGoal) wins++;
           }
      });
 
      return {
-          matchesPlayed, // ✅ total lobby count
+          matchesPlayed,
           goalsPerGame: matchesPlayed ? +(totalGoals / matchesPlayed).toFixed(1) : 0,
           assistsPerGame: matchesPlayed ? +(totalAssists / matchesPlayed).toFixed(1) : 0,
           savesPerGame: matchesPlayed ? +(totalSaves / matchesPlayed).toFixed(1) : 0,
@@ -355,9 +377,9 @@ const collectLobbyMedia = (lobbies: any[]) => {
 
 
 const playerProfile = async (id: string) => {
-     console.log(id)
      const result = await userModel.findById(id);
 
+     // ✅ Lobby matches (solo + teams) - সব যেখানে player join করেছে
      const allLobbies = await LobbyModel.find({
           $or: [
                { "team1.players.playerId": id },
@@ -369,14 +391,24 @@ const playerProfile = async (id: string) => {
           .populate("team1.teamId")
           .populate("team2.teamId");
 
-     const stats = calculatePlayerStats(allLobbies, id);
+     // ✅ Tournament matches - আলাদা query
+     const tournamentMatches = await MatchModel.find({
+          $or: [
+               { "teamAPlayers.playerId": id },
+               { "teamBPlayers.playerId": id },
+          ],
+          status: "Completed",
+     }).populate("tournament teamA teamB");
+
+     const lobbyStats = calculatePlayerStats(allLobbies, id);
      const media = collectLobbyMedia(allLobbies);
 
      return {
           result,
-          stats,       // matchesPlayed = allLobbies.length
-          media,       // all lobby media merged
-          allLobbies,  // joined matches
+          stats: lobbyStats,
+          media,
+          allLobbies,
+          tournamentMatches,
      };
 };
 
