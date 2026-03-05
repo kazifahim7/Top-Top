@@ -288,6 +288,7 @@ const teamRanking = async (options: RankingOptions) => {
           {
                $match: matchStage
           },
+          // ✅ Players lookup
           {
                $lookup: {
                     from: "players",
@@ -296,9 +297,20 @@ const teamRanking = async (options: RankingOptions) => {
                     as: "playersData"
                }
           },
+          // ✅ TeamOwner lookup
+          {
+               $lookup: {
+                    from: "players",
+                    localField: "teamOwner",
+                    foreignField: "_id",
+                    as: "teamOwnerData"
+               }
+          },
+          {
+               $unwind: { path: "$teamOwnerData", preserveNullAndEmptyArrays: true }
+          },
           {
                $addFields: {
-                    avgRating: { $avg: "$playersData.rating" },
                     winPercentage: {
                          $cond: [
                               { $eq: ["$totalMatch", 0] },
@@ -308,63 +320,31 @@ const teamRanking = async (options: RankingOptions) => {
                     },
                     goalDifference: { $subtract: ["$goal", "$carryGoal"] },
 
-                    // ✅ Team rating formula (0-10)
-                    // Win Rate     → max 5.0
-                    // Draw Rate    → max 1.5
-                    // Goal Diff    → max 2.0
-                    // Experience   → max 1.5
+                    // ✅ players + teamOwner সবার rating এর average
                     teamRating: {
                          $let: {
                               vars: {
-                                   winRate: {
-                                        $cond: [
-                                             { $eq: ["$totalMatch", 0] },
-                                             0,
-                                             { $divide: ["$win", "$totalMatch"] }
-                                        ]
-                                   },
-                                   drawRate: {
-                                        $cond: [
-                                             { $eq: ["$totalMatch", 0] },
-                                             0,
-                                             { $divide: ["$draw", "$totalMatch"] }
-                                        ]
-                                   },
-                                   goalDiffPerMatch: {
-                                        $cond: [
-                                             { $eq: ["$totalMatch", 0] },
-                                             0,
+                                   allMembers: {
+                                        $concatArrays: [
+                                             "$playersData",
                                              {
-                                                  $divide: [
-                                                       { $subtract: ["$goal", "$carryGoal"] },
-                                                       "$totalMatch"
+                                                  $cond: [
+                                                       { $ifNull: ["$teamOwnerData", false] },
+                                                       ["$teamOwnerData"],
+                                                       []
                                                   ]
                                              }
                                         ]
-                                   },
-                                   experienceScore: {
-                                        $min: [{ $divide: ["$totalMatch", 20] }, 1]
                                    }
                               },
                               in: {
-                                   $min: [
-                                        10,
+                                   $cond: [
+                                        { $eq: [{ $size: "$$allMembers" }, 0] },
+                                        0,
                                         {
-                                             $max: [
-                                                  0,
-                                                  {
-                                                       $add: [
-                                                            { $multiply: ["$$winRate", 5] },
-                                                            { $multiply: ["$$drawRate", 1.5] },
-                                                            {
-                                                                 $multiply: [
-                                                                      { $min: ["$$goalDiffPerMatch", 1] },
-                                                                      2
-                                                                 ]
-                                                            },
-                                                            { $multiply: ["$$experienceScore", 1.5] }
-                                                       ]
-                                                  }
+                                             $round: [
+                                                  { $avg: "$$allMembers.rating" },
+                                                  2
                                              ]
                                         }
                                    ]
@@ -419,8 +399,7 @@ const teamRanking = async (options: RankingOptions) => {
                     carryGoal: 1,
                     winPercentage: 1,
                     goalDifference: 1,
-                    avgRating: 1,
-                    teamRating: 1, 
+                    teamRating: 1, // ✅ players + teamOwner average rating
                     ranking: 1,
                     players: 1,
                     teamOwner: 1,

@@ -29,20 +29,20 @@ const allTeams = async () => {
     return result;
 };
 function calculateTeamRating(team) {
-    if (team.totalMatch === 0)
+    if (!team)
         return 0;
-    const winRate = team.win / team.totalMatch;
-    const drawRate = team.draw / team.totalMatch;
-    const goalDiff = team.goal - team.carryGoal;
-    // Base score (0-10)
-    let rating = winRate * 5 + // জেতার হার (max 5)
-        drawRate * 1.5 + // ড্র এর হার (max 1.5)
-        Math.min(goalDiff / team.totalMatch, 1) * 2 + // গোল পার্থক্য (max 2)
-        Math.min(team.totalMatch / 20, 1) * 1.5; // অভিজ্ঞতা (max 1.5)
-    // 0-10 এর মধ্যে রাখো
-    rating = Math.max(0, Math.min(10, rating));
-    // ২ দশমিক পর্যন্ত
-    return parseFloat(rating.toFixed(2));
+    const members = [
+        ...(team.players || []),
+        team.teamOwner,
+    ].filter(Boolean);
+    if (members.length === 0)
+        return 0;
+    const totalRating = members.reduce((sum, member) => {
+        const rating = typeof member === "object" ? (member.rating || 0) : 0;
+        return sum + rating;
+    }, 0);
+    const avgRating = totalRating / members.length;
+    return parseFloat(avgRating.toFixed(2));
 }
 const myTeam = async (id) => {
     // First get the team where this user is the owner

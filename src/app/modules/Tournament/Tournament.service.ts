@@ -17,15 +17,57 @@ const singleTournament = async (id: string) => {
 }
 
 const allTournament = async () => {
-     const result = await TournamentModel.find({status:{$ne:"inactive"}})
+     const tournaments = await TournamentModel.find({ status: { $ne: "inactive" } })
           .populate("winner")
           .populate("qualifiedTeams")
-          .populate("teams")
-          .populate("organizer").sort({ createdAt: -1 });
-          
-     return result;
-}
+          .populate({
+               path: "teams",
+               populate: [
+                    { path: "players" },      // ✅ team এর players populate
+                    { path: "teamOwner" }     // ✅ team এর teamOwner populate
+               ]
+          })
+          .populate("organizer")
+          .sort({ createdAt: -1 })
+          .lean();
 
+     const result = tournaments.map((tournament) => ({
+          ...tournament,
+          teams: (tournament.teams as any[]).map((team: any) => ({
+               ...team,
+               rating: calculateTeamRating(team),
+          })),
+          qualifiedTeams: (tournament.qualifiedTeams as any[]).map((team: any) => ({
+               ...team,
+               rating: calculateTeamRating(team),
+          })),
+          winner: tournament.winner
+               ? { ...(tournament.winner as any), rating: calculateTeamRating(tournament.winner as any) }
+               : null,
+     }));
+
+     return result;
+};
+
+function calculateTeamRating(team: any): number {
+     if (!team) return 0;
+
+     // ✅ players + teamOwner সবার rating এর average
+     const members = [
+          ...(team.players || []),
+          team.teamOwner,
+     ].filter(Boolean);
+
+     if (members.length === 0) return 0;
+
+     const totalRating = members.reduce((sum: number, member: any) => {
+          const rating = typeof member === "object" ? (member.rating || 0) : 0;
+          return sum + rating;
+     }, 0);
+
+     const avgRating = totalRating / members.length;
+     return parseFloat(avgRating.toFixed(2));
+}
 const organizerTournament = async (id: string) => {
      const result = await TournamentModel.find({
           organizer: id,

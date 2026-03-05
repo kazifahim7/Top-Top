@@ -12,11 +12,27 @@ export declare const TournamentService: {
     } & {
         __v: number;
     }) | null>;
-    allTournament: () => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
+    allTournament: () => Promise<{
+        teams: any[];
+        qualifiedTeams: any[];
+        winner: any;
+        name: string;
+        type: "League" | "Knockout" | "Both";
+        price: number;
+        location: import("mongoose").FlattenMaps<{
+            lat: number;
+            lng: number;
+        }>;
+        startDate: Date;
+        duration: number;
+        fieldSize: 5 | 7 | 11 | 8 | 9 | 10;
+        maxTeam: number;
+        imageUrl: string;
+        status: string;
+        organizer: Types.ObjectId;
         _id: Types.ObjectId;
-    } & {
         __v: number;
-    })[]>;
+    }[]>;
     updateTournament: (id: string, payload: Partial<ITournament>) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
         _id: Types.ObjectId;
     } & {
