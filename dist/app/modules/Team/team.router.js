@@ -3,7 +3,7 @@ import auth from '../../middleware/auth.js';
 import { TeamController } from './team.controller.js';
 import { upload } from '../../utils/multer.js';
 const router = express.Router();
-router.post("/create-team", auth("player"), upload.fields([
+router.post("/create-team", auth("player", "admin", "organizer"), upload.fields([
     { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
     if (req.body.data) {
@@ -16,7 +16,7 @@ router.post("/create-team", auth("player"), upload.fields([
     }
     next();
 }, TeamController.createTeam);
-router.put("/update-team/:id", auth("player"), upload.fields([
+router.put("/update-team/:id", auth("player", "admin", "organizer"), upload.fields([
     { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
     if (req.body.data) {
@@ -31,16 +31,16 @@ router.put("/update-team/:id", auth("player"), upload.fields([
 }, TeamController.updateTeam);
 router.put("/update-team/:id", TeamController.updateTeam);
 router.get("/all-teams", TeamController.allTeams);
-router.get("/my-team", auth("player"), TeamController.myTeam);
+router.get("/my-team", auth("player", "admin", "organizer"), TeamController.myTeam);
 router.get("/single-team/:id", TeamController.singleTeam);
 router.delete("/delete-team/:id", TeamController.DeleteTeam);
 // assign captain in a team
-router.put("/:teamId/assign-captain", auth("player"), TeamController.assignCaptain);
-router.put("/:teamId/remove-player", auth("player"), TeamController.removePlayer);
+router.put("/:teamId/assign-captain", auth("player", "admin", "organizer"), TeamController.assignCaptain);
+router.put("/:teamId/remove-player", auth("player", "admin", "organizer"), TeamController.removePlayer);
 // ! notification api is below ->
-router.post("/:teamId/invite", auth("player"), TeamController.invitePlayer);
+router.post("/:teamId/invite", auth("player", "admin", "organizer"), TeamController.invitePlayer);
 router.post("/accept-invite/:inviteId", TeamController.acceptInvite);
 router.put("/reject-invite/:inviteId", TeamController.rejectInvite);
-router.get("/my-request", auth("player"), TeamController.myRequest);
+router.get("/my-request", auth("player", "admin", "organizer"), TeamController.myRequest);
 export const teamsRouter = router;
 //# sourceMappingURL=team.router.js.map
