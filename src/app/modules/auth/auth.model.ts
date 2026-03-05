@@ -28,6 +28,8 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
      save: { type: Number, default: 0 },
      match: { type: Number, default: 0 },
      rating: { type: Number, default: 6.5 },
+     motm: { type: Number, default: 0 },
+     cleanSheet: { type: Number, default: 0 },
      matchPosition: { type: String },
 }, {
      timestamps: true,

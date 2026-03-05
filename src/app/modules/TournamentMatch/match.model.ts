@@ -1,7 +1,7 @@
 import { Schema, model, Types } from "mongoose";
 import type { IMatch } from "./match.interface.js";
 import type { PlayerStats } from "../Lobby/lobby.interface.js";
-import { string } from "zod";
+
 
 
 const PlayerStatsSchema = new Schema<PlayerStats>({

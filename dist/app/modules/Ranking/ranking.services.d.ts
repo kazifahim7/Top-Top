@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import type { TCreateProfile } from "../auth/auth.interface.js";
 interface RankingOptions {
     filterBy?: "weekly" | "monthly" | "all";
@@ -10,7 +11,49 @@ interface RankingOptions {
     position?: string;
 }
 export declare const playerRankingService: {
-    playerRanking: (options: RankingOptions) => Promise<any[]>;
+    playerRanking: (options: RankingOptions) => Promise<{
+        windowStats: {
+            matchCount: number;
+            rating: number;
+            goal: number;
+            assists: number;
+            tackle: number;
+            save: number;
+            redCard: number;
+            yellowCard: number;
+            contribution: number;
+        };
+        FullName: string;
+        email: string;
+        password: string;
+        role: "admin" | "player" | "organizer";
+        isBlocked: "active" | "block";
+        mobile?: string;
+        socialProfile: string[];
+        imageUrl: string;
+        nationality: string;
+        dominantFoot: string;
+        playingDays: string[];
+        gameMode: string;
+        preferredAreas: string;
+        age: string;
+        position: string[];
+        userName: string;
+        matchPosition?: string;
+        redCard: number;
+        yellowCard: number;
+        contribution: number;
+        assists: number;
+        goal: number;
+        tackle: number;
+        save: number;
+        rating: number;
+        match: number;
+        motm?: number;
+        cleanSheet: number;
+        _id: mongoose.Types.ObjectId;
+        __v: number;
+    }[]>;
     teamRanking: (options: RankingOptions) => Promise<any[]>;
 };
 export {};

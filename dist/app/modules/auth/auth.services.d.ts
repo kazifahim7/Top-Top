@@ -63,6 +63,8 @@ export declare const authService: {
         save?: any;
         rating?: any;
         match?: any;
+        motm?: any;
+        cleanSheet?: any;
     }, {}, {}> & {
         FullName?: any;
         email?: any;
@@ -90,6 +92,8 @@ export declare const authService: {
         save?: any;
         rating?: any;
         match?: any;
+        motm?: any;
+        cleanSheet?: any;
     } & {
         _id: import("mongoose").Types.ObjectId;
     } & {
@@ -127,6 +131,8 @@ export declare const authService: {
         save: number;
         rating: number;
         match: number;
+        motm?: number;
+        cleanSheet: number;
         _id: import("mongoose").Types.ObjectId;
         __v: number;
     } | null>;

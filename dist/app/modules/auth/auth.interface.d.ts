@@ -26,6 +26,8 @@ export type TCreateProfile = {
     save: number;
     rating: number;
     match: number;
+    motm?: number;
+    cleanSheet: number;
 };
 export type OtpType = {
     id: Types.ObjectId;

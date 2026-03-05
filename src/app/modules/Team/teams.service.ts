@@ -36,6 +36,28 @@ const allTeams = async () => {
           .populate("teamCaptain");
      return result
 }
+
+
+function calculateTeamRating(team: any): number {
+     if (team.totalMatch === 0) return 0;
+
+     const winRate = team.win / team.totalMatch;
+     const drawRate = team.draw / team.totalMatch;
+     const goalDiff = team.goal - team.carryGoal;
+
+     // Base score (0-10)
+     let rating =
+          winRate * 5 +        // জেতার হার (max 5)
+          drawRate * 1.5 +     // ড্র এর হার (max 1.5)
+          Math.min(goalDiff / team.totalMatch, 1) * 2 + // গোল পার্থক্য (max 2)
+          Math.min(team.totalMatch / 20, 1) * 1.5;      // অভিজ্ঞতা (max 1.5)
+
+     // 0-10 এর মধ্যে রাখো
+     rating = Math.max(0, Math.min(10, rating));
+
+     // ২ দশমিক পর্যন্ত
+     return parseFloat(rating.toFixed(2));
+}
 const myTeam = async (id: string) => {
      // First get the team where this user is the owner
      const myTeam = await TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
@@ -43,9 +65,12 @@ const myTeam = async (id: string) => {
           .populate("teamOwner")
           .populate("teamCaptain");
 
+    
+
      if (!myTeam) {
           return {
                myTeam: null,
+               myTeamRating:0,
                upcomingMatch: [],
                upcomingMatchTournament: [],
                completeMatch: [],
@@ -55,6 +80,7 @@ const myTeam = async (id: string) => {
      }
 
      const teamId = myTeam._id;
+     const rating = calculateTeamRating(myTeam);
 
      // Helper function to get matches with proper population
      const getLobbyMatches = async (status: string) => {
@@ -201,6 +227,7 @@ const myTeam = async (id: string) => {
 
      return {
           myTeam,
+          myTeamRating:rating,
           upcomingMatch,
           upcomingMatchTournament,
           completeMatch,
@@ -213,8 +240,16 @@ const singleTeam = async(id:string)=>{
           .populate("players")
           .populate("teamOwner")
           .populate("teamCaptain");
-          return myTeam
+
+     const rating = calculateTeamRating(myTeam);
+          return {
+               ...myTeam,
+               teamRating:rating
+          }
 }
+
+
+
 const assignCaptain = async (ownerId: string, teamId: string, captainId: string) => {
      if (!captainId) {
           throw new AppError(400, "Captain ID is required");

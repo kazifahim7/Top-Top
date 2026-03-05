@@ -1,5 +1,4 @@
 import { Schema, model, Types } from "mongoose";
-import { string } from "zod";
 const PlayerStatsSchema = new Schema({
     playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
     redCard: { type: Number, default: 0 },
