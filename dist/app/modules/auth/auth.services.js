@@ -130,7 +130,7 @@ const getSingleUser = async (email) => {
     return {
         ...user.toObject(),
         myJoinedTeam,
-        hasOwnTeam: hasOwnTeam ? true : false
+        hasOwnTeam: hasOwnTeam
     };
 };
 const resetRequest = async (payload) => {

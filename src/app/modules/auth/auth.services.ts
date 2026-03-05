@@ -185,7 +185,7 @@ const getSingleUser = async (email: string) => {
      return {
           ...user.toObject(),
           myJoinedTeam,
-          hasOwnTeam : hasOwnTeam ? true : false
+          hasOwnTeam : hasOwnTeam 
      };
 };
 

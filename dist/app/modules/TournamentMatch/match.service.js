@@ -52,104 +52,6 @@ const deleteMatch = async (id) => {
     const result = await MatchModel.findByIdAndDelete(id);
     return result;
 };
-export const updateMatchAndStanding = async (matchId, data) => {
-    const match = await MatchModel.findById(matchId)
-        .populate('teamA')
-        .populate('teamB');
-    if (!match)
-        throw new AppError(404, "Match not found");
-    if (match.status === "Completed") {
-        throw new AppError(403, "Match already completed");
-    }
-    const tournament = await TournamentModel.findById(match.tournament);
-    if (!tournament)
-        throw new AppError(404, "Tournament not found");
-    // ---------- ONLY ALLOWED UPDATES ----------
-    if (typeof data.scoreA === "number")
-        match.scoreA = data.scoreA;
-    if (typeof data.scoreB === "number")
-        match.scoreB = data.scoreB;
-    if (data.media?.length) {
-        match.media = [...(match.media || []), ...data.media];
-    }
-    if (data.motm) {
-        match.motm = data.motm;
-    }
-    // ---------- Auto Winner ----------
-    if (typeof match.scoreA === "number" &&
-        typeof match.scoreB === "number") {
-        match.winner =
-            match.scoreA > match.scoreB
-                ? match.teamA
-                : match.scoreB > match.scoreA
-                    ? match.teamB
-                    : null;
-    }
-    match.status = "Completed";
-    await match.save();
-    // ---------- Update Team Overall Statistics (Team Model) ----------
-    if (match.teamA) {
-        const teamAUpdate = {
-            $inc: {
-                totalMatch: 1,
-                goal: match.scoreA || 0,
-                carryGoal: match.scoreB || 0,
-            },
-        };
-        const resultForA = getMatchResult(match.scoreA || 0, match.scoreB || 0);
-        teamAUpdate.$inc[resultForA] = 1;
-        await TeamModel.findByIdAndUpdate(match.teamA._id, teamAUpdate);
-    }
-    if (match.teamB) {
-        const teamBUpdate = {
-            $inc: {
-                totalMatch: 1,
-                goal: match.scoreB || 0,
-                carryGoal: match.scoreA || 0,
-            },
-        };
-        const resultForB = getMatchResult(match.scoreB || 0, match.scoreA || 0);
-        teamBUpdate.$inc[resultForB] = 1;
-        await TeamModel.findByIdAndUpdate(match.teamB._id, teamBUpdate);
-    }
-    // ---------- Clean Sheet Update ----------
-    // Team A goalkeeper — যদি Team B কোনো গোল না করে
-    if (match.scoreB === 0) {
-        const teamAGoalkeeper = match.teamAPlayers?.find((p) => p.matchPosition === "Goalkeeper");
-        if (teamAGoalkeeper) {
-            await userModel.findByIdAndUpdate(teamAGoalkeeper.playerId, { $inc: { cleanSheet: 1 } });
-        }
-    }
-    // Team B goalkeeper — যদি Team A কোনো গোল না করে
-    if (match.scoreA === 0) {
-        const teamBGoalkeeper = match.teamBPlayers?.find((p) => p.matchPosition === "Goalkeeper");
-        if (teamBGoalkeeper) {
-            await userModel.findByIdAndUpdate(teamBGoalkeeper.playerId, { $inc: { cleanSheet: 1 } });
-        }
-    }
-    // ---------- MOTM Update ----------
-    if (data.motm) {
-        await userModel.findByIdAndUpdate(data.motm, { $inc: { motm: 1 } });
-    }
-    // ---------- Update Tournament Standings ----------
-    await updateStanding(match.tournament.toString(), match.teamA._id.toString(), match.scoreA || 0, match.scoreB || 0);
-    await updateStanding(match.tournament.toString(), match.teamB._id.toString(), match.scoreB || 0, match.scoreA || 0);
-    // ---------- Final Match Winner ----------
-    if (match.group === "Final" && match.winner) {
-        tournament.winner = match.winner;
-        tournament.status = "completed";
-        await tournament.save();
-    }
-    return match;
-};
-// Helper function to determine match result
-function getMatchResult(teamGoals, opponentGoals) {
-    if (teamGoals > opponentGoals)
-        return 'win';
-    if (teamGoals < opponentGoals)
-        return 'loss';
-    return 'draw';
-}
 const updateStanding = async (tournamentId, teamId, scored, conceded) => {
     let standing = await StandingModel.findOne({
         tournament: tournamentId,
@@ -186,6 +88,103 @@ const updateStanding = async (tournamentId, teamId, scored, conceded) => {
     await standing.save();
     return standing;
 };
+export const updateMatchAndStanding = async (matchId, data) => {
+    const match = await MatchModel.findById(matchId)
+        .populate('teamA')
+        .populate('teamB');
+    if (!match)
+        throw new AppError(404, "Match not found");
+    if (match.status === "Completed") {
+        throw new AppError(403, "Match already completed");
+    }
+    const tournament = await TournamentModel.findById(match.tournament);
+    if (!tournament)
+        throw new AppError(404, "Tournament not found");
+    if (typeof data.scoreA === "number")
+        match.scoreA = data.scoreA;
+    if (typeof data.scoreB === "number")
+        match.scoreB = data.scoreB;
+    if (data.media?.length) {
+        match.media = [...(match.media || []), ...data.media];
+    }
+    if (data.motm) {
+        match.motm = data.motm;
+    }
+    if (typeof match.scoreA === "number" &&
+        typeof match.scoreB === "number") {
+        match.winner =
+            match.scoreA > match.scoreB
+                ? match.teamA
+                : match.scoreB > match.scoreA
+                    ? match.teamB
+                    : null;
+    }
+    match.status = "Completed";
+    await match.save();
+    // ---------- Update Team Overall Statistics ----------
+    if (match.teamA) {
+        const teamAUpdate = {
+            $inc: {
+                totalMatch: 1,
+                goal: match.scoreA || 0,
+                carryGoal: match.scoreB || 0,
+            },
+        };
+        const resultForA = getMatchResult(match.scoreA || 0, match.scoreB || 0);
+        teamAUpdate.$inc[resultForA] = 1;
+        await TeamModel.findByIdAndUpdate(match.teamA._id, teamAUpdate);
+    }
+    if (match.teamB) {
+        const teamBUpdate = {
+            $inc: {
+                totalMatch: 1,
+                goal: match.scoreB || 0,
+                carryGoal: match.scoreA || 0,
+            },
+        };
+        const resultForB = getMatchResult(match.scoreB || 0, match.scoreA || 0);
+        teamBUpdate.$inc[resultForB] = 1;
+        await TeamModel.findByIdAndUpdate(match.teamB._id, teamBUpdate);
+    }
+    // ---------- Clean Sheet Update ----------
+    if (match.scoreB === 0) {
+        const teamAPlayerIds = match.teamAPlayers
+            ?.map((p) => p.playerId)
+            .filter(Boolean);
+        if (teamAPlayerIds?.length) {
+            await userModel.updateMany({ _id: { $in: teamAPlayerIds } }, { $inc: { cleanSheet: 1 } });
+        }
+    }
+    if (match.scoreA === 0) {
+        const teamBPlayerIds = match.teamBPlayers
+            ?.map((p) => p.playerId)
+            .filter(Boolean);
+        if (teamBPlayerIds?.length) {
+            await userModel.updateMany({ _id: { $in: teamBPlayerIds } }, { $inc: { cleanSheet: 1 } });
+        }
+    }
+    // ---------- MOTM Update ----------
+    if (data.motm) {
+        await userModel.findByIdAndUpdate(data.motm, { $inc: { motm: 1 } });
+    }
+    // ---------- Update Tournament Standings ----------
+    await updateStanding(match.tournament.toString(), match.teamA._id.toString(), match.scoreA || 0, match.scoreB || 0);
+    await updateStanding(match.tournament.toString(), match.teamB._id.toString(), match.scoreB || 0, match.scoreA || 0);
+    // ---------- Final Match Winner ----------
+    if (match.group === "Final" && match.winner) {
+        tournament.winner = match.winner;
+        tournament.status = "completed";
+        await tournament.save();
+    }
+    return match;
+};
+function getMatchResult(teamGoals, opponentGoals) {
+    if (teamGoals > opponentGoals)
+        return 'win';
+    if (teamGoals < opponentGoals)
+        return 'loss';
+    return 'draw';
+}
 const addPlayers = async (matchId, data, userId) => {
     const { team, players, matchFormat } = data;
     // 1️⃣ Find Match
@@ -334,18 +333,19 @@ export const updatePlayerStats = async (data) => {
     if (!player || !teamKey) {
         throw new Error("Player not found in match");
     }
-    // -------- Rating calculation  ----------
-    let matchRating = player.rating ?? 6.5;
-    matchRating -= (data.redCard ?? 0) * 0.5;
-    matchRating -= (data.yellowCard ?? 0) * 0.25;
-    matchRating += (data.goal ?? 0) * 0.5;
-    matchRating += (data.assists ?? 0) * 0.5;
-    matchRating += (data.contribution ?? 0) * 0.25;
-    matchRating += (data.save ?? 0) * 0.25;
-    matchRating += (data.goodMoment ?? 0) * 0.25;
-    matchRating += (data.veryGoodMoment ?? 0) * 0.5;
-    matchRating = Math.max(0, Math.min(10, matchRating));
-    player.rating = Number(matchRating.toFixed(2));
+    // -------- Rating calculation ----------
+    let rawRating = player.rawRating ?? player.rating ?? 6.5;
+    rawRating -= (data.redCard ?? 0) * 0.5;
+    rawRating -= (data.yellowCard ?? 0) * 0.25;
+    rawRating += (data.goal ?? 0) * 0.5;
+    rawRating += (data.assists ?? 0) * 0.5;
+    rawRating += (data.contribution ?? 0) * 0.25;
+    rawRating += (data.save ?? 0) * 0.25;
+    rawRating += (data.goodMoment ?? 0) * 0.25;
+    rawRating += (data.veryGoodMoment ?? 0) * 0.5;
+    // ✅ rawRating save, rating clamp
+    player.rawRating = Number(rawRating.toFixed(2));
+    player.rating = Number(Math.max(0, Math.min(10, rawRating)).toFixed(2));
     // -------- Update stats ----------
     const fields = [
         "redCard",
@@ -362,7 +362,7 @@ export const updatePlayerStats = async (data) => {
             player[field] += data[field];
         }
     });
-    // -------- Update match score  ----------
+    // -------- Update match score ----------
     if (data.goal !== undefined && data.goal !== 0) {
         if (teamKey === "A")
             match.scoreA += data.goal;
@@ -370,12 +370,9 @@ export const updatePlayerStats = async (data) => {
             match.scoreB += data.goal;
     }
     await match.save();
-    console.log("Before rating:", player.rating);
-    console.log("Yellow:", data.yellowCard);
-    console.log("After rating:", matchRating);
     // -------- Recalculate player avg rating ----------
     const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
-    // -------- Update player profile  ----------
+    // -------- Update player profile ----------
     await userModel.findByIdAndUpdate(data.playerId, {
         $inc: {
             redCard: data.redCard ?? 0,

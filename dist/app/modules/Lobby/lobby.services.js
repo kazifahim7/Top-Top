@@ -764,7 +764,6 @@ export const updatePlayerStats = async (data) => {
         "defaultTeam1",
         "defaultTeam2",
     ];
-    // Find player in any team
     for (const key of teams) {
         const team = lobby[key];
         if (team?.players?.length) {
@@ -777,28 +776,24 @@ export const updatePlayerStats = async (data) => {
     }
     if (!player || !teamKey)
         throw new Error("Player not found in any team");
-    // Calculate match rating BEFORE updating stats
-    let matchRating = player.rating || 6.5;
-    // Subtract/Add penalties for cards (negative values will subtract, positive will add)
-    matchRating -= (data.redCard || 0) * 0.5;
-    matchRating -= (data.yellowCard || 0) * 0.25;
-    // Add/Subtract bonuses for stats (negative values will subtract)
-    matchRating += (data.goal || 0) * 0.5;
-    matchRating += (data.assists || 0) * 0.5;
-    matchRating += (data.contribution || 0) * 0.25;
-    matchRating += (data.save || 0) * 0.25;
-    matchRating += (data.veryGoodMoment || 0) * 0.25;
-    matchRating += (data.goodMoment || 0) * 0.5;
-    // Clamp rating between 0 and 10
-    matchRating = Math.max(0, Math.min(10, matchRating));
-    player.rating = parseFloat(matchRating.toFixed(2));
-    // Update lobby player stats (AFTER rating calculation)
+    // ✅ rawRating থেকে calculate করো, rating থেকে না
+    let rawRating = player.rawRating ?? player.rating ?? 6.5;
+    rawRating -= (data.redCard || 0) * 0.5;
+    rawRating -= (data.yellowCard || 0) * 0.25;
+    rawRating += (data.goal || 0) * 0.5;
+    rawRating += (data.assists || 0) * 0.5;
+    rawRating += (data.contribution || 0) * 0.25;
+    rawRating += (data.save || 0) * 0.25;
+    rawRating += (data.veryGoodMoment || 0) * 0.25;
+    rawRating += (data.goodMoment || 0) * 0.5;
+    // ✅ rawRating সংরক্ষণ করো (unclamped), rating clamp করো
+    player.rawRating = parseFloat(rawRating.toFixed(2));
+    player.rating = parseFloat(Math.max(0, Math.min(10, rawRating)).toFixed(2));
     ["redCard", "yellowCard", "goal", "assists", "contribution", "save", "veryGoodMoment", "goodMoment"].forEach(field => {
         if (data[field] !== undefined) {
             player[field] += data[field];
         }
     });
-    // Update team goals if goal changed (handle both positive and negative)
     if (data.goal !== undefined && data.goal !== 0) {
         if (teamKey === "team1" || teamKey === "defaultTeam1") {
             lobby.goalTeam1 += data.goal;
@@ -808,9 +803,7 @@ export const updatePlayerStats = async (data) => {
         }
     }
     await lobby.save();
-    // Recalculate profile rating from all lobbies
     const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
-    // Update player profile stats + rating
     await userModel.findByIdAndUpdate(data.playerId, {
         $inc: {
             redCard: data.redCard || 0,
@@ -861,17 +854,19 @@ const updateLobbyInfo = async (id, payload) => {
             const team2Id = isLobbyExist.team2.teamId._id || isLobbyExist.team2.teamId;
             await TeamModel.findByIdAndUpdate(team2Id, team2Update, { new: true });
         }
-        // ✅ Clean Sheet — goalkeeper যে দলে গোল খায়নি
+        // ✅ Clean Sheet — team1 এর সব players যদি goalTeam2 === 0
         if (goalTeam2 === 0) {
-            const team1Goalkeeper = isLobbyExist.team1?.players?.find((p) => p.matchPosition === "Goalkeeper");
-            if (team1Goalkeeper) {
-                await userModel.findByIdAndUpdate(team1Goalkeeper.playerId, { $inc: { cleanSheet: 1 } });
+            const team1Players = isLobbyExist.team1?.players || [];
+            const team1PlayerIds = team1Players.map((p) => p.playerId).filter(Boolean);
+            if (team1PlayerIds.length > 0) {
+                await userModel.updateMany({ _id: { $in: team1PlayerIds } }, { $inc: { cleanSheet: 1 } });
             }
         }
         if (goalTeam1 === 0) {
-            const team2Goalkeeper = isLobbyExist.team2?.players?.find((p) => p.matchPosition === "Goalkeeper");
-            if (team2Goalkeeper) {
-                await userModel.findByIdAndUpdate(team2Goalkeeper.playerId, { $inc: { cleanSheet: 1 } });
+            const team2Players = isLobbyExist.team2?.players || [];
+            const team2PlayerIds = team2Players.map((p) => p.playerId).filter(Boolean);
+            if (team2PlayerIds.length > 0) {
+                await userModel.updateMany({ _id: { $in: team2PlayerIds } }, { $inc: { cleanSheet: 1 } });
             }
         }
     }

@@ -10,6 +10,7 @@ export interface PlayerStats {
     tackle: number;
     save: number;
     rating: number;
+    rawRating?: number;
     goodMoment: number;
     veryGoodMoment: number;
     guest_player?: boolean;

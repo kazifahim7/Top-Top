@@ -105,7 +105,11 @@ export declare const authService: {
         } & {
             __v: number;
         })[];
-        hasOwnTeam: boolean;
+        hasOwnTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: import("mongoose").Types.ObjectId;
+        } & {
+            __v: number;
+        }) | null;
         FullName: string;
         email: string;
         password: string;

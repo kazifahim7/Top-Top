@@ -14,8 +14,10 @@ import { StandingModel } from "../PointTable/pointtable.model.js";
 const stripe = new Stripe(config.sk_key, { apiVersion: "2025-08-27.basil" });
 export const joinLobby = async (req, res) => {
     try {
-        const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId, guest_player } = req.body;
+        const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId, guest_player, teamPlayerId, // ✅ নতুন: captain যে member-কে add করতে চায়
+         } = req.body;
         let playerId = req.user.id;
+        // ─── Extra Player (Organizer only) ────────────────────────────────────
         if (ExtraPlayerId) {
             if (req.user.role !== "organizer") {
                 throw new AppError(403, "Only organizer can add extra player");
@@ -33,13 +35,13 @@ export const joinLobby = async (req, res) => {
         if (!playerId) {
             throw new AppError(400, "User ID is required");
         }
+        // ─── Lobby Validation ─────────────────────────────────────────────────
         if (lobbyId) {
             const isLobbyExist = await LobbyModel.findById(lobbyId);
             if (!isLobbyExist) {
                 throw new AppError(404, "Lobby not found");
             }
             let currentTeam;
-            // Determine which team to check based on matchType
             if (isLobbyExist.matchType === "solo") {
                 //@ts-ignore
                 if (isLobbyExist.defaultTeam1?._id?.toString() === teamId?.toString()) {
@@ -55,22 +57,29 @@ export const joinLobby = async (req, res) => {
                 if (!isTeamsExist) {
                     throw new AppError(404, "Team not found");
                 }
-                if (isTeamsExist.teamOwner.toString() !== playerId &&
-                    !isTeamsExist.players.some(p => p.toString() === playerId.toString())) {
-                    throw new AppError(403, "You are not a team player");
+                const isOwner = isTeamsExist.teamOwner.toString() === playerId.toString();
+                // ✅ Team match-এ শুধু captain (teamOwner) join করতে পারবে
+                if (!isOwner) {
+                    throw new AppError(403, "Only team captain can join or add players to the lobby");
                 }
-                // ✅ নতুন চেক: player কি অন্য team এ already join করেছে?
+                // ✅ Captain যদি teamPlayerId দেয়, সেই member টা team-এর কিনা check করো
+                if (teamPlayerId) {
+                    const isMember = isTeamsExist.players.some((p) => p.toString() === teamPlayerId.toString());
+                    if (!isMember) {
+                        throw new AppError(403, "This player is not a member of your team");
+                    }
+                }
+                // Opponent team-এ already আছে কিনা check
                 const team1Players = isLobbyExist.team1?.players || [];
                 const team2Players = isLobbyExist.team2?.players || [];
-                const isInTeam1 = team1Players.some(p => p.playerId.toString() === playerId.toString());
-                const isInTeam2 = team2Players.some(p => p.playerId.toString() === playerId.toString());
-                // যদি team1 এ join করতে চাইছে কিন্তু team2 তে already আছে
+                const checkPlayerId = teamPlayerId ? teamPlayerId.toString() : playerId.toString();
+                const isInTeam1 = team1Players.some((p) => p.playerId.toString() === checkPlayerId);
+                const isInTeam2 = team2Players.some((p) => p.playerId.toString() === checkPlayerId);
                 if (isLobbyExist.team1?.teamId?.toString() === teamId?.toString() && isInTeam2) {
-                    throw new AppError(403, "You are already joined in the opponent team");
+                    throw new AppError(403, "This player is already joined in the opponent team");
                 }
-                // যদি team2 তে join করতে চাইছে কিন্তু team1 এ already আছে
                 if (isLobbyExist.team2?.teamId?.toString() === teamId?.toString() && isInTeam1) {
-                    throw new AppError(403, "You are already joined in the opponent team");
+                    throw new AppError(403, "This player is already joined in the opponent team");
                 }
                 if (isLobbyExist.team1?.teamId?.toString() === teamId?.toString()) {
                     currentTeam = isLobbyExist.team1;
@@ -79,21 +88,20 @@ export const joinLobby = async (req, res) => {
                     currentTeam = isLobbyExist.team2;
                 }
             }
-            // Check duplicate position only inside that specific team
+            // Duplicate position check
             if (currentTeam?.players?.some((p) => p.matchPosition === matchPosition)) {
                 return res.status(400).json({
                     message: "This position is already taken in this team",
                 });
             }
+            // Private lobby key check
             if (isLobbyExist?.matchPrivacy === "private") {
-                if (!isLobbyExist) {
-                    throw new AppError(404, "Lobby not found");
-                }
                 if (isLobbyExist.privateKey !== privateKey) {
                     throw new AppError(403, "Wrong key, Please enter a proper key");
                 }
             }
         }
+        // ─── Tournament Validation ────────────────────────────────────────────
         if (tournamentId) {
             const isTournamentExist = await TournamentModel.findById(tournamentId);
             if (!isTournamentExist) {
@@ -103,6 +111,7 @@ export const joinLobby = async (req, res) => {
                 throw new AppError(403, "This tournament is currently blocked");
             }
         }
+        // ─── Lobby Block Check ────────────────────────────────────────────────
         if (lobbyId) {
             const isLobbyExist = await LobbyModel.findById(lobbyId);
             if (!isLobbyExist) {
@@ -113,61 +122,203 @@ export const joinLobby = async (req, res) => {
             }
         }
         const playerObjectId = typeof playerId === "string" ? new Types.ObjectId(playerId) : playerId;
-        const teamObjectId = teamId ? (typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId) : undefined;
+        const teamObjectId = teamId
+            ? typeof teamId === "string"
+                ? new Types.ObjectId(teamId)
+                : teamId
+            : undefined;
+        // ─── Pending Request Check ────────────────────────────────────────────
+        // teamPlayerId থাকলে সেই player-এর জন্য check, না হলে captain-এর জন্য
+        const checkPlayerForPending = teamPlayerId
+            ? new Types.ObjectId(teamPlayerId)
+            : playerObjectId;
         const allreadyRequestAviableInSamePosition = await PaymentModel.findOne({
             lobbyId,
-            playerId,
+            playerId: checkPlayerForPending,
             teamId,
             matchPosition,
             status: "pending",
-            guest_player: isGuestPlayer
+            guest_player: isGuestPlayer,
         });
-        console.log(allreadyRequestAviableInSamePosition, "fahim");
         if (allreadyRequestAviableInSamePosition) {
-            throw new AppError(403, "You already have a pending cash request for this position. Please wait for admin approval or choose another position.");
+            throw new AppError(403, "This player already has a pending request for this position. Please wait for admin approval or choose another position.");
         }
         let payment;
+        // ─── Team Fee ─────────────────────────────────────────────────────────
         if (paymentType === "team fee") {
             const lobby = await LobbyModel.findById(lobbyId);
             if (!lobby)
                 return res.status(404).json({ message: "Lobby not found" });
-            // FIXED: Check if teams exist before accessing players
-            const isDuplicate = (lobby.team1?.players?.some(p => p.playerId.toString() === playerObjectId.toString()) || false) ||
-                (lobby.team2?.players?.some(p => p.playerId.toString() === playerObjectId.toString()) || false) ||
-                (lobby.defaultTeam1?.players?.some(p => p.playerId.toString() === playerObjectId.toString()) || false) ||
-                (lobby.defaultTeam2?.players?.some(p => p.playerId.toString() === playerObjectId.toString()) || false);
-            if (isDuplicate)
-                return res.status(400).json({ message: "Player already joined this lobby" });
-            // FIXED: Check if teams exist and have players array before checking length
-            const team1PlayersCount = lobby.team1?.players?.filter(player => player.guest_player === false).length || 0;
-            const team2PlayersCount = lobby.team2?.players?.filter(player => player.guest_player === false).length || 0;
-            const defaultTeam1PlayersCount = lobby.defaultTeam1?.players?.filter(player => player.guest_player === false).length || 0;
-            const defaultTeam2PlayersCount = lobby.defaultTeam2?.players?.filter(player => player.guest_player === false).length || 0;
-            // if (team1PlayersCount >= lobby.maxSlot && team2PlayersCount >= lobby.maxSlot) {
-            //      return res.status(400).json({ message: "Both teams are full" });
-            // }
-            if (team1PlayersCount >= lobby.teamSize || team2PlayersCount >= lobby.teamSize) {
-                return res.status(400).json({ message: " teams are full" });
+            // ✅ TEAMS match type
+            if (lobby.matchType === "teams") {
+                const isTeamsExist = await TeamModel.findById(teamId);
+                if (!isTeamsExist) {
+                    throw new AppError(404, "Team not found");
+                }
+                const isOwner = isTeamsExist.teamOwner.toString() === playerObjectId.toString();
+                // ── Captain নিজে join করছে (teamPlayerId নেই) ──────────────
+                if (isOwner && !teamPlayerId) {
+                    // Duplicate check for captain
+                    const isDuplicate = lobby.team1?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) ||
+                        lobby.team2?.players?.some((p) => p.playerId.toString() === playerObjectId.toString());
+                    if (isDuplicate) {
+                        return res
+                            .status(400)
+                            .json({ message: "Captain already joined this lobby" });
+                    }
+                    // Team full check
+                    const team1PlayersCount = lobby.team1?.players?.filter((p) => p.guest_player === false).length || 0;
+                    const team2PlayersCount = lobby.team2?.players?.filter((p) => p.guest_player === false).length || 0;
+                    if (team1PlayersCount >= lobby.teamSize || team2PlayersCount >= lobby.teamSize) {
+                        return res.status(400).json({ message: "Team is full" });
+                    }
+                    // Normal payment record create (captain pays)
+                    payment = await PaymentModel.create({
+                        lobbyId,
+                        playerId: playerObjectId,
+                        teamId,
+                        price,
+                        status: "pending",
+                        method,
+                        matchPosition,
+                        matchFormat,
+                        paymentType,
+                        guest_player: isGuestPlayer,
+                    });
+                    // ── Captain member add করছে (teamPlayerId আছে) ─────────────
+                }
+                else if (isOwner && teamPlayerId) {
+                    // Captain-এর payment "paid" আছে কিনা check
+                    const captainPaid = await PaymentModel.findOne({
+                        lobbyId,
+                        playerId: playerObjectId,
+                        teamId,
+                        status: "paid",
+                        paymentType: "team fee",
+                    });
+                    if (!captainPaid) {
+                        throw new AppError(403, "You must complete your own payment first before adding team members");
+                    }
+                    const teamPlayerObjectId = new Types.ObjectId(teamPlayerId);
+                    // Duplicate check for this member
+                    const isMemberDuplicate = lobby.team1?.players?.some((p) => p.playerId.toString() === teamPlayerObjectId.toString()) ||
+                        lobby.team2?.players?.some((p) => p.playerId.toString() === teamPlayerObjectId.toString());
+                    if (isMemberDuplicate) {
+                        return res
+                            .status(400)
+                            .json({ message: "This player already joined this lobby" });
+                    }
+                    // Team full check
+                    const team1PlayersCount = lobby.team1?.players?.filter((p) => p.guest_player === false).length || 0;
+                    const team2PlayersCount = lobby.team2?.players?.filter((p) => p.guest_player === false).length || 0;
+                    if (team1PlayersCount >= lobby.teamSize || team2PlayersCount >= lobby.teamSize) {
+                        return res.status(400).json({ message: "Team is full" });
+                    }
+                    // ✅ Free payment record create for member
+                    payment = await PaymentModel.create({
+                        lobbyId,
+                        playerId: teamPlayerObjectId, // member-এর ID
+                        teamId,
+                        price: 0,
+                        status: "paid", // সরাসরি paid
+                        method: "free",
+                        matchPosition,
+                        matchFormat,
+                        paymentType,
+                        guest_player: isGuestPlayer,
+                    });
+                    // ✅ Member-কে সরাসরি lobby-তে add করো
+                    const memberUser = await userModel.findById(teamPlayerObjectId);
+                    if (!memberUser) {
+                        return res.status(404).json({ message: "Team player not found" });
+                    }
+                    const memberData = {
+                        playerId: teamPlayerObjectId,
+                        matchPosition: matchPosition || "",
+                        redCard: 0,
+                        yellowCard: 0,
+                        substitution: 0,
+                        assists: 0,
+                        goal: 0,
+                        tackle: 0,
+                        save: 0,
+                        rating: 6.5,
+                        mainRating: memberUser.rating,
+                        guest_player: isGuestPlayer,
+                    };
+                    let targetTeam = null;
+                    let assignedTeam = "";
+                    if (lobby.team1?.teamId?.toString() === teamId?.toString()) {
+                        targetTeam = lobby.team1;
+                        assignedTeam = "team1";
+                    }
+                    else if (lobby.team2?.teamId?.toString() === teamId?.toString()) {
+                        targetTeam = lobby.team2;
+                        assignedTeam = "team2";
+                    }
+                    else {
+                        return res.status(400).json({ message: "Team not found in lobby" });
+                    }
+                    if (!targetTeam.players)
+                        targetTeam.players = [];
+                    targetTeam.players.push(memberData);
+                    // Average rating update
+                    const calculateAverageMainRating = (players) => {
+                        if (!players || players.length === 0)
+                            return 0;
+                        const sum = players.reduce((total, p) => total + (p.mainRating || p.rating || 0), 0);
+                        return sum / players.length;
+                    };
+                    if (lobby.team1?.players) {
+                        lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(lobby.team1.players);
+                    }
+                    if (lobby.team2?.players) {
+                        lobby.team2AvgMatchRatingBefore = calculateAverageMainRating(lobby.team2.players);
+                    }
+                    await userModel.findByIdAndUpdate(teamPlayerObjectId, { $inc: { match: 1 } });
+                    await lobby.save();
+                    return res.json({
+                        success: true,
+                        message: "Team player added successfully",
+                        assignedTeam,
+                        playerId: teamPlayerObjectId,
+                    });
+                }
+                // ✅ SOLO match type (আগের মতোই)
             }
-            // if (defaultTeam1PlayersCount >= lobby.maxSlot && defaultTeam2PlayersCount >= lobby.maxSlot) {
-            //      return res.status(400).json({ message: "Both teams are full" });
-            // }
-            if (defaultTeam1PlayersCount >= lobby.teamSize || defaultTeam2PlayersCount >= lobby.teamSize) {
-                return res.status(400).json({ message: " teams are full" });
+            else {
+                const isDuplicate = (lobby.team1?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false) ||
+                    (lobby.team2?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false) ||
+                    (lobby.defaultTeam1?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false) ||
+                    (lobby.defaultTeam2?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false);
+                if (isDuplicate) {
+                    return res.status(400).json({ message: "Player already joined this lobby" });
+                }
+                const team1PlayersCount = lobby.team1?.players?.filter((p) => p.guest_player === false).length || 0;
+                const team2PlayersCount = lobby.team2?.players?.filter((p) => p.guest_player === false).length || 0;
+                const defaultTeam1PlayersCount = lobby.defaultTeam1?.players?.filter((p) => p.guest_player === false).length || 0;
+                const defaultTeam2PlayersCount = lobby.defaultTeam2?.players?.filter((p) => p.guest_player === false).length || 0;
+                if (team1PlayersCount >= lobby.teamSize || team2PlayersCount >= lobby.teamSize) {
+                    return res.status(400).json({ message: "Teams are full" });
+                }
+                if (defaultTeam1PlayersCount >= lobby.teamSize ||
+                    defaultTeam2PlayersCount >= lobby.teamSize) {
+                    return res.status(400).json({ message: "Teams are full" });
+                }
+                payment = await PaymentModel.create({
+                    lobbyId,
+                    playerId: playerObjectId,
+                    teamId,
+                    price,
+                    status: "pending",
+                    method,
+                    matchPosition,
+                    matchFormat,
+                    paymentType,
+                    guest_player: isGuestPlayer,
+                });
             }
-            // Create Payment Record (pending)
-            payment = await PaymentModel.create({
-                lobbyId,
-                playerId: playerObjectId,
-                teamId: teamId,
-                price,
-                status: "pending",
-                method,
-                matchPosition,
-                matchFormat,
-                paymentType,
-                guest_player: isGuestPlayer
-            });
+            // ─── Tournament Fee ───────────────────────────────────────────────────
         }
         else if (paymentType === "tournament fee") {
             const tournament = await TournamentModel.findById(tournamentId);
@@ -179,34 +330,34 @@ export const joinLobby = async (req, res) => {
             if (tournament.type === "Both" || tournament.type === "League") {
                 if (tournament.teams.length >= tournament.maxTeam)
                     throw new AppError(403, "Team is full");
-                if (tournament.teams.some(t => t.toString() === findTeam._id.toString()))
+                if (tournament.teams.some((t) => t.toString() === findTeam._id.toString()))
                     throw new AppError(400, "Team already exists");
             }
             if (tournament.type === "Knockout") {
                 if (tournament.qualifiedTeams.length >= tournament.maxTeam)
                     throw new AppError(403, "Team is full");
-                if (tournament.qualifiedTeams.some(t => t.toString() === findTeam._id.toString()))
+                if (tournament.qualifiedTeams.some((t) => t.toString() === findTeam._id.toString()))
                     throw new AppError(400, "Team already exists");
             }
-            // Create Payment Record (pending)
             payment = await PaymentModel.create({
                 tournamentId,
                 teamId: findTeam._id,
                 price,
                 status: "pending",
                 method,
-                paymentType
+                paymentType,
             });
         }
-        // Cash payment handling
+        // ─── Cash Payment ─────────────────────────────────────────────────────
         if (method === "cash") {
             const result = await payment.save();
             return res.json({
                 success: true,
                 message: "Cash request successfully sent. Wait for the admin.",
-                data: result
+                data: result,
             });
         }
+        // ─── Stripe Payment ───────────────────────────────────────────────────
         const paymentIntent = await stripe.paymentIntents.create({
             amount: price * 100,
             currency: "aed",
@@ -218,22 +369,19 @@ export const joinLobby = async (req, res) => {
                 matchPosition: matchPosition || "",
                 defaultTeam: defaultTeam || "",
                 matchFormat: matchFormat || "",
-                method
-            }
+                method,
+            },
         });
         if (!paymentIntent) {
-            // Handle Stripe error
             await PaymentModel.findByIdAndUpdate(payment._id, { status: "failed" });
             throw new AppError(500, "Payment processing failed");
         }
-        // Save PaymentIntent ID
         payment.stripePaymentIntentId = paymentIntent.id;
         await payment.save();
-        // Return client_secret to Flutter
         return res.json({
             success: true,
             paymentId: payment._id,
-            clientSecret: paymentIntent.client_secret
+            clientSecret: paymentIntent.client_secret,
         });
     }
     catch (err) {
@@ -269,7 +417,7 @@ export const paymentSuccess = async (req, res) => {
             if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
                 return res.status(400).json({ message: "Payment amount or currency mismatch" });
             }
-            payment.status = "success";
+            payment.status = "paid";
             await payment.save();
         }
         // Post-payment actions
