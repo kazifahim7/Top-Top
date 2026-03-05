@@ -36,6 +36,26 @@ const allTeams = async () => {
           .populate("teamCaptain");
      return result
 }
+
+
+function calculateTeamRating(team: any): number {
+     if (!team) return 0;
+
+     const members = [
+          ...(team.players || []),
+          team.teamOwner,
+     ].filter(Boolean);
+
+     if (members.length === 0) return 0;
+
+     const totalRating = members.reduce((sum: number, member: any) => {
+          const rating = typeof member === "object" ? (member.rating || 0) : 0;
+          return sum + rating;
+     }, 0);
+
+     const avgRating = totalRating / members.length;
+     return parseFloat(avgRating.toFixed(2));
+}
 const myTeam = async (id: string) => {
      // First get the team where this user is the owner
      const myTeam = await TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
@@ -43,9 +63,12 @@ const myTeam = async (id: string) => {
           .populate("teamOwner")
           .populate("teamCaptain");
 
+    
+
      if (!myTeam) {
           return {
                myTeam: null,
+               myTeamRating:0,
                upcomingMatch: [],
                upcomingMatchTournament: [],
                completeMatch: [],
@@ -55,6 +78,7 @@ const myTeam = async (id: string) => {
      }
 
      const teamId = myTeam._id;
+     const rating = calculateTeamRating(myTeam);
 
      // Helper function to get matches with proper population
      const getLobbyMatches = async (status: string) => {
@@ -201,6 +225,7 @@ const myTeam = async (id: string) => {
 
      return {
           myTeam,
+          myTeamRating:rating,
           upcomingMatch,
           upcomingMatchTournament,
           completeMatch,
@@ -213,8 +238,16 @@ const singleTeam = async(id:string)=>{
           .populate("players")
           .populate("teamOwner")
           .populate("teamCaptain");
-          return myTeam
+
+     const rating = calculateTeamRating(myTeam);
+          return {
+               ...myTeam,
+               teamRating:rating
+          }
 }
+
+
+
 const assignCaptain = async (ownerId: string, teamId: string, captainId: string) => {
      if (!captainId) {
           throw new AppError(400, "Captain ID is required");

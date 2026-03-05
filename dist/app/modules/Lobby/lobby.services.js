@@ -7,6 +7,7 @@ import { TeamModel } from "../Team/team.model.js";
 import { PaymentModel } from "../Payment/payment.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { getPlayerOverallRating } from "../../utils/getRating.js";
+//lobby match
 const createMatch = async (payload, id, role) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -45,8 +46,6 @@ const createMatch = async (payload, id, role) => {
         if (!isTeams2Exist) {
             throw new AppError(404, "not found");
         }
-        await TeamModel.findByIdAndUpdate(teamId1, { $inc: { totalMatch: 1 } });
-        await TeamModel.findByIdAndUpdate(teamId2, { $inc: { totalMatch: 1 } });
     }
     return result;
 };
@@ -830,52 +829,59 @@ const updateLobbyInfo = async (id, payload) => {
     const isLobbyExist = await LobbyModel.findById(id)
         .populate('team1.teamId')
         .populate('team2.teamId');
-    console.log(payload);
     if (!isLobbyExist) {
         throw new AppError(404, "This lobby Not Found");
     }
-    // Check if match type is "teams" and lobby is completed
     if (isLobbyExist.matchType === "teams" && payload.lobbyStatus === "completed") {
         const goalTeam1 = isLobbyExist.goalTeam1 || 0;
         const goalTeam2 = isLobbyExist.goalTeam2 || 0;
-        // Update team1 overall statistics in TeamModel
         if (isLobbyExist.team1?.teamId) {
             const team1Update = {
                 $inc: {
-                    totalMatch: 1, // Increment total matches played
-                    goal: goalTeam1, // Add goals scored in this match
-                    carryGoal: goalTeam1 // Add carry goals from this match
-                }
+                    totalMatch: 1,
+                    goal: goalTeam1,
+                    carryGoal: goalTeam2,
+                },
             };
-            // Update win/draw/loss based on result
             const result = getMatchResult(goalTeam1, goalTeam2);
-            team1Update.$inc[result] = 1; // Increment win, draw, or loss
-            // FIX: Use _id if populated, otherwise use the teamId directly
+            team1Update.$inc[result] = 1;
             const team1Id = isLobbyExist.team1.teamId._id || isLobbyExist.team1.teamId;
             await TeamModel.findByIdAndUpdate(team1Id, team1Update, { new: true });
         }
-        // Update team2 overall statistics in TeamModel
         if (isLobbyExist.team2?.teamId) {
             const team2Update = {
                 $inc: {
-                    totalMatch: 1, // Increment total matches played
-                    goal: goalTeam2, // Add goals scored in this match
-                    carryGoal: goalTeam2 // Add carry goals from this match
-                }
+                    totalMatch: 1,
+                    goal: goalTeam2,
+                    carryGoal: goalTeam1,
+                },
             };
-            // Update win/draw/loss based on result (from team2's perspective)
             const result = getMatchResult(goalTeam2, goalTeam1);
-            team2Update.$inc[result] = 1; // Increment win, draw, or loss
-            // FIX: Use _id if populated, otherwise use the teamId directly
+            team2Update.$inc[result] = 1;
             const team2Id = isLobbyExist.team2.teamId._id || isLobbyExist.team2.teamId;
             await TeamModel.findByIdAndUpdate(team2Id, team2Update, { new: true });
         }
+        // ✅ Clean Sheet — goalkeeper যে দলে গোল খায়নি
+        if (goalTeam2 === 0) {
+            const team1Goalkeeper = isLobbyExist.team1?.players?.find((p) => p.matchPosition === "Goalkeeper");
+            if (team1Goalkeeper) {
+                await userModel.findByIdAndUpdate(team1Goalkeeper.playerId, { $inc: { cleanSheet: 1 } });
+            }
+        }
+        if (goalTeam1 === 0) {
+            const team2Goalkeeper = isLobbyExist.team2?.players?.find((p) => p.matchPosition === "Goalkeeper");
+            if (team2Goalkeeper) {
+                await userModel.findByIdAndUpdate(team2Goalkeeper.playerId, { $inc: { cleanSheet: 1 } });
+            }
+        }
     }
-    // Update the lobby with payload data
+    // ✅ MOTM — payload এ motm আসলে player profile এ increment
+    if (payload.motm) {
+        await userModel.findByIdAndUpdate(payload.motm, { $inc: { motm: 1 } });
+    }
     const result = await LobbyModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
 };
-// Helper function to determine match result
 function getMatchResult(teamGoals, opponentGoals) {
     if (teamGoals > opponentGoals)
         return 'win';

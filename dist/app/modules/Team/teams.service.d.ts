@@ -18,6 +18,7 @@ export declare const teamsService: {
     })[]>;
     myTeam: (id: string) => Promise<{
         myTeam: null;
+        myTeamRating: number;
         upcomingMatch: never[];
         upcomingMatchTournament: never[];
         completeMatch: never[];
@@ -29,6 +30,7 @@ export declare const teamsService: {
         } & {
             __v: number;
         };
+        myTeamRating: number;
         upcomingMatch: any[];
         upcomingMatchTournament: (import("mongoose").Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, import("mongoose").DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
             _id: Types.ObjectId;
@@ -78,10 +80,32 @@ export declare const teamsService: {
     } & {
         __v: number;
     }) | null>;
-    singleTeam: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
-        _id: Types.ObjectId;
-    } & {
-        __v: number;
-    }) | null>;
+    singleTeam: (id: string) => Promise<{
+        teamRating: number;
+        _id?: Types.ObjectId;
+        $locals?: Record<string, unknown>;
+        $op?: "save" | "validate" | "remove" | null;
+        $where?: Record<string, unknown>;
+        baseModelName?: string;
+        collection?: import("mongoose").Collection;
+        db?: import("mongoose").Connection;
+        errors?: import("mongoose").Error.ValidationError;
+        id?: any;
+        isNew?: boolean;
+        schema?: import("mongoose").Schema;
+        image?: string;
+        teamName?: string;
+        userName?: string;
+        totalMatch?: number;
+        win?: number;
+        draw?: number;
+        loss?: number;
+        players?: Types.ObjectId[];
+        teamOwner?: Types.ObjectId;
+        teamCaptain?: Types.ObjectId[];
+        goal?: number;
+        carryGoal?: number;
+        __v?: number;
+    }>;
 };
 //# sourceMappingURL=teams.service.d.ts.map

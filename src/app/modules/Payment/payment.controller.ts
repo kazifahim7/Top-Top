@@ -70,18 +70,34 @@ export const joinLobby = async (req: Request, res: Response) => {
                     }
                } 
                else if (isLobbyExist.matchType === "teams") {
-                    const isTeamsExist = await TeamModel.findById(teamId)
+                    const isTeamsExist = await TeamModel.findById(teamId);
                     if (!isTeamsExist) {
                          throw new AppError(404, "Team not found");
-
                     }
+
                     if (
                          isTeamsExist.teamOwner.toString() !== playerId &&
-                         !isTeamsExist.players.includes(playerId)
+                         !isTeamsExist.players.some(p => p.toString() === playerId.toString())
                     ) {
                          throw new AppError(403, "You are not a team player");
                     }
 
+                    // ✅ নতুন চেক: player কি অন্য team এ already join করেছে?
+                    const team1Players = isLobbyExist.team1?.players || [];
+                    const team2Players = isLobbyExist.team2?.players || [];
+
+                    const isInTeam1 = team1Players.some(p => p.playerId.toString() === playerId.toString());
+                    const isInTeam2 = team2Players.some(p => p.playerId.toString() === playerId.toString());
+
+                    // যদি team1 এ join করতে চাইছে কিন্তু team2 তে already আছে
+                    if (isLobbyExist.team1?.teamId?.toString() === teamId?.toString() && isInTeam2) {
+                         throw new AppError(403, "You are already joined in the opponent team");
+                    }
+
+                    // যদি team2 তে join করতে চাইছে কিন্তু team1 এ already আছে
+                    if (isLobbyExist.team2?.teamId?.toString() === teamId?.toString() && isInTeam1) {
+                         throw new AppError(403, "You are already joined in the opponent team");
+                    }
 
                     if (isLobbyExist.team1?.teamId?.toString() === teamId?.toString()) {
                          currentTeam = isLobbyExist.team1;

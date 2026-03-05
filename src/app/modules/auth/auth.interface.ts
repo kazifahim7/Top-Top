@@ -27,7 +27,9 @@ export type TCreateProfile = {
      tackle: number;
      save: number;
      rating: number;
-     match:number
+     match:number,
+     motm?:number,
+     cleanSheet:number
 }
 
 

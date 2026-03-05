@@ -87,7 +87,6 @@ export const updateMatchAndStanding = async (
           .populate('teamB');
 
      if (!match) throw new AppError(404, "Match not found");
-     console.log(match, "fahim")
 
      if (match.status === "Completed") {
           throw new AppError(403, "Match already completed");
@@ -122,7 +121,6 @@ export const updateMatchAndStanding = async (
      }
 
      match.status = "Completed";
-
      await match.save();
 
      // ---------- Update Team Overall Statistics (Team Model) ----------
@@ -131,15 +129,11 @@ export const updateMatchAndStanding = async (
                $inc: {
                     totalMatch: 1,
                     goal: match.scoreA || 0,
-                    carryGoal: match.scoreA || 0
-               }
+                    carryGoal: match.scoreB || 0,
+               },
           };
-
-          // Update win/draw/loss for Team A
           const resultForA = getMatchResult(match.scoreA || 0, match.scoreB || 0);
           teamAUpdate.$inc[resultForA] = 1;
-
-          // FIX: Use match.teamA._id instead of match.teamA
           await TeamModel.findByIdAndUpdate(match.teamA._id, teamAUpdate);
      }
 
@@ -148,30 +142,60 @@ export const updateMatchAndStanding = async (
                $inc: {
                     totalMatch: 1,
                     goal: match.scoreB || 0,
-                    carryGoal: match.scoreB || 0
-               }
+                    carryGoal: match.scoreA || 0,
+               },
           };
-
-          // Update win/draw/loss for Team B (from their perspective)
           const resultForB = getMatchResult(match.scoreB || 0, match.scoreA || 0);
           teamBUpdate.$inc[resultForB] = 1;
-
-          // FIX: Use match.teamB._id instead of match.teamB
           await TeamModel.findByIdAndUpdate(match.teamB._id, teamBUpdate);
      }
 
+     // ---------- Clean Sheet Update ----------
+     // Team A goalkeeper — যদি Team B কোনো গোল না করে
+     if (match.scoreB === 0) {
+          const teamAGoalkeeper = match.teamAPlayers?.find(
+               (p: any) => p.matchPosition === "Goalkeeper"
+          );
+          if (teamAGoalkeeper) {
+               await userModel.findByIdAndUpdate(
+                    teamAGoalkeeper.playerId,
+                    { $inc: { cleanSheet: 1 } }
+               );
+          }
+     }
+
+     // Team B goalkeeper — যদি Team A কোনো গোল না করে
+     if (match.scoreA === 0) {
+          const teamBGoalkeeper = match.teamBPlayers?.find(
+               (p: any) => p.matchPosition === "Goalkeeper"
+          );
+          if (teamBGoalkeeper) {
+               await userModel.findByIdAndUpdate(
+                    teamBGoalkeeper.playerId,
+                    { $inc: { cleanSheet: 1 } }
+               );
+          }
+     }
+
+     // ---------- MOTM Update ----------
+     if (data.motm) {
+          await userModel.findByIdAndUpdate(
+               data.motm,
+               { $inc: { motm: 1 } }
+          );
+     }
+
      // ---------- Update Tournament Standings ----------
-     // FIX: Pass the IDs, not the populated documents
      await updateStanding(
           match.tournament.toString(),
-          match.teamA._id.toString(), // Use _id instead of the whole document
+          match.teamA._id.toString(),
           match.scoreA || 0,
           match.scoreB || 0
      );
 
      await updateStanding(
           match.tournament.toString(),
-          match.teamB._id.toString(), // Use _id instead of the whole document
+          match.teamB._id.toString(),
           match.scoreB || 0,
           match.scoreA || 0
      );
@@ -184,7 +208,7 @@ export const updateMatchAndStanding = async (
      }
 
      return match;
-}
+};
 
 // Helper function to determine match result
 function getMatchResult(teamGoals: number, opponentGoals: number): 'win' | 'draw' | 'loss' {
