@@ -825,48 +825,67 @@ const updateLobbyInfo = async (id, payload) => {
     if (!isLobbyExist) {
         throw new AppError(404, "This lobby Not Found");
     }
-    if (isLobbyExist.matchType === "teams" && payload.lobbyStatus === "completed") {
+    if (payload.lobbyStatus === "completed") {
         const goalTeam1 = isLobbyExist.goalTeam1 || 0;
         const goalTeam2 = isLobbyExist.goalTeam2 || 0;
-        if (isLobbyExist.team1?.teamId) {
-            const team1Update = {
-                $inc: {
-                    totalMatch: 1,
-                    goal: goalTeam1,
-                    carryGoal: goalTeam2,
-                },
-            };
-            const result = getMatchResult(goalTeam1, goalTeam2);
-            team1Update.$inc[result] = 1;
-            const team1Id = isLobbyExist.team1.teamId._id || isLobbyExist.team1.teamId;
-            await TeamModel.findByIdAndUpdate(team1Id, team1Update, { new: true });
-        }
-        if (isLobbyExist.team2?.teamId) {
-            const team2Update = {
-                $inc: {
-                    totalMatch: 1,
-                    goal: goalTeam2,
-                    carryGoal: goalTeam1,
-                },
-            };
-            const result = getMatchResult(goalTeam2, goalTeam1);
-            team2Update.$inc[result] = 1;
-            const team2Id = isLobbyExist.team2.teamId._id || isLobbyExist.team2.teamId;
-            await TeamModel.findByIdAndUpdate(team2Id, team2Update, { new: true });
-        }
-        // ✅ Clean Sheet — team1 এর সব players যদি goalTeam2 === 0
-        if (goalTeam2 === 0) {
-            const team1Players = isLobbyExist.team1?.players || [];
-            const team1PlayerIds = team1Players.map((p) => p.playerId).filter(Boolean);
-            if (team1PlayerIds.length > 0) {
-                await userModel.updateMany({ _id: { $in: team1PlayerIds } }, { $inc: { cleanSheet: 1 } });
+        // ==================== TEAMS MATCH ====================
+        if (isLobbyExist.matchType === "teams") {
+            if (isLobbyExist.team1?.teamId) {
+                const team1Update = {
+                    $inc: { totalMatch: 1, goal: goalTeam1, carryGoal: goalTeam2 },
+                };
+                const result = getMatchResult(goalTeam1, goalTeam2);
+                team1Update.$inc[result] = 1;
+                const team1Id = isLobbyExist.team1.teamId._id || isLobbyExist.team1.teamId;
+                await TeamModel.findByIdAndUpdate(team1Id, team1Update, { new: true });
+            }
+            if (isLobbyExist.team2?.teamId) {
+                const team2Update = {
+                    $inc: { totalMatch: 1, goal: goalTeam2, carryGoal: goalTeam1 },
+                };
+                const result = getMatchResult(goalTeam2, goalTeam1);
+                team2Update.$inc[result] = 1;
+                const team2Id = isLobbyExist.team2.teamId._id || isLobbyExist.team2.teamId;
+                await TeamModel.findByIdAndUpdate(team2Id, team2Update, { new: true });
+            }
+            // ✅ Clean Sheet — team1 players (opponent goalTeam2 === 0)
+            if (goalTeam2 === 0) {
+                const team1PlayerIds = (isLobbyExist.team1?.players || [])
+                    .map((p) => p.playerId)
+                    .filter(Boolean);
+                if (team1PlayerIds.length > 0) {
+                    await userModel.updateMany({ _id: { $in: team1PlayerIds } }, { $inc: { cleanSheet: 1 } });
+                }
+            }
+            // ✅ Clean Sheet — team2 players (opponent goalTeam1 === 0)
+            if (goalTeam1 === 0) {
+                const team2PlayerIds = (isLobbyExist.team2?.players || [])
+                    .map((p) => p.playerId)
+                    .filter(Boolean);
+                if (team2PlayerIds.length > 0) {
+                    await userModel.updateMany({ _id: { $in: team2PlayerIds } }, { $inc: { cleanSheet: 1 } });
+                }
             }
         }
-        if (goalTeam1 === 0) {
-            const team2Players = isLobbyExist.team2?.players || [];
-            const team2PlayerIds = team2Players.map((p) => p.playerId).filter(Boolean);
-            if (team2PlayerIds.length > 0) {
-                await userModel.updateMany({ _id: { $in: team2PlayerIds } }, { $inc: { cleanSheet: 1 } });
+        // ==================== SOLO MATCH ====================
+        if (isLobbyExist.matchType === "solo") {
+            // ✅ Clean Sheet — defaultTeam1 players (opponent goalTeam2 === 0)
+            if (goalTeam2 === 0) {
+                const defaultTeam1PlayerIds = (isLobbyExist.defaultTeam1?.players || [])
+                    .map((p) => p.playerId)
+                    .filter(Boolean);
+                if (defaultTeam1PlayerIds.length > 0) {
+                    await userModel.updateMany({ _id: { $in: defaultTeam1PlayerIds } }, { $inc: { cleanSheet: 1 } });
+                }
+            }
+            // ✅ Clean Sheet — defaultTeam2 players (opponent goalTeam1 === 0)
+            if (goalTeam1 === 0) {
+                const defaultTeam2PlayerIds = (isLobbyExist.defaultTeam2?.players || [])
+                    .map((p) => p.playerId)
+                    .filter(Boolean);
+                if (defaultTeam2PlayerIds.length > 0) {
+                    await userModel.updateMany({ _id: { $in: defaultTeam2PlayerIds } }, { $inc: { cleanSheet: 1 } });
+                }
             }
         }
     }
