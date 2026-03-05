@@ -105,6 +105,7 @@ export declare const authService: {
         } & {
             __v: number;
         })[];
+        hasOwnTeam: boolean;
         FullName: string;
         email: string;
         password: string;
@@ -190,7 +191,6 @@ export declare const authService: {
             cleanSheets: number;
             winRatio: number;
         };
-        tournamentStats: any;
         media: string[];
         allLobbies: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
             _id: unknown;

@@ -6,7 +6,7 @@ export declare const pointTableService: {
         win: number;
         draw: number;
         loss: number;
-        team: {
+        tournament: {
             prototype?: import("mongoose").Types.ObjectId | null;
             cacheHexString?: unknown;
             generate?: {} | null;
@@ -15,7 +15,7 @@ export declare const pointTableService: {
             createFromBase64?: {} | null;
             isValid?: {} | null;
         };
-        tournament: {
+        team: {
             prototype?: import("mongoose").Types.ObjectId | null;
             cacheHexString?: unknown;
             generate?: {} | null;
@@ -37,7 +37,7 @@ export declare const pointTableService: {
         win: number;
         draw: number;
         loss: number;
-        team: {
+        tournament: {
             prototype?: import("mongoose").Types.ObjectId | null;
             cacheHexString?: unknown;
             generate?: {} | null;
@@ -46,7 +46,7 @@ export declare const pointTableService: {
             createFromBase64?: {} | null;
             isValid?: {} | null;
         };
-        tournament: {
+        team: {
             prototype?: import("mongoose").Types.ObjectId | null;
             cacheHexString?: unknown;
             generate?: {} | null;

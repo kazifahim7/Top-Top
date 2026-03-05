@@ -120,16 +120,17 @@ const allStudentFromDB = async (query) => {
     return result;
 };
 const getSingleUser = async (email) => {
-    console.log(email);
     const user = await userModel.findOne({ email }).select("-password");
     if (!user)
         return null;
     const myJoinedTeam = await TeamModel.find({
         players: { $in: [user._id] }
     });
+    const hasOwnTeam = await TeamModel.findOne({ teamOwner: user._id });
     return {
         ...user.toObject(),
-        myJoinedTeam
+        myJoinedTeam,
+        hasOwnTeam: hasOwnTeam ? true : false
     };
 };
 const resetRequest = async (payload) => {
@@ -297,7 +298,6 @@ const playerProfile = async (id) => {
     return {
         result,
         stats: lobbyStats,
-        tournamentStats, // আলাদা দেখাবে
         media,
         allLobbies,
         tournamentMatches,

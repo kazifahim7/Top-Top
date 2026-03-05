@@ -171,7 +171,7 @@ const allStudentFromDB = async (query: Record<string, unknown>) => {
 }
 
 const getSingleUser = async (email: string) => {
-     console.log(email);
+   
 
      const user = await userModel.findOne({ email }).select("-password");
      if (!user) return null;
@@ -180,9 +180,12 @@ const getSingleUser = async (email: string) => {
           players: { $in: [user._id] } 
      });
 
+     const hasOwnTeam= await TeamModel.findOne({teamOwner:user._id})
+
      return {
           ...user.toObject(),
-          myJoinedTeam
+          myJoinedTeam,
+          hasOwnTeam : hasOwnTeam ? true : false
      };
 };
 

@@ -6,7 +6,7 @@ export declare const StandingModel: import("mongoose").Model<{
     win: number;
     draw: number;
     loss: number;
-    team: {
+    tournament: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -15,7 +15,7 @@ export declare const StandingModel: import("mongoose").Model<{
         createFromBase64?: {} | null;
         isValid?: {} | null;
     };
-    tournament: {
+    team: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -35,7 +35,7 @@ export declare const StandingModel: import("mongoose").Model<{
     win: number;
     draw: number;
     loss: number;
-    team: {
+    tournament: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -44,7 +44,7 @@ export declare const StandingModel: import("mongoose").Model<{
         createFromBase64?: {} | null;
         isValid?: {} | null;
     };
-    tournament: {
+    team: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -66,7 +66,7 @@ export declare const StandingModel: import("mongoose").Model<{
     win: number;
     draw: number;
     loss: number;
-    team: {
+    tournament: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -75,7 +75,7 @@ export declare const StandingModel: import("mongoose").Model<{
         createFromBase64?: {} | null;
         isValid?: {} | null;
     };
-    tournament: {
+    team: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -101,7 +101,7 @@ export declare const StandingModel: import("mongoose").Model<{
     win: number;
     draw: number;
     loss: number;
-    team: {
+    tournament: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -110,7 +110,7 @@ export declare const StandingModel: import("mongoose").Model<{
         createFromBase64?: {} | null;
         isValid?: {} | null;
     };
-    tournament: {
+    team: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -130,7 +130,7 @@ export declare const StandingModel: import("mongoose").Model<{
     win: number;
     draw: number;
     loss: number;
-    team: {
+    tournament: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -139,7 +139,7 @@ export declare const StandingModel: import("mongoose").Model<{
         createFromBase64?: {} | null;
         isValid?: {} | null;
     };
-    tournament: {
+    team: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -161,7 +161,7 @@ export declare const StandingModel: import("mongoose").Model<{
     win: number;
     draw: number;
     loss: number;
-    team: {
+    tournament: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
@@ -170,7 +170,7 @@ export declare const StandingModel: import("mongoose").Model<{
         createFromBase64?: {} | null;
         isValid?: {} | null;
     };
-    tournament: {
+    team: {
         prototype?: Types.ObjectId | null;
         cacheHexString?: unknown;
         generate?: {} | null;
