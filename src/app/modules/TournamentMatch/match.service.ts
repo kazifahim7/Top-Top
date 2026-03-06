@@ -2,6 +2,7 @@ import AppError from "../../Error/AppError.js";
 import { getPlayerOverallRating } from "../../utils/getRating.js";
 import { roundRating } from "../../utils/roundRating.js";
 import { userModel } from "../auth/auth.model.js";
+import type { PlayerStats } from "../Lobby/lobby.interface.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 import { TeamModel } from "../Team/team.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
@@ -54,20 +55,31 @@ const singleMatch = async (id: string) => {
           .populate({
                path: "teamB",
                populate: { path: "teamOwner" }
-          }).populate(
-               {
-                    path: "teamAPlayers",
-                    populate: { path: "playerId" }
-               }
-          ).populate(
-               {
-                    path: "teamBPlayers",
-                    populate: { path: "playerId" }
-               }
-          );
+          })
+          .populate({
+               path: "teamAPlayers",
+               populate: { path: "playerId" }
+          })
+          .populate({
+               path: "teamBPlayers",
+               populate: { path: "playerId" }
+          })
+          .lean(); // lean() add করুন যাতে plain object পাই
 
-     return result;
-}
+     if (!result) return null;
+
+     const calcAvg = (players: PlayerStats[]) => {
+          if (!players?.length) return 0;
+          const total = players.reduce((sum, p) => sum + (p.rating ?? 6.5), 0);
+          return parseFloat((total / players.length).toFixed(2));
+     };
+
+     return {
+          ...result,
+          team1AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamAPlayers) : null,
+          team2AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamBPlayers) : null,
+     };
+};
 
 const deleteMatch = async (id: string) => {
      const result = await MatchModel.findByIdAndDelete(id)
