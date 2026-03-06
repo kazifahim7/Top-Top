@@ -749,6 +749,57 @@ const singlelobby = async (lobbyId) => {
                 as: "team2Players",
             },
         },
+        /* ================= AVG MATCH RATING AFTER ================= */
+        {
+            $addFields: {
+                team1AvgMatchRatingAfter: {
+                    $cond: {
+                        if: { $eq: ["$matchType", "solo"] },
+                        then: {
+                            $cond: {
+                                if: { $gt: [{ $size: { $ifNull: ["$defaultTeam1.players", []] } }, 0] },
+                                then: {
+                                    $avg: "$defaultTeam1.players.rating"
+                                },
+                                else: 0,
+                            },
+                        },
+                        else: {
+                            $cond: {
+                                if: { $gt: [{ $size: { $ifNull: ["$team1.players", []] } }, 0] },
+                                then: {
+                                    $avg: "$team1.players.rating"
+                                },
+                                else: 0,
+                            },
+                        },
+                    },
+                },
+                team2AvgMatchRatingAfter: {
+                    $cond: {
+                        if: { $eq: ["$matchType", "solo"] },
+                        then: {
+                            $cond: {
+                                if: { $gt: [{ $size: { $ifNull: ["$defaultTeam2.players", []] } }, 0] },
+                                then: {
+                                    $avg: "$defaultTeam2.players.rating"
+                                },
+                                else: 0,
+                            },
+                        },
+                        else: {
+                            $cond: {
+                                if: { $gt: [{ $size: { $ifNull: ["$team2.players", []] } }, 0] },
+                                then: {
+                                    $avg: "$team2.players.rating"
+                                },
+                                else: 0,
+                            },
+                        },
+                    },
+                },
+            },
+        },
     ]);
     return lobbies[0] || null;
 };

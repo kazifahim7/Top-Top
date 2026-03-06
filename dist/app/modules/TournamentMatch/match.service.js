@@ -39,14 +39,29 @@ const singleMatch = async (id) => {
         .populate({
         path: "teamB",
         populate: { path: "teamOwner" }
-    }).populate({
+    })
+        .populate({
         path: "teamAPlayers",
         populate: { path: "playerId" }
-    }).populate({
+    })
+        .populate({
         path: "teamBPlayers",
         populate: { path: "playerId" }
-    });
-    return result;
+    })
+        .lean(); // lean() add করুন যাতে plain object পাই
+    if (!result)
+        return null;
+    const calcAvg = (players) => {
+        if (!players?.length)
+            return 0;
+        const total = players.reduce((sum, p) => sum + (p.rating ?? 6.5), 0);
+        return parseFloat((total / players.length).toFixed(2));
+    };
+    return {
+        ...result,
+        team1AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamAPlayers) : null,
+        team2AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamBPlayers) : null,
+    };
 };
 const deleteMatch = async (id) => {
     const result = await MatchModel.findByIdAndDelete(id);

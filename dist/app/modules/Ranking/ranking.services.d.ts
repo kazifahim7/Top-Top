@@ -54,7 +54,27 @@ export declare const playerRankingService: {
         _id: mongoose.Types.ObjectId;
         __v: number;
     }[]>;
-    teamRanking: (options: RankingOptions) => Promise<any[]>;
+    teamRanking: (options: RankingOptions) => Promise<{
+        ranking: number;
+        _id: any;
+        teamName: any;
+        userName: any;
+        image: any;
+        players: any;
+        teamOwner: any;
+        teamCaptain: any;
+        createdAt: any;
+        updatedAt: any;
+        totalMatch: number;
+        win: number;
+        draw: number;
+        loss: number;
+        goal: number;
+        carryGoal: number;
+        winPercentage: number;
+        goalDifference: number;
+        teamRating: number;
+    }[]>;
 };
 export {};
 //# sourceMappingURL=ranking.services.d.ts.map

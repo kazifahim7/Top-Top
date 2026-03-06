@@ -29,7 +29,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                privateKey,
                ExtraPlayerId,
                guest_player,
-               teamPlayerId, 
+               teamPlayerId,
           } = req.body;
 
           let playerId = req.user.id;
@@ -53,6 +53,27 @@ export const joinLobby = async (req: Request, res: Response) => {
           const isGuestPlayer = guest_player === true ? true : false;
 
           if (!playerId) throw new AppError(400, "User ID is required");
+
+          // ─── Global Guard: teamPlayerId শুধু organizer অথবা team captain ব্যবহার করতে পারবে ──
+          // Normal member বা অন্য কেউ teamPlayerId দিলে সাথে সাথে reject
+          if (teamPlayerId) {
+               const isOrganizer = req.user.role === "organizer";
+
+               let isCaptain = false;
+               if (teamId) {
+                    const team = await TeamModel.findById(teamId);
+                    if (team) {
+                         isCaptain = team.teamOwner.toString() === playerId.toString();
+                    }
+               }
+
+               if (!isOrganizer && !isCaptain) {
+                    throw new AppError(
+                         403,
+                         "Only the team captain or organizer can add players on behalf of others"
+                    );
+               }
+          }
 
           // ─── Lobby Validation ─────────────────────────────────────────────────
           if (lobbyId) {
@@ -79,12 +100,20 @@ export const joinLobby = async (req: Request, res: Response) => {
                          (p) => p.toString() === playerId.toString()
                     );
 
-                    // ✅ Captain বা team member — দুইজনই join করতে পারবে
+                    // ─── Only captain can add other players via teamPlayerId ──────
+                    if (!isOwner && teamPlayerId) {
+                         throw new AppError(
+                              403,
+                              "Only the team captain can add players on behalf of others"
+                         );
+                    }
+
+                    // Captain or team member can join
                     if (!isOwner && !isMember) {
                          throw new AppError(403, "You are not a member of this team");
                     }
 
-                    // ✅ Captain যদি teamPlayerId দেয়, সেই member টা team-এর কিনা check
+                    // Captain adding a member: verify member belongs to the team
                     if (isOwner && teamPlayerId) {
                          const isMemberValid = isTeamsExist.players.some(
                               (p) => p.toString() === teamPlayerId.toString()
@@ -94,21 +123,20 @@ export const joinLobby = async (req: Request, res: Response) => {
                          }
                     }
 
-                    // ✅ Member নিজে join করছে কিন্তু captain already তাকে add করেছে কিনা check
+                    // Member joining themselves: check captain hasn't already initiated payment for them
                     if (!isOwner && isMember) {
-                         const alreadyAddedByCaptain = await PaymentModel.findOne({
+                         const alreadyPaidByCaptain = await PaymentModel.findOne({
                               lobbyId,
                               playerId: new Types.ObjectId(playerId),
                               teamId,
-                              status: "paid",
-                              method: "free",
+                              status: { $in: ["pending", "paid", "success"] },
                               paymentType: "team fee",
                          });
 
-                         if (alreadyAddedByCaptain) {
+                         if (alreadyPaidByCaptain) {
                               throw new AppError(
                                    400,
-                                   "You have already been added to this lobby by your captain"
+                                   "Your captain has already initiated a payment for you in this lobby"
                               );
                          }
                     }
@@ -172,7 +200,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                ? typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId
                : undefined;
 
-          // Pending check — teamPlayerId থাকলে তার জন্য, না হলে current player-এর জন্য
+          // ─── Pending check ────────────────────────────────────────────────────
+          // teamPlayerId থাকলে সেই member-এর জন্য check, না হলে current player-এর জন্য
           const checkPlayerForPending = teamPlayerId
                ? new Types.ObjectId(teamPlayerId)
                : playerObjectId;
@@ -208,6 +237,7 @@ export const joinLobby = async (req: Request, res: Response) => {
 
                     // ══════════════════════════════════════════════════════════════
                     // CASE 1: Captain নিজে join করছে (teamPlayerId নেই)
+                    // Captain নিজেই pay করবে — stripe অথবা cash
                     // ══════════════════════════════════════════════════════════════
                     if (isOwner && !teamPlayerId) {
                          const isDuplicate =
@@ -221,11 +251,14 @@ export const joinLobby = async (req: Request, res: Response) => {
                          const team1Count = lobby.team1?.players?.filter((p) => !p.guest_player).length || 0;
                          const team2Count = lobby.team2?.players?.filter((p) => !p.guest_player).length || 0;
 
-                         if (team1Count >= lobby.teamSize || team2Count >= lobby.teamSize) {
+                         if (
+                              (lobby.team1?.teamId?.toString() === teamId?.toString() && team1Count >= lobby.teamSize) ||
+                              (lobby.team2?.teamId?.toString() === teamId?.toString() && team2Count >= lobby.teamSize)
+                         ) {
                               return res.status(400).json({ message: "Team is full" });
                          }
 
-                         // Normal payment (stripe/cash)
+                         // Captain pays for himself — normal stripe/cash flow
                          payment = await PaymentModel.create({
                               lobbyId,
                               playerId: playerObjectId,
@@ -240,28 +273,15 @@ export const joinLobby = async (req: Request, res: Response) => {
                          });
 
                          // ══════════════════════════════════════════════════════════════
-                         // CASE 2: Captain member-এর জন্য pay করছে (teamPlayerId আছে)
+                         // CASE 2: Captain কোনো member-এর জন্য pay করছে (teamPlayerId আছে)
+                         // Captain সেই member-এর full price দেবে — stripe অথবা cash
+                         // Payment record member-এর নামে তৈরি হবে (playerId = teamPlayerId)
+                         // Stripe webhook সফল হলে member সরাসরি lobby-তে add হবে
                          // ══════════════════════════════════════════════════════════════
                     } else if (isOwner && teamPlayerId) {
-                         // Captain-এর নিজের payment "paid" থাকতে হবে
-                         const captainPaid = await PaymentModel.findOne({
-                              lobbyId,
-                              playerId: playerObjectId,
-                              teamId,
-                              status: "paid",
-                              paymentType: "team fee",
-                         });
-
-                         if (!captainPaid) {
-                              throw new AppError(
-                                   403,
-                                   "You must complete your own payment first before adding team members"
-                              );
-                         }
-
                          const teamPlayerObjectId = new Types.ObjectId(teamPlayerId);
 
-                         // Duplicate check for member
+                         // Duplicate check for that member
                          const isMemberDuplicate =
                               lobby.team1?.players?.some((p) => p.playerId.toString() === teamPlayerObjectId.toString()) ||
                               lobby.team2?.players?.some((p) => p.playerId.toString() === teamPlayerObjectId.toString());
@@ -273,74 +293,30 @@ export const joinLobby = async (req: Request, res: Response) => {
                          const team1Count = lobby.team1?.players?.filter((p) => !p.guest_player).length || 0;
                          const team2Count = lobby.team2?.players?.filter((p) => !p.guest_player).length || 0;
 
-                         if (team1Count >= lobby.teamSize || team2Count >= lobby.teamSize) {
+                         if (
+                              (lobby.team1?.teamId?.toString() === teamId?.toString() && team1Count >= lobby.teamSize) ||
+                              (lobby.team2?.teamId?.toString() === teamId?.toString() && team2Count >= lobby.teamSize)
+                         ) {
                               return res.status(400).json({ message: "Team is full" });
                          }
 
-                         // Free payment record for member
+                         // Captain pays full price for this member
+                         // playerId = teamPlayerObjectId so webhook correctly adds the member to lobby
                          payment = await PaymentModel.create({
                               lobbyId,
                               playerId: teamPlayerObjectId,
                               teamId,
-                              price: 0,
-                              status: "paid",
-                              method: "free",
+                              price,
+                              status: "pending",
+                              method,
                               matchPosition,
                               matchFormat,
                               paymentType,
                               guest_player: isGuestPlayer,
                          });
 
-                         // Member সরাসরি lobby-তে add
-                         const memberUser = await userModel.findById(teamPlayerObjectId);
-                         if (!memberUser) return res.status(404).json({ message: "Team player not found" });
-
-                         const memberData = {
-                              playerId: teamPlayerObjectId,
-                              matchPosition: matchPosition || "",
-                              redCard: 0, yellowCard: 0, substitution: 0,
-                              assists: 0, goal: 0, tackle: 0, save: 0,
-                              rating: 6.5,
-                              mainRating: memberUser.rating,
-                              guest_player: isGuestPlayer,
-                         };
-
-                         let targetTeam: any = null;
-                         let assignedTeam = "";
-
-                         if (lobby.team1?.teamId?.toString() === teamId?.toString()) {
-                              targetTeam = lobby.team1;
-                              assignedTeam = "team1";
-                         } else if (lobby.team2?.teamId?.toString() === teamId?.toString()) {
-                              targetTeam = lobby.team2;
-                              assignedTeam = "team2";
-                         } else {
-                              return res.status(400).json({ message: "Team not found in lobby" });
-                         }
-
-                         if (!targetTeam.players) targetTeam.players = [];
-                         targetTeam.players.push(memberData);
-
-                         const calcAvg = (players: any[]) => {
-                              if (!players?.length) return 0;
-                              return players.reduce((t, p) => t + (p.mainRating || p.rating || 0), 0) / players.length;
-                         };
-
-                         if (lobby.team1?.players) lobby.team1AvgMatchRatingBefore = calcAvg(lobby.team1.players);
-                         if (lobby.team2?.players) lobby.team2AvgMatchRatingBefore = calcAvg(lobby.team2.players);
-
-                         await userModel.findByIdAndUpdate(teamPlayerObjectId, { $inc: { match: 1 } });
-                         await lobby.save();
-
-                         return res.json({
-                              success: true,
-                              message: "Team player added successfully by captain",
-                              assignedTeam,
-                              playerId: teamPlayerObjectId,
-                         });
-
                          // ══════════════════════════════════════════════════════════════
-                         // CASE 3: Member নিজে individually join করছে (captain add করেনি)
+                         // CASE 3: Member নিজে individually join করছে, নিজেই pay করবে
                          // ══════════════════════════════════════════════════════════════
                     } else if (!isOwner) {
                          const isDuplicate =
@@ -354,11 +330,14 @@ export const joinLobby = async (req: Request, res: Response) => {
                          const team1Count = lobby.team1?.players?.filter((p) => !p.guest_player).length || 0;
                          const team2Count = lobby.team2?.players?.filter((p) => !p.guest_player).length || 0;
 
-                         if (team1Count >= lobby.teamSize || team2Count >= lobby.teamSize) {
+                         if (
+                              (lobby.team1?.teamId?.toString() === teamId?.toString() && team1Count >= lobby.teamSize) ||
+                              (lobby.team2?.teamId?.toString() === teamId?.toString() && team2Count >= lobby.teamSize)
+                         ) {
                               return res.status(400).json({ message: "Team is full" });
                          }
 
-                         // Normal payment — member নিজে pay করবে
+                         // Member pays for himself — normal stripe/cash flow
                          payment = await PaymentModel.create({
                               lobbyId,
                               playerId: playerObjectId,
@@ -374,25 +353,18 @@ export const joinLobby = async (req: Request, res: Response) => {
                     }
 
                     // ══════════════════════════════════════════════════════════════════
-                    // SOLO match — আগের মতোই
+                    // SOLO match
                     // ══════════════════════════════════════════════════════════════════
                } else {
                     const isDuplicate =
-                         (lobby.team1?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false) ||
-                         (lobby.team2?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false) ||
                          (lobby.defaultTeam1?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false) ||
                          (lobby.defaultTeam2?.players?.some((p) => p.playerId.toString() === playerObjectId.toString()) || false);
 
                     if (isDuplicate) return res.status(400).json({ message: "Player already joined this lobby" });
 
-                    const team1Count = lobby.team1?.players?.filter((p) => !p.guest_player).length || 0;
-                    const team2Count = lobby.team2?.players?.filter((p) => !p.guest_player).length || 0;
                     const defTeam1Count = lobby.defaultTeam1?.players?.filter((p) => !p.guest_player).length || 0;
                     const defTeam2Count = lobby.defaultTeam2?.players?.filter((p) => !p.guest_player).length || 0;
 
-                    if (team1Count >= lobby.teamSize || team2Count >= lobby.teamSize) {
-                         return res.status(400).json({ message: "Teams are full" });
-                    }
                     if (defTeam1Count >= lobby.teamSize || defTeam2Count >= lobby.teamSize) {
                          return res.status(400).json({ message: "Teams are full" });
                     }
