@@ -196,13 +196,9 @@ const teamRanking = async (options) => {
     const dateFilter = startDate ? { $gte: startDate, $lte: now } : undefined;
     const sortDirection = sortOrder === "asc" ? 1 : -1;
     const allTeams = await TeamModel.find({}).lean();
-    // ─── teamStatsMap initialize ──────────────────────────────────────────────
-    // filterBy === "all" হলে TeamModel এর stored stats দিয়ে শুরু করো
-    // weekly/monthly হলে 0 থেকে শুরু করো (date filter দিয়ে fresh calculate হবে)
     const teamStatsMap = {};
     for (const team of allTeams) {
         if (filterBy === "all") {
-            // alltime: TeamModel এ stored stats সরাসরি use করো
             teamStatsMap[team._id.toString()] = {
                 teamId: team._id.toString(),
                 totalMatch: team.totalMatch || 0,
@@ -214,7 +210,6 @@ const teamRanking = async (options) => {
             };
         }
         else {
-            // weekly/monthly: 0 থেকে শুরু, date filter দিয়ে calculate হবে
             teamStatsMap[team._id.toString()] = {
                 teamId: team._id.toString(),
                 totalMatch: 0,
@@ -226,8 +221,9 @@ const teamRanking = async (options) => {
             };
         }
     }
-    // ─── weekly/monthly এর জন্য Lobby + Match থেকে fresh calculate ────────────
+    // ─── weekly/monthly এর জন্য createdAt দিয়ে filter ─────────────────────────
     if (filterBy !== "all") {
+        // ── Lobby থেকে calculate ──────────────────────────────────────────────
         const lobbyFilter = {
             lobbyStatus: "completed",
             matchType: "teams",
@@ -236,8 +232,9 @@ const teamRanking = async (options) => {
                 { "team2.teamId": { $exists: true } },
             ],
         };
+        // ✅ date এর বদলে createdAt ব্যবহার করা হচ্ছে
         if (dateFilter)
-            lobbyFilter.date = dateFilter;
+            lobbyFilter.createdAt = dateFilter;
         const completedLobbies = await LobbyModel.find(lobbyFilter).lean();
         for (const lobby of completedLobbies) {
             const team1Id = lobby.team1?.teamId?.toString();
@@ -267,9 +264,11 @@ const teamRanking = async (options) => {
             else
                 teamStatsMap[team2Id].loss += 1;
         }
+        // ── Match (Tournament) থেকে calculate ───────────────────────────────
         const matchFilter = { status: "Completed" };
+        // ✅ date এর বদলে createdAt ব্যবহার করা হচ্ছে
         if (dateFilter)
-            matchFilter.date = dateFilter;
+            matchFilter.createdAt = dateFilter;
         const completedMatches = await MatchModel.find(matchFilter).lean();
         for (const match of completedMatches) {
             const teamAId = match.teamA?.toString();
