@@ -919,7 +919,7 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      rawRating += (data.assists || 0) * 0.5;
      rawRating += (data.contribution || 0) * 0.25;
      rawRating += (data.save || 0) * 0.25;
-     rawRating += (data.veryGoodMoment || 0) * 0.25;
+     rawRating += (data.veryGoodMoment || 0) * 0.5;
      rawRating += (data.goodMoment || 0) * 0.5;
 
      // ✅ rawRating সংরক্ষণ করো (unclamped), rating clamp করো

@@ -267,29 +267,13 @@ const teamRanking = async (options: RankingOptions) => {
      }
 
      const dateFilter = startDate ? { $gte: startDate, $lte: now } : undefined;
-
      const sortDirection = sortOrder === "asc" ? 1 : -1;
 
-     // ─── Step 1: Lobby থেকে team stats collect করো ───────────────────────────
-     // completed lobby যেগুলোতে team1 বা team2 আছে
-     const lobbyFilter: any = {
-          lobbyStatus: "completed",
-          matchType: "teams",
-          $or: [
-               { "team1.teamId": { $exists: true } },
-               { "team2.teamId": { $exists: true } },
-          ],
-     };
-     if (dateFilter) lobbyFilter.updatedAt = dateFilter;
-
-     // ─── Step 2: Tournament Match থেকে team stats collect করো ────────────────
-     const matchFilter: any = { status: "Completed" };
-     if (dateFilter) matchFilter.updatedAt = dateFilter;
-
-     // ─── Step 3: সব team id বের করো ──────────────────────────────────────────
      const allTeams = await TeamModel.find({}).lean<any[]>();
 
-     // ─── Step 4: প্রতিটা team এর জন্য lobby + match stats aggregate করো ─────
+     // ─── teamStatsMap initialize ──────────────────────────────────────────────
+     // filterBy === "all" হলে TeamModel এর stored stats দিয়ে শুরু করো
+     // weekly/monthly হলে 0 থেকে শুরু করো (date filter দিয়ে fresh calculate হবে)
      const teamStatsMap: Record<string, {
           teamId: string;
           totalMatch: number;
@@ -300,107 +284,125 @@ const teamRanking = async (options: RankingOptions) => {
           carryGoal: number;
      }> = {};
 
-     // Initialize all teams
      for (const team of allTeams) {
-          teamStatsMap[team._id.toString()] = {
-               teamId: team._id.toString(),
-               totalMatch: 0,
-               win: 0,
-               draw: 0,
-               loss: 0,
-               goal: 0,
-               carryGoal: 0,
+          if (filterBy === "all") {
+               // alltime: TeamModel এ stored stats সরাসরি use করো
+               teamStatsMap[team._id.toString()] = {
+                    teamId: team._id.toString(),
+                    totalMatch: team.totalMatch || 0,
+                    win: team.win || 0,
+                    draw: team.draw || 0,
+                    loss: team.loss || 0,
+                    goal: team.goal || 0,
+                    carryGoal: team.carryGoal || 0,
+               };
+          } else {
+               // weekly/monthly: 0 থেকে শুরু, date filter দিয়ে calculate হবে
+               teamStatsMap[team._id.toString()] = {
+                    teamId: team._id.toString(),
+                    totalMatch: 0,
+                    win: 0,
+                    draw: 0,
+                    loss: 0,
+                    goal: 0,
+                    carryGoal: 0,
+               };
+          }
+     }
+
+     // ─── weekly/monthly এর জন্য Lobby + Match থেকে fresh calculate ────────────
+     if (filterBy !== "all") {
+          const lobbyFilter: any = {
+               lobbyStatus: "completed",
+               matchType: "teams",
+               $or: [
+                    { "team1.teamId": { $exists: true } },
+                    { "team2.teamId": { $exists: true } },
+               ],
           };
+          if (dateFilter) lobbyFilter.date = dateFilter;
+
+          const completedLobbies = await LobbyModel.find(lobbyFilter).lean();
+
+          for (const lobby of completedLobbies) {
+               const team1Id = lobby.team1?.teamId?.toString();
+               const team2Id = lobby.team2?.teamId?.toString();
+
+               if (!team1Id || !team2Id) continue;
+               if (!teamStatsMap[team1Id] || !teamStatsMap[team2Id]) continue;
+
+               const score1 = lobby.goalTeam1 ?? 0;
+               const score2 = lobby.goalTeam2 ?? 0;
+
+               teamStatsMap[team1Id].totalMatch += 1;
+               teamStatsMap[team1Id].goal += score1;
+               teamStatsMap[team1Id].carryGoal += score2;
+               if (score1 > score2) teamStatsMap[team1Id].win += 1;
+               else if (score1 === score2) teamStatsMap[team1Id].draw += 1;
+               else teamStatsMap[team1Id].loss += 1;
+
+               teamStatsMap[team2Id].totalMatch += 1;
+               teamStatsMap[team2Id].goal += score2;
+               teamStatsMap[team2Id].carryGoal += score1;
+               if (score2 > score1) teamStatsMap[team2Id].win += 1;
+               else if (score1 === score2) teamStatsMap[team2Id].draw += 1;
+               else teamStatsMap[team2Id].loss += 1;
+          }
+
+          const matchFilter: any = { status: "Completed" };
+          if (dateFilter) matchFilter.date = dateFilter;
+
+          const completedMatches = await MatchModel.find(matchFilter).lean();
+
+          for (const match of completedMatches) {
+               const teamAId = match.teamA?.toString();
+               const teamBId = match.teamB?.toString();
+
+               if (!teamAId || !teamBId) continue;
+               if (!teamStatsMap[teamAId] || !teamStatsMap[teamBId]) continue;
+
+               const scoreA = match.scoreA ?? 0;
+               const scoreB = match.scoreB ?? 0;
+
+               teamStatsMap[teamAId].totalMatch += 1;
+               teamStatsMap[teamAId].goal += scoreA;
+               teamStatsMap[teamAId].carryGoal += scoreB;
+               if (scoreA > scoreB) teamStatsMap[teamAId].win += 1;
+               else if (scoreA === scoreB) teamStatsMap[teamAId].draw += 1;
+               else teamStatsMap[teamAId].loss += 1;
+
+               teamStatsMap[teamBId].totalMatch += 1;
+               teamStatsMap[teamBId].goal += scoreB;
+               teamStatsMap[teamBId].carryGoal += scoreA;
+               if (scoreB > scoreA) teamStatsMap[teamBId].win += 1;
+               else if (scoreA === scoreB) teamStatsMap[teamBId].draw += 1;
+               else teamStatsMap[teamBId].loss += 1;
+          }
      }
 
-     // ─── Lobby stats ──────────────────────────────────────────────────────────
-     const completedLobbies = await LobbyModel.find(lobbyFilter).lean();
+     // ─── Minimum match filter ─────────────────────────────────────────────────
+     const minMatches = filterBy === "weekly" ? 4 : filterBy === "monthly" ? 10 : 15; // TODO: production এ 4/10/15 করো
 
-     for (const lobby of completedLobbies) {
-          const team1Id = lobby.team1?.teamId?.toString();
-          const team2Id = lobby.team2?.teamId?.toString();
-
-          if (!team1Id || !team2Id) continue;
-          if (!teamStatsMap[team1Id] || !teamStatsMap[team2Id]) continue;
-
-          const score1 = lobby.goalTeam1 ?? 0;
-          const score2 = lobby.goalTeam2 ?? 0;
-
-          // Team 1 stats
-          teamStatsMap[team1Id].totalMatch += 1;
-          teamStatsMap[team1Id].goal += score1;
-          teamStatsMap[team1Id].carryGoal += score2;
-          if (score1 > score2) teamStatsMap[team1Id].win += 1;
-          else if (score1 === score2) teamStatsMap[team1Id].draw += 1;
-          else teamStatsMap[team1Id].loss += 1;
-
-          // Team 2 stats
-          teamStatsMap[team2Id].totalMatch += 1;
-          teamStatsMap[team2Id].goal += score2;
-          teamStatsMap[team2Id].carryGoal += score1;
-          if (score2 > score1) teamStatsMap[team2Id].win += 1;
-          else if (score1 === score2) teamStatsMap[team2Id].draw += 1;
-          else teamStatsMap[team2Id].loss += 1;
-     }
-
-     // ─── Tournament Match stats ───────────────────────────────────────────────
-     const completedMatches = await MatchModel.find(matchFilter).lean();
-
-     for (const match of completedMatches) {
-          const teamAId = match.teamA?.toString();
-          const teamBId = match.teamB?.toString();
-
-          if (!teamAId || !teamBId) continue;
-          if (!teamStatsMap[teamAId] || !teamStatsMap[teamBId]) continue;
-
-          const scoreA = match.scoreA ?? 0;
-          const scoreB = match.scoreB ?? 0;
-
-          // Team A stats
-          teamStatsMap[teamAId].totalMatch += 1;
-          teamStatsMap[teamAId].goal += scoreA;
-          teamStatsMap[teamAId].carryGoal += scoreB;
-          if (scoreA > scoreB) teamStatsMap[teamAId].win += 1;
-          else if (scoreA === scoreB) teamStatsMap[teamAId].draw += 1;
-          else teamStatsMap[teamAId].loss += 1;
-
-          // Team B stats
-          teamStatsMap[teamBId].totalMatch += 1;
-          teamStatsMap[teamBId].goal += scoreB;
-          teamStatsMap[teamBId].carryGoal += scoreA;
-          if (scoreB > scoreA) teamStatsMap[teamBId].win += 1;
-          else if (scoreA === scoreB) teamStatsMap[teamBId].draw += 1;
-          else teamStatsMap[teamBId].loss += 1;
-     }
-
-     // ─── Step 5: Minimum match filter ────────────────────────────────────────
-     const minMatches = filterBy === "weekly" ? 4 : filterBy === "monthly" ? 10 : 15;
-
-     // ─── Step 6: Team details + rating calculate করো ─────────────────────────
+     // ─── Team details + rating calculate ─────────────────────────────────────
      const results = [];
 
      for (const team of allTeams) {
           const stats = teamStatsMap[team._id.toString()];
 
-          // Minimum match requirement
           if (!stats) continue;
           if (stats.totalMatch < minMatches) continue;
-          // কমপক্ষে ১টা win থাকতে হবে
           if (stats.win < 1) continue;
 
-          // matchField filter (optional)
           if (matchField && matchValue !== undefined) {
                if ((stats as any)[matchField] !== matchValue) continue;
           }
 
-          // Win percentage
           const winPercentage = stats.totalMatch > 0
                ? parseFloat(((stats.win / stats.totalMatch) * 100).toFixed(2))
                : 0;
 
           const goalDifference = stats.goal - stats.carryGoal;
 
-          // Team rating — players + teamOwner average
           const playerIds = [
                ...(team.players || []),
                team.teamOwner,
@@ -412,7 +414,7 @@ const teamRanking = async (options: RankingOptions) => {
 
           const teamRating = playerDocs.length > 0
                ? parseFloat(
-                    (playerDocs.reduce((sum, p) => sum + (p.rating || 0), 0) / playerDocs.length).toFixed(2)
+                    (playerDocs.reduce((sum, p: any) => sum + (p.rating || 0), 0) / playerDocs.length).toFixed(2)
                )
                : 0;
 
@@ -426,7 +428,6 @@ const teamRanking = async (options: RankingOptions) => {
                teamCaptain: team.teamCaptain,
                createdAt: team.createdAt,
                updatedAt: team.updatedAt,
-               // ─── computed stats ───
                totalMatch: stats.totalMatch,
                win: stats.win,
                draw: stats.draw,
@@ -439,15 +440,14 @@ const teamRanking = async (options: RankingOptions) => {
           });
      }
 
-     // ─── Step 7: Sort ─────────────────────────────────────────────────────────
-     // Primary sort fields — সব একসাথে weighted sort
+     // ─── Sort ─────────────────────────────────────────────────────────────────
      results.sort((a, b) => {
           const fields: (keyof typeof a)[] = [
-               "teamRating",
                "win",
                "winPercentage",
                "goalDifference",
                "goal",
+               "teamRating",
                sortField as keyof typeof a,
           ];
 
@@ -458,7 +458,7 @@ const teamRanking = async (options: RankingOptions) => {
           return 0;
      });
 
-     // ─── Step 8: Ranking number assign করো ───────────────────────────────────
+     // ─── Ranking number assign ────────────────────────────────────────────────
      const ranked = results.map((team, index) => ({
           ...team,
           ranking: index + 1,
@@ -466,7 +466,6 @@ const teamRanking = async (options: RankingOptions) => {
 
      return ranked;
 };
-
 
 
 export const playerRankingService = {
