@@ -964,6 +964,8 @@ const myUpcomingLobby = async (id) => {
     }
     const playerObjectId = new mongoose.Types.ObjectId(id);
     const result = await LobbyModel.aggregate([
+        // ─── Step 1: lobby তে player আছে কিনা সেটা দিয়েই match করো ──────────
+        // team1.players.playerId বা team2.players.playerId — এগুলো lobby-র actual joined players
         {
             $match: {
                 lobbyStatus: "ongoing",
@@ -975,7 +977,7 @@ const myUpcomingLobby = async (id) => {
                 ],
             }
         },
-        // Same lookup patterns as allMatch
+        // ─── Team data lookup ─────────────────────────────────────────────────
         {
             $lookup: {
                 from: "teams",
@@ -994,22 +996,7 @@ const myUpcomingLobby = async (id) => {
             }
         },
         { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
-        {
-            $lookup: {
-                from: "players",
-                localField: "team1Data.players",
-                foreignField: "_id",
-                as: "team1Players"
-            }
-        },
-        {
-            $lookup: {
-                from: "players",
-                localField: "team2Data.players",
-                foreignField: "_id",
-                as: "team2Players"
-            }
-        },
+        // ─── Organizer lookup ─────────────────────────────────────────────────
         {
             $lookup: {
                 from: "players",
@@ -1019,57 +1006,66 @@ const myUpcomingLobby = async (id) => {
             }
         },
         { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+        // ─── Lobby-র actual joined players lookup (team1.players.playerId থেকে) ──
         {
             $lookup: {
                 from: "players",
-                let: {
-                    playerIds: {
-                        $ifNull: ["$defaultTeam1.players.playerId", []]
-                    }
-                },
+                let: { playerIds: { $ifNull: ["$team1.players.playerId", []] } },
                 pipeline: [
-                    {
-                        $match: {
-                            $expr: {
-                                $in: ["$_id", "$$playerIds"]
-                            }
-                        }
-                    }
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }
                 ],
-                as: "defaultTeam1Players"
+                as: "joinedTeam1Players"
             }
         },
         {
             $lookup: {
                 from: "players",
-                let: {
-                    playerIds: {
-                        $ifNull: ["$defaultTeam2.players.playerId", []]
-                    }
-                },
+                let: { playerIds: { $ifNull: ["$team2.players.playerId", []] } },
                 pipeline: [
-                    {
-                        $match: {
-                            $expr: {
-                                $in: ["$_id", "$$playerIds"]
-                            }
-                        }
-                    }
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }
                 ],
-                as: "defaultTeam2Players"
+                as: "joinedTeam2Players"
             }
         },
-        // Additional filter to ensure the specific player is in the lobby
+        // ─── Default team players lookup ──────────────────────────────────────
         {
-            $match: {
-                $or: [
-                    { "team1Players._id": playerObjectId },
-                    { "team2Players._id": playerObjectId },
-                    { "defaultTeam1Players._id": playerObjectId },
-                    { "defaultTeam2Players._id": playerObjectId },
-                ]
+            $lookup: {
+                from: "players",
+                let: { playerIds: { $ifNull: ["$defaultTeam1.players.playerId", []] } },
+                pipeline: [
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }
+                ],
+                as: "joinedDefaultTeam1Players"
             }
-        }
+        },
+        {
+            $lookup: {
+                from: "players",
+                let: { playerIds: { $ifNull: ["$defaultTeam2.players.playerId", []] } },
+                pipeline: [
+                    { $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }
+                ],
+                as: "joinedDefaultTeam2Players"
+            }
+        },
+        // ─── TeamModel এর all players lookup (team info এর জন্য) ──────────────
+        {
+            $lookup: {
+                from: "players",
+                localField: "team1Data.players",
+                foreignField: "_id",
+                as: "team1AllPlayers"
+            }
+        },
+        {
+            $lookup: {
+                from: "players",
+                localField: "team2Data.players",
+                foreignField: "_id",
+                as: "team2AllPlayers"
+            }
+        },
+        // ─── No second $match needed — first $match already filters correctly ──
     ]);
     return result;
 };
