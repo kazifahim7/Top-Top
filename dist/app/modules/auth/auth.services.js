@@ -200,8 +200,8 @@ export const changePassword = async (payload, userId) => {
     }
     return updatedUser;
 };
-const calculatePlayerStats = (lobbies, playerId) => {
-    const matchesPlayed = lobbies.length;
+const calculatePlayerStats = (lobbies, playerId, tournamentLength) => {
+    const matchesPlayed = lobbies.length + tournamentLength;
     let totalGoals = 0;
     let totalAssists = 0;
     let totalSaves = 0;
@@ -273,7 +273,7 @@ const collectLobbyMedia = (lobbies) => {
     return Array.from(mediaSet);
 };
 const playerProfile = async (id) => {
-    const result = await userModel.findById(id);
+    const result = await userModel.findById(id).select("-cleanSheet");
     // ✅ Lobby matches (solo + teams) - সব যেখানে player join করেছে
     const allLobbies = await LobbyModel.find({
         $or: [
@@ -293,11 +293,11 @@ const playerProfile = async (id) => {
         ],
         status: "Completed",
     }).populate("tournament teamA teamB");
-    const lobbyStats = calculatePlayerStats(allLobbies, id);
+    const lobbyStats = calculatePlayerStats(allLobbies, id, tournamentMatches.length);
     const media = collectLobbyMedia(allLobbies);
     return {
         result,
-        stats: lobbyStats,
+        stats: { ...lobbyStats, motm: result?.motm, contributionpergame: result?.match ? +(result.contribution / result.match).toFixed(1) : 0 },
         media,
         allLobbies,
         tournamentMatches,

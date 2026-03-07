@@ -24,7 +24,7 @@ export declare const authService: {
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
-        role: "organizer" | "admin" | "player";
+        role: "admin" | "player" | "organizer";
     }>;
     updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;
@@ -153,7 +153,7 @@ export declare const authService: {
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: import("mongoose").Types.ObjectId;
-            role: "organizer" | "admin" | "player";
+            role: "admin" | "player" | "organizer";
             email: string;
         };
         result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
@@ -188,6 +188,8 @@ export declare const authService: {
             __v: number;
         }) | null;
         stats: {
+            motm: number | undefined;
+            contributionpergame: number;
             matchesPlayed: number;
             goalsPerGame: number;
             assistsPerGame: number;
