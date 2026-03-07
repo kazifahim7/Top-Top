@@ -15,6 +15,7 @@ export interface PlayerStats {
     veryGoodMoment: number;
     guest_player?: boolean;
     mainRating?: number;
+    cleanSheet?: number;
 }
 export interface Team {
     teamId: Types.ObjectId;

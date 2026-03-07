@@ -876,7 +876,9 @@ const updateLobbyInfo = async (id, payload) => {
     if (!isLobbyExist) {
         throw new AppError(404, "This lobby Not Found");
     }
-    if (payload.lobbyStatus === "completed") {
+    // ✅ শুধু ongoing → completed transition এ run হবে
+    // already completed থাকলে double count হবে না
+    if (payload.lobbyStatus === "completed" && isLobbyExist.lobbyStatus !== "completed") {
         const goalTeam1 = isLobbyExist.goalTeam1 || 0;
         const goalTeam2 = isLobbyExist.goalTeam2 || 0;
         // ==================== TEAMS MATCH ====================
@@ -941,7 +943,8 @@ const updateLobbyInfo = async (id, payload) => {
         }
     }
     // ✅ MOTM — payload এ motm আসলে player profile এ increment
-    if (payload.motm) {
+    // শুধু একবার update হওয়ার জন্য motm already set থাকলে skip
+    if (payload.motm && !isLobbyExist.motm) {
         await userModel.findByIdAndUpdate(payload.motm, { $inc: { motm: 1 } });
     }
     const result = await LobbyModel.findByIdAndUpdate(id, payload, { new: true });

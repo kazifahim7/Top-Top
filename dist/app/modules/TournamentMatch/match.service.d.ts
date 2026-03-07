@@ -75,6 +75,7 @@ export declare const tournamentMatchService: {
             veryGoodMoment: number;
             guest_player?: boolean;
             mainRating?: number;
+            cleanSheet?: number;
         }>[];
         teamAPlayers: import("mongoose").FlattenMaps<{
             playerId: Types.ObjectId;
@@ -92,6 +93,7 @@ export declare const tournamentMatchService: {
             veryGoodMoment: number;
             guest_player?: boolean;
             mainRating?: number;
+            cleanSheet?: number;
         }>[];
         media: string[];
         organizer: Types.ObjectId;

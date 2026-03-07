@@ -12,6 +12,7 @@ const PlayerStatsSchema = new Schema<PlayerStats>({
      tackle: { type: Number, default: 0 },
      save: { type: Number, default: 0 },
      goodMoment: { type: Number, default: 0 },
+     cleanSheet: { type: Number, default: 0 },
      veryGoodMoment: { type: Number, default: 0 },
      rating: { type: Number, default: 6.5 },
      rawRating: { type: Number, default: 6.5 },

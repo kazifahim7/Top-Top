@@ -24,7 +24,7 @@ export declare const authService: {
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
-        role: "admin" | "player" | "organizer";
+        role: "organizer" | "admin" | "player";
     }>;
     updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;
@@ -153,7 +153,7 @@ export declare const authService: {
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: import("mongoose").Types.ObjectId;
-            role: "admin" | "player" | "organizer";
+            role: "organizer" | "admin" | "player";
             email: string;
         };
         result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
