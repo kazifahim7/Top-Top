@@ -158,6 +158,7 @@ export const getTopPlayers = async (tournamentId) => {
                 userName: "$player.userName",
                 image: "$player.imageUrl",
                 position: "$player.position",
+                nationality: "$player.nationality",
                 avgRating: { $round: ["$avgRating", 2] },
                 totalMatches: 1
             }

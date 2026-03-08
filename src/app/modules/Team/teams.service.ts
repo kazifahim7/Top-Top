@@ -234,16 +234,181 @@ const myTeam = async (id: string) => {
      };
 };
 const singleTeam = async(id:string)=>{
-     const myTeam = await TeamModel.findById(id)
+     // First get the team where this user is the owner
+     const myTeam = await TeamModel.findOne({ _id: new Types.ObjectId(id) })
           .populate("players")
           .populate("teamOwner")
           .populate("teamCaptain");
 
-     const rating = calculateTeamRating(myTeam);
+
+
+     if (!myTeam) {
           return {
-               ...myTeam,
-               teamRating:rating
-          }
+               myTeam: null,
+               myTeamRating: 0,
+               upcomingMatch: [],
+               upcomingMatchTournament: [],
+               completeMatch: [],
+               completeMatchTournament: [],
+               media: [] // Empty media array when no team found
+          };
+     }
+
+     const teamId = myTeam._id;
+     const rating = calculateTeamRating(myTeam);
+
+     // Helper function to get matches with proper population
+     const getLobbyMatches = async (status: string) => {
+          return await LobbyModel.aggregate([
+               {
+                    $match: {
+                         $or: [
+                              { "team1.teamId": teamId },
+                              { "team2.teamId": teamId },
+                         ],
+                         lobbyStatus: status
+                    }
+               },
+               {
+                    $lookup: {
+                         from: "teams",
+                         localField: "team1.teamId",
+                         foreignField: "_id",
+                         as: "team1Data"
+                    }
+               },
+               { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
+
+               {
+                    $lookup: {
+                         from: "teams",
+                         localField: "team2.teamId",
+                         foreignField: "_id",
+                         as: "team2Data"
+                    }
+               },
+               { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
+
+               {
+                    $lookup: {
+                         from: "players",
+                         localField: "team1Data.players",
+                         foreignField: "_id",
+                         as: "team1Players"
+                    }
+               },
+
+               {
+                    $lookup: {
+                         from: "players",
+                         localField: "team2Data.players",
+                         foreignField: "_id",
+                         as: "team2Players"
+                    }
+               },
+
+               {
+                    $lookup: {
+                         from: "players",
+                         localField: "organizer",
+                         foreignField: "_id",
+                         as: "organizerData"
+                    }
+               },
+               { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
+
+               // For solo matches (default teams)
+               {
+                    $lookup: {
+                         from: "players",
+                         let: {
+                              playerIds: {
+                                   $ifNull: ["$defaultTeam1.players.playerId", []]
+                              }
+                         },
+                         pipeline: [
+                              {
+                                   $match: {
+                                        $expr: {
+                                             $in: ["$_id", "$$playerIds"]
+                                        }
+                                   }
+                              }
+                         ],
+                         as: "defaultTeam1Players"
+                    }
+               },
+
+               {
+                    $lookup: {
+                         from: "players",
+                         let: {
+                              playerIds: {
+                                   $ifNull: ["$defaultTeam2.players.playerId", []]
+                              }
+                         },
+                         pipeline: [
+                              {
+                                   $match: {
+                                        $expr: {
+                                             $in: ["$_id", "$$playerIds"]
+                                        }
+                                   }
+                              }
+                         ],
+                         as: "defaultTeam2Players"
+                    }
+               },
+
+               // Sort by date (newest first for completed, upcoming first for ongoing)
+               {
+                    $sort: status === "ongoing" ?
+                         { date: 1, time: 1 } : // For upcoming: sort by nearest date
+                         { date: -1, time: -1 }  // For completed: sort by latest first
+               }
+          ]);
+     };
+
+     // Get upcoming matches (ongoing)
+     const upcomingMatch = await getLobbyMatches("ongoing");
+
+     // Get completed matches
+     const completeMatch = await getLobbyMatches("completed");
+
+     // Get tournament matches (using your existing MatchModel)
+     const upcomingMatchTournament = await MatchModel.find({
+          $or: [{ teamA: teamId }, { teamB: teamId }],
+          status: "Pending"
+     })
+          .populate("teamA")
+          .populate("teamB")
+          .populate("tournament");
+
+     const completeMatchTournament = await MatchModel.find({
+          $or: [{ teamA: teamId }, { teamB: teamId }],
+          status: "Completed"
+     })
+          .populate("teamA")
+          .populate("teamB")
+          .populate("tournament");
+
+     // Extract all media from complete matches and complete tournament matches
+     const allMedia = [
+          // Get media from regular complete matches
+          ...completeMatch.flatMap(match => match.media || []),
+          // Get media from tournament complete matches
+          ...completeMatchTournament.flatMap(match => match.media || [])
+     ];
+
+     return {
+          myTeam,
+          myTeamRating: rating,
+          upcomingMatch,
+          upcomingMatchTournament,
+          completeMatch,
+          completeMatchTournament,
+          media: allMedia // Array containing all media URLs from completed matches
+     };
 }
 
 
