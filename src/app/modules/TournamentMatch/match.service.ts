@@ -470,7 +470,9 @@ interface UpdatePlayerStatsDTO {
      contribution?: number;
      save?: number;
      goodMoment?: number;
-     veryGoodMoment?: number
+     veryGoodMoment?: number;
+     ownGoal?: number; // +1 = score up, -1 = score down (teamId অনুযায়ী)
+     teamId?: "A" | "B"; // ownGoal এর জন্য
 }
 
 export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
@@ -495,6 +497,17 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
      if (!player || !teamKey) {
           throw new Error("Player not found in match");
+     }
+
+     // -------- ownGoal: শুধু teamId অনুযায়ী score update, player stats না ----------
+     if (data.ownGoal !== undefined && data.ownGoal !== 0) {
+          if (!data.teamId) throw new Error("teamId is required for ownGoal");
+
+          if (data.teamId === "A") match.scoreA = (match.scoreA || 0) + data.ownGoal;
+          if (data.teamId === "B") match.scoreB = (match.scoreB || 0) + data.ownGoal;
+
+          await match.save();
+          return { matchPlayer: player };
      }
 
      // -------- Rating calculation ----------
@@ -563,7 +576,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
      return { matchPlayer: player };
 };
-
 
 
 export const tournamentMatchService = {

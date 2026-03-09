@@ -35,6 +35,8 @@ interface UpdatePlayerStatsDTO {
     save?: number;
     goodMoment?: number;
     veryGoodMoment?: number;
+    ownGoal?: number;
+    teamId?: "A" | "B";
 }
 export declare const updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
     matchPlayer: any;

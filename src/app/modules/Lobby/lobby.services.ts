@@ -880,7 +880,9 @@ interface UpdatePlayerStatsDTO {
      contribution?: number;
      save?: number;
      goodMoment?: number;
-     veryGoodMoment?: number
+     veryGoodMoment?: number;
+     ownGoal?: number; // +1 = score up, -1 = score down (teamId অনুযায়ী)
+     teamId?: "team1" | "team2" | "defaultTeam1" | "defaultTeam2"; // ownGoal এর জন্য
 }
 
 export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
@@ -909,6 +911,20 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      }
 
      if (!player || !teamKey) throw new Error("Player not found in any team");
+
+     // ownGoal হলে শুধু body তে দেওয়া teamId এর score update হবে, player stats update হবে না
+     if (data.ownGoal !== undefined && data.ownGoal !== 0) {
+          if (!data.teamId) throw new Error("teamId is required for ownGoal");
+
+          if (data.teamId === "team1" || data.teamId === "defaultTeam1") {
+               lobby.goalTeam1 = (lobby.goalTeam1 || 0) + data.ownGoal;
+          } else if (data.teamId === "team2" || data.teamId === "defaultTeam2") {
+               lobby.goalTeam2 = (lobby.goalTeam2 || 0) + data.ownGoal;
+          }
+
+          await lobby.save();
+          return { lobbyPlayer: player };
+     }
 
      // ✅ rawRating থেকে calculate করো, rating থেকে না
      let rawRating = player.rawRating ?? player.rating ?? 6.5;
@@ -963,7 +979,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
      return { lobbyPlayer: player };
 }
-
 
 
 

@@ -348,6 +348,17 @@ export const updatePlayerStats = async (data) => {
     if (!player || !teamKey) {
         throw new Error("Player not found in match");
     }
+    // -------- ownGoal: শুধু teamId অনুযায়ী score update, player stats না ----------
+    if (data.ownGoal !== undefined && data.ownGoal !== 0) {
+        if (!data.teamId)
+            throw new Error("teamId is required for ownGoal");
+        if (data.teamId === "A")
+            match.scoreA = (match.scoreA || 0) + data.ownGoal;
+        if (data.teamId === "B")
+            match.scoreB = (match.scoreB || 0) + data.ownGoal;
+        await match.save();
+        return { matchPlayer: player };
+    }
     // -------- Rating calculation ----------
     let rawRating = player.rawRating ?? player.rating ?? 6.5;
     rawRating -= (data.redCard ?? 0) * 0.5;

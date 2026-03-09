@@ -827,6 +827,19 @@ export const updatePlayerStats = async (data) => {
     }
     if (!player || !teamKey)
         throw new Error("Player not found in any team");
+    // ownGoal হলে শুধু body তে দেওয়া teamId এর score update হবে, player stats update হবে না
+    if (data.ownGoal !== undefined && data.ownGoal !== 0) {
+        if (!data.teamId)
+            throw new Error("teamId is required for ownGoal");
+        if (data.teamId === "team1" || data.teamId === "defaultTeam1") {
+            lobby.goalTeam1 = (lobby.goalTeam1 || 0) + data.ownGoal;
+        }
+        else if (data.teamId === "team2" || data.teamId === "defaultTeam2") {
+            lobby.goalTeam2 = (lobby.goalTeam2 || 0) + data.ownGoal;
+        }
+        await lobby.save();
+        return { lobbyPlayer: player };
+    }
     // ✅ rawRating থেকে calculate করো, rating থেকে না
     let rawRating = player.rawRating ?? player.rating ?? 6.5;
     rawRating -= (data.redCard || 0) * 0.5;
