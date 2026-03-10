@@ -516,7 +516,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
 
                // Player data with guest_player flag and mainRating
                const playerData = {
-                    playerId: payment.playerId,
+                    playerId: new Types.ObjectId(payment.playerId.toString()), 
                     matchPosition: payment.matchPosition || "",
                     redCard: 0,
                     yellowCard: 0,
@@ -528,6 +528,9 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     rating: 6.5, // লবির জন্য rating (সবসময় 6.5)
                     mainRating: player.rating, // ডাটাবেসের আসল rating
                     guest_player: payment.guest_player ?? false,
+                    contribution: 0,      // ✅ add
+                    goodMoment: 0,        // ✅ add
+                    veryGoodMoment: 0,
                };
 
                let targetTeam: any = null;
@@ -544,84 +547,84 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                };
 
                if (lobby.matchType === "solo") {
-                    // FIXED: Check if player already exists in the SPECIFIC team they requested
                     const requestedTeamId = payment.teamId.toString();
-
-                    // Check which team the player requested to join
                     //@ts-ignore
                     if (requestedTeamId === lobby.defaultTeam1?._id?.toString()) {
-                         // Check if player already in defaultTeam1
                          const inTeam1 = lobby.defaultTeam1?.players?.some(p =>
                               p.playerId.toString() === payment.playerId!.toString()
                          );
+                         if (inTeam1) return res.status(400).json({ message: "Player already joined team 1" });
 
-                         if (inTeam1) {
-                              return res.status(400).json({
-                                   message: "Player already joined team 1"
-                              });
+                         if (payment.matchFormat &&
+                              (!lobby.defaultTeam1.matchFormat || lobby.defaultTeam1.matchFormat === "") &&
+                              lobby.defaultTeam1.players.length === 0) {
+
+                              lobby.defaultTeam1.matchFormat = payment.matchFormat;
+                              lobby.markModified("defaultTeam1.matchFormat");
                          }
-
-                         targetTeam = lobby.defaultTeam1;
+                         //@ts-ignore
+                         lobby.defaultTeam1.players.push(playerData);
                          assignedTeam = "defaultTeam1";
                          //@ts-ignore
                     } else if (requestedTeamId === lobby.defaultTeam2?._id?.toString()) {
-                         // Check if player already in defaultTeam2
                          const inTeam2 = lobby.defaultTeam2?.players?.some(p =>
                               p.playerId.toString() === payment.playerId!.toString()
                          );
+                         if (inTeam2) return res.status(400).json({ message: "Player already joined team 2" });
 
-                         if (inTeam2) {
-                              return res.status(400).json({
-                                   message: "Player already joined team 2"
-                              });
+                         if (payment.matchFormat &&
+                              (!lobby.defaultTeam2.matchFormat || lobby.defaultTeam2.matchFormat === "") &&
+                              lobby.defaultTeam2.players.length === 0) {
+
+                              lobby.defaultTeam2.matchFormat = payment.matchFormat;
+                              lobby.markModified("defaultTeam2.matchFormat");
                          }
-
-                         targetTeam = lobby.defaultTeam2;
+                   
+                         lobby.defaultTeam2.players.push(playerData);
                          assignedTeam = "defaultTeam2";
+
                     } else {
                          return res.status(400).json({ message: "Invalid team selection" });
                     }
 
-                    // Set match format for first player
-                    if (payment.matchFormat && (!targetTeam.matchFormat || targetTeam.matchFormat === "") && targetTeam.players.length === 0) {
-                         targetTeam.matchFormat = payment.matchFormat;
-                         lobby.markModified(`${assignedTeam}.matchFormat`);
-                    }
-
-                    // Add player
-                    targetTeam.players.push(playerData);
-
-                    // Calculate average main ratings for both teams AFTER adding new player
+                    // Average rating
                     if (lobby.defaultTeam1?.players) {
                          lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(lobby.defaultTeam1.players);
                     }
                     if (lobby.defaultTeam2?.players) {
                          lobby.team2AvgMatchRatingBefore = calculateAverageMainRating(lobby.defaultTeam2.players);
                     }
-
-               } else {
-                    // Team match (non-solo)
+               }
+               else {
                     if (lobby.team1?.teamId && payment.teamId.toString() === lobby.team1.teamId.toString()) {
-                         targetTeam = lobby.team1;
                          assignedTeam = "team1";
+
+                         if (payment.matchFormat &&
+                              (!lobby.team1.matchFormat || lobby.team1.matchFormat === "") &&
+                              lobby.team1.players.length === 0) {
+                              lobby.team1.matchFormat = payment.matchFormat;
+                              lobby.markModified("team1.matchFormat");
+                         }
+                         if (!lobby.team1.players) lobby.team1.players = [];
+                         lobby.team1.players.push(playerData);
+
                     } else if (lobby.team2?.teamId && payment.teamId.toString() === lobby.team2.teamId.toString()) {
-                         targetTeam = lobby.team2;
                          assignedTeam = "team2";
+
+                         if (payment.matchFormat &&
+                              (!lobby.team2.matchFormat || lobby.team2.matchFormat === "") &&
+                              lobby.team2.players.length === 0) {
+                              lobby.team2.matchFormat = payment.matchFormat;
+                              lobby.markModified("team2.matchFormat");
+                         }
+                         if (!lobby.team2.players) lobby.team2.players = [];
+                         lobby.team2.players.push(playerData);
+
                     } else {
                          return res.status(400).json({ message: "Team not found in lobby" });
                     }
 
-                    if (!targetTeam.players) targetTeam.players = [];
-
-                    if (payment.matchFormat && (!targetTeam.matchFormat || targetTeam.matchFormat === "") && targetTeam.players.length === 0) {
-                         targetTeam.matchFormat = payment.matchFormat;
-                         if (assignedTeam === "team1") lobby.markModified("team1.matchFormat");
-                         if (assignedTeam === "team2") lobby.markModified("team2.matchFormat");
-                    }
-
-                    targetTeam.players.push(playerData);
-
-                    // Calculate average main ratings for both teams AFTER adding new player
+                    // Average rating
                     if (lobby.team1?.players) {
                          lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(lobby.team1.players);
                     }
