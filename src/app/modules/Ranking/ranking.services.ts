@@ -237,6 +237,7 @@ const playerRanking = async (options: RankingOptions) => {
      ]);
      const sortDir = sortOrder === "asc" ? 1 : -1;
 
+     // ─── Step 7: Sort by windowStats field ───────────────────────────────────────
      enriched.sort((a, b) => {
           const aVal = windowStatFields.has(sortField)
                ? (a.windowStats as any)[sortField] ?? 0
@@ -244,7 +245,9 @@ const playerRanking = async (options: RankingOptions) => {
           const bVal = windowStatFields.has(sortField)
                ? (b.windowStats as any)[sortField] ?? 0
                : (b as any)[sortField] ?? 0;
-          return sortDir * (bVal - aVal);
+
+          // ✅ FIX: desc = b - a (highest first), asc = a - b (lowest first)
+          return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
      });
 
      return enriched;
