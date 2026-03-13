@@ -36,10 +36,12 @@ export const getPlayerOverallRating = async (playerId: string) => {
           ],
      });
 
+     // getPlayerOverallRating এ — lobby loop fix
      lobbies.forEach(lobby => {
-          teams.forEach(key => {
+          let found = false;
+          for (const key of teams) {         
                const team = lobby[key];
-               if (!team?.players?.length) return;
+               if (!team?.players?.length) continue;
 
                const player = team.players.find(
                     p => p.playerId.toString() === playerId
@@ -48,8 +50,10 @@ export const getPlayerOverallRating = async (playerId: string) => {
                if (player?.rating) {
                     totalRating += player.rating;
                     matchCount++;
+                    found = true;
+                    break;                     
                }
-          });
+          }
      });
 
      const averageRating = matchCount ? totalRating / matchCount : 6.5;

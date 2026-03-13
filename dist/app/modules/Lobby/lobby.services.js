@@ -57,6 +57,163 @@ const allMatch = async (query) => {
                 lobbyStatus: { $ne: "inactive" }
             }
         },
+        // ✅ সব team এর players এর playerId collect করো
+        {
+            $addFields: {
+                allPlayerIds: {
+                    $concatArrays: [
+                        { $ifNull: [{ $map: { input: "$team1.players", as: "p", in: "$$p.playerId" } }, []] },
+                        { $ifNull: [{ $map: { input: "$team2.players", as: "p", in: "$$p.playerId" } }, []] },
+                        { $ifNull: [{ $map: { input: "$defaultTeam1.players", as: "p", in: "$$p.playerId" } }, []] },
+                        { $ifNull: [{ $map: { input: "$defaultTeam2.players", as: "p", in: "$$p.playerId" } }, []] },
+                    ]
+                }
+            }
+        },
+        // ✅ playerIds দিয়ে userModel থেকে latest rating fetch
+        {
+            $lookup: {
+                from: "players",
+                let: { playerIds: "$allPlayerIds" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $in: ["$_id", "$$playerIds"] }
+                        }
+                    },
+                    {
+                        $project: { _id: 1, rating: 1 }
+                    }
+                ],
+                as: "latestPlayerRatings"
+            }
+        },
+        // ✅ প্রতিটি team এর player এর mainRating → latest profile rating
+        {
+            $addFields: {
+                "team1.players": {
+                    $map: {
+                        input: { $ifNull: ["$team1.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "team2.players": {
+                    $map: {
+                        input: { $ifNull: ["$team2.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "defaultTeam1.players": {
+                    $map: {
+                        input: { $ifNull: ["$defaultTeam1.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "defaultTeam2.players": {
+                    $map: {
+                        input: { $ifNull: ["$defaultTeam2.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+            }
+        },
+        // ✅ temporary fields cleanup
+        {
+            $unset: ["allPlayerIds", "latestPlayerRatings"]
+        },
+        // Team 1 Data lookup
         {
             $lookup: {
                 from: "teams",
@@ -66,7 +223,7 @@ const allMatch = async (query) => {
             }
         },
         { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
-        // Team 2 Data lookup (যদি থাকে)
+        // Team 2 Data lookup
         {
             $lookup: {
                 from: "teams",
@@ -76,7 +233,7 @@ const allMatch = async (query) => {
             }
         },
         { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
-        // Team 1 এর সব প্লেয়ার (team1Data.players থেকে)
+        // Team 1 এর সব প্লেয়ার
         {
             $lookup: {
                 from: "players",
@@ -85,7 +242,7 @@ const allMatch = async (query) => {
                 as: "team1AllPlayers"
             }
         },
-        // Team 2 এর সব প্লেয়ার (team2Data.players থেকে)
+        // Team 2 এর সব প্লেয়ার
         {
             $lookup: {
                 from: "players",
@@ -104,7 +261,7 @@ const allMatch = async (query) => {
             }
         },
         { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
-        // Solo match এর জন্য Default Team 1 এর জয়েন করা প্লেয়ার
+        // Default Team 1 joined players
         {
             $lookup: {
                 from: "players",
@@ -134,7 +291,7 @@ const allMatch = async (query) => {
                 as: "joinedDefaultTeam1Players"
             }
         },
-        // Solo match এর জন্য Default Team 2 এর জয়েন করা প্লেয়ার
+        // Default Team 2 joined players
         {
             $lookup: {
                 from: "players",
@@ -164,7 +321,7 @@ const allMatch = async (query) => {
                 as: "joinedDefaultTeam2Players"
             }
         },
-        // Team match এর জন্য Team 1 এর জয়েন করা প্লেয়ার
+        // Team 1 joined players
         {
             $lookup: {
                 from: "players",
@@ -194,7 +351,7 @@ const allMatch = async (query) => {
                 as: "joinedTeam1Players"
             }
         },
-        // Team match এর জন্য Team 2 এর জয়েন করা প্লেয়ার
+        // Team 2 joined players
         {
             $lookup: {
                 from: "players",
@@ -224,23 +381,19 @@ const allMatch = async (query) => {
                 as: "joinedTeam2Players"
             }
         },
+        // Search filter
         {
             $match: {
                 $or: [
                     { title: { $regex: search, $options: "i" } },
-                    // Team match এর জন্য
                     { "team1Data.teamName": { $regex: search, $options: "i" } },
                     { "team2Data.teamName": { $regex: search, $options: "i" } },
-                    // Solo match এর জন্য
                     { "defaultTeam1.teamName": { $regex: search, $options: "i" } },
                     { "defaultTeam2.teamName": { $regex: search, $options: "i" } },
-                    // Team 1 এর সব প্লেয়ারদের নাম
                     { "team1AllPlayers.FullName": { $regex: search, $options: "i" } },
                     { "team2AllPlayers.FullName": { $regex: search, $options: "i" } },
-                    // Team match জয়েন করা প্লেয়ার
                     { "joinedTeam1Players.FullName": { $regex: search, $options: "i" } },
                     { "joinedTeam2Players.FullName": { $regex: search, $options: "i" } },
-                    // Solo match জয়েন করা প্লেয়ার
                     { "joinedDefaultTeam1Players.FullName": { $regex: search, $options: "i" } },
                     { "joinedDefaultTeam2Players.FullName": { $regex: search, $options: "i" } }
                 ]
@@ -372,6 +525,162 @@ const singlelobby = async (lobbyId) => {
                 _id: new Types.ObjectId(lobbyId),
             },
         },
+        /* ================= COLLECT ALL PLAYER IDs ================= */
+        {
+            $addFields: {
+                allPlayerIds: {
+                    $concatArrays: [
+                        { $ifNull: [{ $map: { input: "$team1.players", as: "p", in: "$$p.playerId" } }, []] },
+                        { $ifNull: [{ $map: { input: "$team2.players", as: "p", in: "$$p.playerId" } }, []] },
+                        { $ifNull: [{ $map: { input: "$defaultTeam1.players", as: "p", in: "$$p.playerId" } }, []] },
+                        { $ifNull: [{ $map: { input: "$defaultTeam2.players", as: "p", in: "$$p.playerId" } }, []] },
+                    ]
+                }
+            }
+        },
+        /* ================= FETCH LATEST PROFILE RATINGS ================= */
+        {
+            $lookup: {
+                from: "players",
+                let: { playerIds: "$allPlayerIds" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $in: ["$_id", "$$playerIds"] }
+                        }
+                    },
+                    {
+                        $project: { _id: 1, rating: 1 }
+                    }
+                ],
+                as: "latestPlayerRatings"
+            }
+        },
+        /* ================= UPDATE mainRating IN ALL TEAMS ================= */
+        {
+            $addFields: {
+                "team1.players": {
+                    $map: {
+                        input: { $ifNull: ["$team1.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "team2.players": {
+                    $map: {
+                        input: { $ifNull: ["$team2.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "defaultTeam1.players": {
+                    $map: {
+                        input: { $ifNull: ["$defaultTeam1.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "defaultTeam2.players": {
+                    $map: {
+                        input: { $ifNull: ["$defaultTeam2.players", []] },
+                        as: "p",
+                        in: {
+                            $mergeObjects: [
+                                "$$p",
+                                {
+                                    mainRating: {
+                                        $let: {
+                                            vars: {
+                                                matched: {
+                                                    $first: {
+                                                        $filter: {
+                                                            input: "$latestPlayerRatings",
+                                                            as: "lr",
+                                                            cond: { $eq: ["$$lr._id", "$$p.playerId"] }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            in: { $ifNull: ["$$matched.rating", "$$p.mainRating"] }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+            }
+        },
+        /* ================= CLEANUP TEMPORARY FIELDS ================= */
+        {
+            $unset: ["allPlayerIds", "latestPlayerRatings"]
+        },
         /* ================= TEAM 1 JOINED PLAYERS WITH MATCH STATS ================= */
         {
             $lookup: {
@@ -431,6 +740,7 @@ const singlelobby = async (lobbyId) => {
                             goodMoment: "$matchStats.goodMoment",
                             veryGoodMoment: "$matchStats.veryGoodMoment",
                             rating: "$matchStats.rating",
+                            mainRating: "$matchStats.mainRating",
                             matchPosition: "$matchStats.matchPosition",
                             guest_player: "$matchStats.guest_player",
                         },
@@ -503,6 +813,7 @@ const singlelobby = async (lobbyId) => {
                             goodMoment: "$matchStats.goodMoment",
                             veryGoodMoment: "$matchStats.veryGoodMoment",
                             rating: "$matchStats.rating",
+                            mainRating: "$matchStats.mainRating",
                             matchPosition: "$matchStats.matchPosition",
                             guest_player: "$matchStats.guest_player",
                         },
@@ -620,6 +931,7 @@ const singlelobby = async (lobbyId) => {
                             goodMoment: "$matchStats.goodMoment",
                             veryGoodMoment: "$matchStats.veryGoodMoment",
                             rating: "$matchStats.rating",
+                            mainRating: "$matchStats.mainRating",
                             matchPosition: "$matchStats.matchPosition",
                             guest_player: "$matchStats.guest_player",
                         },
@@ -692,6 +1004,7 @@ const singlelobby = async (lobbyId) => {
                             goodMoment: "$matchStats.goodMoment",
                             veryGoodMoment: "$matchStats.veryGoodMoment",
                             rating: "$matchStats.rating",
+                            mainRating: "$matchStats.mainRating",
                             matchPosition: "$matchStats.matchPosition",
                             guest_player: "$matchStats.guest_player",
                         },
@@ -758,18 +1071,14 @@ const singlelobby = async (lobbyId) => {
                         then: {
                             $cond: {
                                 if: { $gt: [{ $size: { $ifNull: ["$defaultTeam1.players", []] } }, 0] },
-                                then: {
-                                    $avg: "$defaultTeam1.players.rating"
-                                },
+                                then: { $avg: "$defaultTeam1.players.rating" },
                                 else: 0,
                             },
                         },
                         else: {
                             $cond: {
                                 if: { $gt: [{ $size: { $ifNull: ["$team1.players", []] } }, 0] },
-                                then: {
-                                    $avg: "$team1.players.rating"
-                                },
+                                then: { $avg: "$team1.players.rating" },
                                 else: 0,
                             },
                         },
@@ -781,18 +1090,14 @@ const singlelobby = async (lobbyId) => {
                         then: {
                             $cond: {
                                 if: { $gt: [{ $size: { $ifNull: ["$defaultTeam2.players", []] } }, 0] },
-                                then: {
-                                    $avg: "$defaultTeam2.players.rating"
-                                },
+                                then: { $avg: "$defaultTeam2.players.rating" },
                                 else: 0,
                             },
                         },
                         else: {
                             $cond: {
                                 if: { $gt: [{ $size: { $ifNull: ["$team2.players", []] } }, 0] },
-                                then: {
-                                    $avg: "$team2.players.rating"
-                                },
+                                then: { $avg: "$team2.players.rating" },
                                 else: 0,
                             },
                         },
@@ -868,6 +1173,7 @@ export const updatePlayerStats = async (data) => {
     }
     await lobby.save();
     const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
+    // updatePlayerStats এ
     await userModel.findByIdAndUpdate(data.playerId, {
         $inc: {
             redCard: data.redCard || 0,
@@ -877,8 +1183,10 @@ export const updatePlayerStats = async (data) => {
             contribution: data.contribution || 0,
             save: data.save || 0,
         },
-        match: matchCount,
-        rating: parseFloat(averageRating.toFixed(2)),
+        $set: {
+            match: matchCount,
+            rating: parseFloat(averageRating.toFixed(2)),
+        },
     }, { new: true });
     return { lobbyPlayer: player };
 };

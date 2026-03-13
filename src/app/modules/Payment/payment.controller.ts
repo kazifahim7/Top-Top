@@ -34,17 +34,36 @@ export const joinLobby = async (req: Request, res: Response) => {
 
           let playerId = req.user.id;
 
-          // ─── Extra Player (Organizer only) ────────────────────────────────────
+         
+          // ─── Extra Player (Organizer OR Team Captain) ─────────────────────────
           if (ExtraPlayerId) {
-               if (req.user.role !== "organizer") {
-                    throw new AppError(403, "Only organizer can add extra player");
+               const isOrganizer = req.user.role === "organizer";
+
+               let isCaptainOfThisTeam = false;
+               if (teamId) {
+                    const team = await TeamModel.findById(teamId);
+                    if (team) {
+                         isCaptainOfThisTeam = team.teamCaptain.some(
+                              (captain) => captain.toString() === req.user.id.toString()
+                         );
+                    }
                }
 
-               const lobby = await LobbyModel.findById(lobbyId);
-               if (!lobby) throw new AppError(404, "Lobby not found");
+               if (!isOrganizer && !isCaptainOfThisTeam) {
+                    throw new AppError(
+                         403,
+                         "Only the organizer or team captain can add an extra player"
+                    );
+               }
 
-               if (lobby.organizer.toString() !== req.user.id) {
-                    throw new AppError(403, "Unauthorized lobby access");
+               // Organizer হলে lobby ownership check
+               if (isOrganizer) {
+                    const lobby = await LobbyModel.findById(lobbyId);
+                    if (!lobby) throw new AppError(404, "Lobby not found");
+
+                    if (lobby.organizer.toString() !== req.user.id) {
+                         throw new AppError(403, "Unauthorized lobby access");
+                    }
                }
 
                playerId = ExtraPlayerId;
