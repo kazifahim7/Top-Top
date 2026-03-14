@@ -462,7 +462,7 @@ export const removePlayerFromMatch = async (
 
 interface UpdatePlayerStatsDTO {
      matchId: string;
-     playerId: string;
+     playerId?: string; // ownGoal এর ক্ষেত্রে optional
      redCard?: number;
      yellowCard?: number;
      goal?: number;
@@ -471,35 +471,15 @@ interface UpdatePlayerStatsDTO {
      save?: number;
      goodMoment?: number;
      veryGoodMoment?: number;
-     ownGoal?: number; // +1 = score up, -1 = score down (teamId অনুযায়ী)
-     teamId?: "A" | "B"; // ownGoal এর জন্য
+     ownGoal?: number;
+     teamId?: "A" | "B";
 }
 
 export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      const match = await MatchModel.findById(data.matchId);
      if (!match) throw new Error("Match not found");
 
-     let player: any = null;
-     let teamKey: "A" | "B" | null = null;
-
-     // -------- Find player ----------
-     player = match.teamAPlayers.find(
-          p => p.playerId.toString() === data.playerId
-     );
-     if (player) {
-          teamKey = "A";
-     } else {
-          player = match.teamBPlayers.find(
-               p => p.playerId.toString() === data.playerId
-          );
-          if (player) teamKey = "B";
-     }
-
-     if (!player || !teamKey) {
-          throw new Error("Player not found in match");
-     }
-
-     // -------- ownGoal: শুধু teamId অনুযায়ী score update, player stats না ----------
+     // -------- ownGoal with teamId: score update only ----------
      if (data.ownGoal !== undefined && data.ownGoal !== 0) {
           if (!data.teamId) throw new Error("teamId is required for ownGoal");
 
@@ -507,74 +487,95 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
           if (data.teamId === "B") match.scoreB = (match.scoreB || 0) + data.ownGoal;
 
           await match.save();
+          return { scoreA: match.scoreA, scoreB: match.scoreB };
+     }
+
+     // -------- playerId দিলে player stats update ----------
+     if (data.playerId) {
+          let player: any = null;
+          let teamKey: "A" | "B" | null = null;
+
+          player = match.teamAPlayers.find(
+               p => p.playerId.toString() === data.playerId
+          );
+          if (player) {
+               teamKey = "A";
+          } else {
+               player = match.teamBPlayers.find(
+                    p => p.playerId.toString() === data.playerId
+               );
+               if (player) teamKey = "B";
+          }
+
+          if (!player || !teamKey) throw new Error("Player not found in match");
+
+          // -------- Rating calculation ----------
+          let rawRating = player.rawRating ?? player.rating ?? 6.5;
+
+          rawRating -= (data.redCard ?? 0) * 0.5;
+          rawRating -= (data.yellowCard ?? 0) * 0.25;
+          rawRating += (data.goal ?? 0) * 0.5;
+          rawRating += (data.assists ?? 0) * 0.5;
+          rawRating += (data.contribution ?? 0) * 0.25;
+          rawRating += (data.save ?? 0) * 0.25;
+          rawRating += (data.goodMoment ?? 0) * 0.25;
+          rawRating += (data.veryGoodMoment ?? 0) * 0.5;
+
+          player.rawRating = Number(rawRating.toFixed(2));
+          player.rating = Number(Math.max(0, Math.min(10, rawRating)).toFixed(2));
+
+          // -------- Update stats ----------
+          const fields: (keyof UpdatePlayerStatsDTO)[] = [
+               "redCard",
+               "yellowCard",
+               "goal",
+               "assists",
+               "contribution",
+               "save",
+               "goodMoment",
+               "veryGoodMoment",
+          ];
+
+          fields.forEach(field => {
+               if (data[field] !== undefined) {
+                    player[field] += data[field]!;
+               }
+          });
+
+          // -------- Update match score ----------
+          if (data.goal !== undefined && data.goal !== 0) {
+               if (teamKey === "A") match.scoreA += data.goal;
+               if (teamKey === "B") match.scoreB += data.goal;
+          }
+
+          await match.save();
+
+          // -------- Recalculate player avg rating ----------
+          const { averageRating, matchCount } =
+               await getPlayerOverallRating(data.playerId);
+
+          // -------- Update player profile ----------
+          await userModel.findByIdAndUpdate(
+               data.playerId,
+               {
+                    $inc: {
+                         redCard: data.redCard ?? 0,
+                         yellowCard: data.yellowCard ?? 0,
+                         goal: data.goal ?? 0,
+                         assists: data.assists ?? 0,
+                         contribution: data.contribution ?? 0,
+                         save: data.save ?? 0,
+                    },
+                    match: matchCount,
+                    rating: Number(averageRating.toFixed(2)),
+               },
+               { new: true }
+          );
+
           return { matchPlayer: player };
      }
 
-     // -------- Rating calculation ----------
-     let rawRating = player.rawRating ?? player.rating ?? 6.5;
-
-     rawRating -= (data.redCard ?? 0) * 0.5;
-     rawRating -= (data.yellowCard ?? 0) * 0.25;
-     rawRating += (data.goal ?? 0) * 0.5;
-     rawRating += (data.assists ?? 0) * 0.5;
-     rawRating += (data.contribution ?? 0) * 0.25;
-     rawRating += (data.save ?? 0) * 0.25;
-     rawRating += (data.goodMoment ?? 0) * 0.25;
-     rawRating += (data.veryGoodMoment ?? 0) * 0.5;
-
-     // ✅ rawRating save, rating clamp
-     player.rawRating = Number(rawRating.toFixed(2));
-     player.rating = Number(Math.max(0, Math.min(10, rawRating)).toFixed(2));
-
-     // -------- Update stats ----------
-     const fields: (keyof UpdatePlayerStatsDTO)[] = [
-          "redCard",
-          "yellowCard",
-          "goal",
-          "assists",
-          "contribution",
-          "save",
-          "goodMoment",
-          "veryGoodMoment",
-     ];
-
-     fields.forEach(field => {
-          if (data[field] !== undefined) {
-               player[field] += data[field]!;
-          }
-     });
-
-     // -------- Update match score ----------
-     if (data.goal !== undefined && data.goal !== 0) {
-          if (teamKey === "A") match.scoreA += data.goal;
-          if (teamKey === "B") match.scoreB += data.goal;
-     }
-
-     await match.save();
-
-     // -------- Recalculate player avg rating ----------
-     const { averageRating, matchCount } =
-          await getPlayerOverallRating(data.playerId);
-
-     // -------- Update player profile ----------
-     await userModel.findByIdAndUpdate(
-          data.playerId,
-          {
-               $inc: {
-                    redCard: data.redCard ?? 0,
-                    yellowCard: data.yellowCard ?? 0,
-                    goal: data.goal ?? 0,
-                    assists: data.assists ?? 0,
-                    contribution: data.contribution ?? 0,
-                    save: data.save ?? 0,
-               },
-               match: matchCount,
-               rating: Number(averageRating.toFixed(2)),
-          },
-          { new: true }
-     );
-
-     return { matchPlayer: player };
+     throw new Error("Either playerId or ownGoal with teamId is required");
 };
 
 
