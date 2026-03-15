@@ -189,10 +189,9 @@ export const joinLobby = async (req: Request, res: Response) => {
                     (p: any) => p.matchPosition === matchPosition
                ) || [];
 
-               const allowedCountForPosition =
-                    matchFormat === "2-3-2" && matchPosition === "Striker" ? 2 : 1;
+               // const allowedCountForPosition = matchPosition === "Striker" ? 2 : 1;
 
-               if (playersInSamePosition.length >= allowedCountForPosition) {
+               if (playersInSamePosition.length >= 1) {
                     return res.status(400).json({ message: "This position is already taken in this team" });
                }
 

@@ -131,8 +131,8 @@ export const joinLobby = async (req, res) => {
             // "2-3-2" format এ "Striker" position এ দুইজন join করতে পারবে
             // বাকি সব case এ একজনই পারবে
             const playersInSamePosition = currentTeam?.players?.filter((p) => p.matchPosition === matchPosition) || [];
-            const allowedCountForPosition = matchFormat === "2-3-2" && matchPosition === "Striker" ? 2 : 1;
-            if (playersInSamePosition.length >= allowedCountForPosition) {
+            // const allowedCountForPosition = matchPosition === "Striker" ? 2 : 1;
+            if (playersInSamePosition.length >= 1) {
                 return res.status(400).json({ message: "This position is already taken in this team" });
             }
             // Private lobby key check
