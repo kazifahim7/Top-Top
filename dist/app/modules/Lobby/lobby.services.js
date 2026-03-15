@@ -1112,27 +1112,7 @@ export const updatePlayerStats = async (data) => {
     const lobby = await LobbyModel.findById(data.lobbyId);
     if (!lobby)
         throw new Error("Lobby not found");
-    let player = null;
-    let teamKey = null;
-    const teams = [
-        "team1",
-        "team2",
-        "defaultTeam1",
-        "defaultTeam2",
-    ];
-    for (const key of teams) {
-        const team = lobby[key];
-        if (team?.players?.length) {
-            player = team.players.find(p => p.playerId.toString() === data.playerId);
-            if (player) {
-                teamKey = key;
-                break;
-            }
-        }
-    }
-    if (!player || !teamKey)
-        throw new Error("Player not found in any team");
-    // ownGoal হলে শুধু body তে দেওয়া teamId এর score update হবে, player stats update হবে না
+    // -------- ownGoal: playerId ছাড়াই শুধু teamId অনুযায়ী score update ----------
     if (data.ownGoal !== undefined && data.ownGoal !== 0) {
         if (!data.teamId)
             throw new Error("teamId is required for ownGoal");
@@ -1143,52 +1123,78 @@ export const updatePlayerStats = async (data) => {
             lobby.goalTeam2 = (lobby.goalTeam2 || 0) + data.ownGoal;
         }
         await lobby.save();
+        return { goalTeam1: lobby.goalTeam1, goalTeam2: lobby.goalTeam2 };
+    }
+    // -------- playerId দিলে player stats update ----------
+    if (data.playerId) {
+        let player = null;
+        let teamKey = null;
+        const teams = [
+            "team1",
+            "team2",
+            "defaultTeam1",
+            "defaultTeam2",
+        ];
+        for (const key of teams) {
+            const team = lobby[key];
+            if (team?.players?.length) {
+                player = team.players.find(p => p.playerId.toString() === data.playerId);
+                if (player) {
+                    teamKey = key;
+                    break;
+                }
+            }
+        }
+        if (!player || !teamKey)
+            throw new Error("Player not found in any team");
+        // -------- Rating calculation ----------
+        let rawRating = player.rawRating ?? player.rating ?? 6.5;
+        rawRating -= (data.redCard || 0) * 0.5;
+        rawRating -= (data.yellowCard || 0) * 0.25;
+        rawRating += (data.goal || 0) * 0.5;
+        rawRating += (data.assists || 0) * 0.5;
+        rawRating += (data.contribution || 0) * 0.25;
+        rawRating += (data.save || 0) * 0.25;
+        rawRating += (data.veryGoodMoment || 0) * 0.5;
+        rawRating += (data.goodMoment || 0) * 0.5;
+        player.rawRating = parseFloat(rawRating.toFixed(2));
+        player.rating = parseFloat(Math.max(0, Math.min(10, rawRating)).toFixed(2));
+        // -------- Update stats ----------
+        ["redCard", "yellowCard", "goal", "assists", "contribution", "save", "veryGoodMoment", "goodMoment"].forEach(field => {
+            if (data[field] !== undefined) {
+                player[field] += data[field];
+            }
+        });
+        // -------- Update match score ----------
+        if (data.goal !== undefined && data.goal !== 0) {
+            if (teamKey === "team1" || teamKey === "defaultTeam1") {
+                lobby.goalTeam1 += data.goal;
+            }
+            else if (teamKey === "team2" || teamKey === "defaultTeam2") {
+                lobby.goalTeam2 += data.goal;
+            }
+        }
+        await lobby.save();
+        // -------- Recalculate player avg rating ----------
+        const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
+        // -------- Update player profile ----------
+        await userModel.findByIdAndUpdate(data.playerId, {
+            $inc: {
+                redCard: data.redCard || 0,
+                yellowCard: data.yellowCard || 0,
+                goal: data.goal || 0,
+                assists: data.assists || 0,
+                contribution: data.contribution || 0,
+                save: data.save || 0,
+            },
+            $set: {
+                match: matchCount,
+                rating: parseFloat(averageRating.toFixed(2)),
+            },
+        }, { new: true });
         return { lobbyPlayer: player };
     }
-    // ✅ rawRating থেকে calculate করো, rating থেকে না
-    let rawRating = player.rawRating ?? player.rating ?? 6.5;
-    rawRating -= (data.redCard || 0) * 0.5;
-    rawRating -= (data.yellowCard || 0) * 0.25;
-    rawRating += (data.goal || 0) * 0.5;
-    rawRating += (data.assists || 0) * 0.5;
-    rawRating += (data.contribution || 0) * 0.25;
-    rawRating += (data.save || 0) * 0.25;
-    rawRating += (data.veryGoodMoment || 0) * 0.5;
-    rawRating += (data.goodMoment || 0) * 0.5;
-    // ✅ rawRating সংরক্ষণ করো (unclamped), rating clamp করো
-    player.rawRating = parseFloat(rawRating.toFixed(2));
-    player.rating = parseFloat(Math.max(0, Math.min(10, rawRating)).toFixed(2));
-    ["redCard", "yellowCard", "goal", "assists", "contribution", "save", "veryGoodMoment", "goodMoment"].forEach(field => {
-        if (data[field] !== undefined) {
-            player[field] += data[field];
-        }
-    });
-    if (data.goal !== undefined && data.goal !== 0) {
-        if (teamKey === "team1" || teamKey === "defaultTeam1") {
-            lobby.goalTeam1 += data.goal;
-        }
-        else if (teamKey === "team2" || teamKey === "defaultTeam2") {
-            lobby.goalTeam2 += data.goal;
-        }
-    }
-    await lobby.save();
-    const { averageRating, matchCount } = await getPlayerOverallRating(data.playerId);
-    // updatePlayerStats এ
-    await userModel.findByIdAndUpdate(data.playerId, {
-        $inc: {
-            redCard: data.redCard || 0,
-            yellowCard: data.yellowCard || 0,
-            goal: data.goal || 0,
-            assists: data.assists || 0,
-            contribution: data.contribution || 0,
-            save: data.save || 0,
-        },
-        $set: {
-            match: matchCount,
-            rating: parseFloat(averageRating.toFixed(2)),
-        },
-    }, { new: true });
-    return { lobbyPlayer: player };
+    throw new Error("Either playerId or ownGoal with teamId is required");
 };
 const updateLobbyInfo = async (id, payload) => {
     const isLobbyExist = await LobbyModel.findById(id)

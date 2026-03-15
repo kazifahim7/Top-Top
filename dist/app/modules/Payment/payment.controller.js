@@ -105,7 +105,7 @@ export const joinLobby = async (req, res) => {
                         paymentType: "team fee",
                     });
                     if (alreadyPaidByCaptain) {
-                        throw new AppError(400, "Your captain has already initiated a payment for you in this lobby");
+                        throw new AppError(400, "Already joined");
                     }
                 }
                 // Opponent team check
@@ -127,8 +127,12 @@ export const joinLobby = async (req, res) => {
                     currentTeam = isLobbyExist.team2;
                 }
             }
-            // Duplicate position check
-            if (currentTeam?.players?.some((p) => p.matchPosition === matchPosition)) {
+            // ─── Duplicate position check ─────────────────────────────────────
+            // "2-3-2" format এ "Striker" position এ দুইজন join করতে পারবে
+            // বাকি সব case এ একজনই পারবে
+            const playersInSamePosition = currentTeam?.players?.filter((p) => p.matchPosition === matchPosition) || [];
+            const allowedCountForPosition = matchFormat === "2-3-2" && matchPosition === "Striker" ? 2 : 1;
+            if (playersInSamePosition.length >= allowedCountForPosition) {
                 return res.status(400).json({ message: "This position is already taken in this team" });
             }
             // Private lobby key check

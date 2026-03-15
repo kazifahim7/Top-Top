@@ -26,7 +26,7 @@ export declare const removePlayerFromMatch: (matchId: string, data: RemovePlayer
 }>;
 interface UpdatePlayerStatsDTO {
     matchId: string;
-    playerId: string;
+    playerId?: string;
     redCard?: number;
     yellowCard?: number;
     goal?: number;
@@ -39,7 +39,13 @@ interface UpdatePlayerStatsDTO {
     teamId?: "A" | "B";
 }
 export declare const updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
+    scoreA: number;
+    scoreB: number;
+    matchPlayer?: never;
+} | {
     matchPlayer: any;
+    scoreA?: never;
+    scoreB?: never;
 }>;
 export declare const tournamentMatchService: {
     createMatch: (payload: IMatch, id: string) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
@@ -133,7 +139,13 @@ export declare const tournamentMatchService: {
         __v: number;
     }>;
     updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
+        scoreA: number;
+        scoreB: number;
+        matchPlayer?: never;
+    } | {
         matchPlayer: any;
+        scoreA?: never;
+        scoreB?: never;
     }>;
 };
 export {};

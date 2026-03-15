@@ -2,7 +2,7 @@ import mongoose, { Types } from "mongoose";
 import type { LobbyDocument } from "./lobby.interface.js";
 interface UpdatePlayerStatsDTO {
     lobbyId: string;
-    playerId: string;
+    playerId?: string;
     redCard?: number;
     yellowCard?: number;
     goal?: number;
@@ -15,7 +15,13 @@ interface UpdatePlayerStatsDTO {
     teamId?: "team1" | "team2" | "defaultTeam1" | "defaultTeam2";
 }
 export declare const updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
+    goalTeam1: number;
+    goalTeam2: number;
+    lobbyPlayer?: never;
+} | {
     lobbyPlayer: any;
+    goalTeam1?: never;
+    goalTeam2?: never;
 }>;
 export declare const lobbyService: {
     createMatch: (payload: LobbyDocument, id: string, role: string) => Promise<mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
@@ -25,7 +31,13 @@ export declare const lobbyService: {
     }>;
     allMatch: (query: Record<string, unknown>) => Promise<any[]>;
     updatePlayerStats: (data: UpdatePlayerStatsDTO) => Promise<{
+        goalTeam1: number;
+        goalTeam2: number;
+        lobbyPlayer?: never;
+    } | {
         lobbyPlayer: any;
+        goalTeam1?: never;
+        goalTeam2?: never;
     }>;
     updateLobbyInfo: (id: string, payload: Record<string, unknown>) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;

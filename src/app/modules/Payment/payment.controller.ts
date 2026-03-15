@@ -34,7 +34,7 @@ export const joinLobby = async (req: Request, res: Response) => {
 
           let playerId = req.user.id;
 
-         
+
           // ─── Extra Player (Organizer OR Team Captain) ─────────────────────────
           if (ExtraPlayerId) {
                const isOrganizer = req.user.role === "organizer";
@@ -155,7 +155,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                          if (alreadyPaidByCaptain) {
                               throw new AppError(
                                    400,
-                                   "Your captain has already initiated a payment for you in this lobby"
+                                   "Already joined"
                               );
                          }
                     }
@@ -182,8 +182,17 @@ export const joinLobby = async (req: Request, res: Response) => {
                     }
                }
 
-               // Duplicate position check
-               if (currentTeam?.players?.some((p: any) => p.matchPosition === matchPosition)) {
+               // ─── Duplicate position check ─────────────────────────────────────
+               // "2-3-2" format এ "Striker" position এ দুইজন join করতে পারবে
+               // বাকি সব case এ একজনই পারবে
+               const playersInSamePosition = currentTeam?.players?.filter(
+                    (p: any) => p.matchPosition === matchPosition
+               ) || [];
+
+               const allowedCountForPosition =
+                    matchFormat === "2-3-2" && matchPosition === "Striker" ? 2 : 1;
+
+               if (playersInSamePosition.length >= allowedCountForPosition) {
                     return res.status(400).json({ message: "This position is already taken in this team" });
                }
 
