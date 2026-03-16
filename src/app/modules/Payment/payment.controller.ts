@@ -526,6 +526,18 @@ async function checkPositionAvailability(payment: any): Promise<string | null> {
      });
 
      if (positionTakenInLobby || positionTakenInPayment) {
+          // ✅ same position এ সব pending payment failed করে দাও
+          await PaymentModel.updateMany(
+               {
+                    lobbyId: payment.lobbyId,
+                    teamId: payment.teamId,
+                    matchPosition: payment.matchPosition,
+                    status: "pending",
+                    _id: { $ne: payment._id },
+               },
+               { $set: { status: "failed" } }
+          );
+
           return "This position is already taken. Payment has been cancelled.";
      }
 
