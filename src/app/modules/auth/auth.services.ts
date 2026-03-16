@@ -293,6 +293,8 @@ export const changePassword = async (payload: { oldPassword: string, newPassword
 const calculatePlayerStats = (lobbies: any[], playerId: string,tournamentLength:number) => {
      const matchesPlayed = lobbies.length + tournamentLength;
 
+   
+
      let totalGoals = 0;
      let totalAssists = 0;
      let totalSaves = 0;
@@ -352,6 +354,8 @@ const calculatePlayerStats = (lobbies: any[], playerId: string,tournamentLength:
                if (playerTeamGoal > opponentTeamGoal) wins++;
           }
      });
+
+     console.log(matchesPlayed, totalGoals, "fahim")
 
      return {
           matchesPlayed,

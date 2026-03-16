@@ -7,7 +7,6 @@ const playerRanking = async (options) => {
     const { filterBy = "all", sortField = "rating", sortOrder = "desc", nationality, age, position, } = options;
     const now = new Date();
     let startDate;
-    // ─── Date window ─────────────────────────────────────────────────────────────
     if (filterBy === "weekly") {
         startDate = new Date();
         startDate.setDate(now.getDate() - 7);
@@ -16,24 +15,17 @@ const playerRanking = async (options) => {
         startDate = new Date();
         startDate.setMonth(now.getMonth() - 1);
     }
-    // ─── Min match threshold ──────────────────────────────────────────────────────
-    // weekly  → at least 2 matches in last 7 days
-    // monthly → at least 4 matches in last 1 month
-    // all     → at least 15 matches all time
     const minMatches = filterBy === "weekly" ? 2 : filterBy === "monthly" ? 4 : 15;
-    // ✅ FIX 1: Only $gte — no upper bound ($lte: now removed)
-    // This ensures future-dated completed matches are also included
     const dateFilter = startDate ? { $gte: startDate } : undefined;
-    // ─── Reusable aggregation pipeline ───────────────────────────────────────────
     const aggregatePlayerStats = async (model, config) => {
         const matchStage = { [config.statusField]: config.statusValue };
         if (dateFilter)
             matchStage[config.dateField] = dateFilter;
         return model.aggregate([
             { $match: matchStage },
-            // Flatten all team player arrays into one
             {
                 $project: {
+                    motmField: `$${config.motmField}`, // ✅
                     allPlayers: {
                         $concatArrays: config.playerArrayPaths.map((path) => ({
                             $ifNull: [`$${path}`, []],
@@ -42,9 +34,7 @@ const playerRanking = async (options) => {
                 },
             },
             { $unwind: "$allPlayers" },
-            // Skip guest players — no real profile exists for them
             { $match: { "allPlayers.guest_player": { $ne: true } } },
-            // Aggregate stats per player
             {
                 $group: {
                     _id: "$allPlayers.playerId",
@@ -58,6 +48,21 @@ const playerRanking = async (options) => {
                     totalContribution: { $sum: "$allPlayers.contribution" },
                     ratingSum: { $sum: "$allPlayers.rating" },
                     ratingCount: { $sum: 1 },
+                    // ✅ motm: player id এর সাথে motm field match করলে count
+                    motm: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $eq: [
+                                        { $toString: "$allPlayers.playerId" },
+                                        { $toString: "$motmField" },
+                                    ],
+                                },
+                                1,
+                                0,
+                            ],
+                        },
+                    },
                 },
             },
         ]);
@@ -73,6 +78,7 @@ const playerRanking = async (options) => {
             "defaultTeam1.players",
             "defaultTeam2.players",
         ],
+        motmField: "motm", // ✅
     });
     // ─── Step 2: Tournament match stats ──────────────────────────────────────────
     const tournamentStats = await aggregatePlayerStats(MatchModel, {
@@ -80,6 +86,7 @@ const playerRanking = async (options) => {
         statusField: "status",
         statusValue: "Completed",
         playerArrayPaths: ["teamAPlayers", "teamBPlayers"],
+        motmField: "motm", // ✅
     });
     // ─── Step 3: Merge both into one Map ─────────────────────────────────────────
     const statsMap = new Map();
@@ -100,6 +107,7 @@ const playerRanking = async (options) => {
                 existing.totalContribution += e.totalContribution;
                 existing.ratingSum += e.ratingSum;
                 existing.ratingCount += e.ratingCount;
+                existing.motm += e.motm; // ✅
             }
             else {
                 statsMap.set(id, {
@@ -113,6 +121,7 @@ const playerRanking = async (options) => {
                     totalContribution: e.totalContribution,
                     ratingSum: e.ratingSum,
                     ratingCount: e.ratingCount,
+                    motm: e.motm, // ✅
                 });
             }
         }
@@ -126,8 +135,6 @@ const playerRanking = async (options) => {
     if (eligibleIds.length === 0)
         return [];
     // ─── Step 5: Fetch user profiles ─────────────────────────────────────────────
-    // ✅ FIX 2: Removed role: "player" — admin/organizer can also participate
-    // in matches and should appear in rankings
     const userQuery = {
         _id: { $in: eligibleIds },
         isBlocked: "active",
@@ -148,11 +155,11 @@ const playerRanking = async (options) => {
         const avgRating = s.ratingCount > 0
             ? parseFloat((s.ratingSum / s.ratingCount).toFixed(2))
             : 6.5;
+        const matchCount = s.matchCount;
         return {
             ...user,
-            // Stats scoped only to the chosen time window (weekly / monthly / all)
             windowStats: {
-                matchCount: s.matchCount,
+                matchCount,
                 rating: avgRating,
                 goal: s.totalGoal,
                 assists: s.totalAssists,
@@ -161,16 +168,21 @@ const playerRanking = async (options) => {
                 redCard: s.totalRedCard,
                 yellowCard: s.totalYellowCard,
                 contribution: s.totalContribution,
+                motm: s.motm, // ✅
+                goalsPerGame: matchCount ? parseFloat((s.totalGoal / matchCount).toFixed(2)) : 0,
+                assistsPerGame: matchCount ? parseFloat((s.totalAssists / matchCount).toFixed(2)) : 0,
+                savesPerGame: matchCount ? parseFloat((s.totalSave / matchCount).toFixed(2)) : 0,
+                contributionPerGame: matchCount ? parseFloat((s.totalContribution / matchCount).toFixed(2)) : 0,
             },
         };
     });
-    // ─── Step 7: Sort by windowStats field ───────────────────────────────────────
+    // ─── Step 7: Sort ─────────────────────────────────────────────────────────────
     const windowStatFields = new Set([
         "rating", "goal", "assists", "tackle",
         "save", "redCard", "yellowCard", "contribution", "matchCount",
+        "goalsPerGame", "assistsPerGame", "savesPerGame", "contributionPerGame",
+        "motm", // ✅
     ]);
-    const sortDir = sortOrder === "asc" ? 1 : -1;
-    // ─── Step 7: Sort by windowStats field ───────────────────────────────────────
     enriched.sort((a, b) => {
         const aVal = windowStatFields.has(sortField)
             ? a.windowStats[sortField] ?? 0
@@ -178,7 +190,6 @@ const playerRanking = async (options) => {
         const bVal = windowStatFields.has(sortField)
             ? b.windowStats[sortField] ?? 0
             : b[sortField] ?? 0;
-        // ✅ FIX: desc = b - a (highest first), asc = a - b (lowest first)
         return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
     });
     return enriched;

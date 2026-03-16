@@ -22,6 +22,11 @@ export declare const playerRankingService: {
             redCard: number;
             yellowCard: number;
             contribution: number;
+            motm: number;
+            goalsPerGame: number;
+            assistsPerGame: number;
+            savesPerGame: number;
+            contributionPerGame: number;
         };
         FullName: string;
         email: string;

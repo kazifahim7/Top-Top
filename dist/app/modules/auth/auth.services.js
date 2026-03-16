@@ -251,6 +251,7 @@ const calculatePlayerStats = (lobbies, playerId, tournamentLength) => {
                 wins++;
         }
     });
+    console.log(matchesPlayed, totalGoals, "fahim");
     return {
         matchesPlayed,
         goalsPerGame: matchesPlayed ? +(totalGoals / matchesPlayed).toFixed(1) : 0,

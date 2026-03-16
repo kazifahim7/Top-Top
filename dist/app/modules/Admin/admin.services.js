@@ -5,7 +5,7 @@ import { MatchModel } from "../TournamentMatch/match.model.js";
 const adminData = async () => {
     const totalRevenue = await PaymentModel.aggregate([
         {
-            $match: { status: "success" }
+            $match: { status: { $in: ["success", "paid"] } }
         },
         {
             $group: {
@@ -19,7 +19,7 @@ const adminData = async () => {
     const matchFromTournament = await MatchModel.countDocuments();
     const revenueGraph = await PaymentModel.aggregate([
         {
-            $match: { status: "success" }
+            $match: { status: { $in: ["success", "paid"] } }
         },
         {
             $group: {
@@ -79,12 +79,12 @@ const adminData = async () => {
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
     // Current month revenue
     const currentRevenue = await PaymentModel.aggregate([
-        { $match: { createdAt: { $gte: startOfThisMonth }, status: "success" } },
+        { $match: { createdAt: { $gte: startOfThisMonth }, status: { $in: ["success", "paid"] } } },
         { $group: { _id: null, total: { $sum: "$price" } } }
     ]);
     // Last month revenue
     const lastRevenue = await PaymentModel.aggregate([
-        { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }, status: "success" } },
+        { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }, status: { $in: ["success", "paid"] } } },
         { $group: { _id: null, total: { $sum: "$price" } } }
     ]);
     const revenueGrowth = lastRevenue[0]?.total
@@ -113,7 +113,7 @@ const adminData = async () => {
         ? ((currentLobbies - lastLobbies) / lastLobbies) * 100
         : 0;
     const revenueBarGraph = await PaymentModel.aggregate([
-        { $match: { status: "success" } },
+        { $match: { status: { $in: ["success", "paid"] } } },
         {
             $group: {
                 _id: { hour: { $hour: "$createdAt" }, day: { $dayOfMonth: "$createdAt" } },
