@@ -502,6 +502,44 @@ export const paymentSuccess = async (req: Request, res: Response) => {
 
           // Cash payments directly success
           if (payment.method === "cash") {
+               // ─── Position Duplicate Check (Cash Payment) ──────────────────────────
+               if (payment.paymentType === "team fee" && payment.matchPosition) {
+                    const lobby = await LobbyModel.findById(payment.lobbyId);
+                    if (!lobby) return res.status(404).json({ message: "Lobby not found" });
+
+                    let targetTeamPlayers: any[] = [];
+
+                    if (lobby.matchType === "solo") {
+                         //@ts-ignore
+                         if (payment.teamId?.toString() === lobby.defaultTeam1?._id?.toString()) {
+                              targetTeamPlayers = lobby.defaultTeam1?.players || [];
+                              //@ts-ignore
+                         } else if (payment.teamId?.toString() === lobby.defaultTeam2?._id?.toString()) {
+                              targetTeamPlayers = lobby.defaultTeam2?.players || [];
+                         }
+                    } else {
+                         if (payment.teamId?.toString() === lobby.team1?.teamId?.toString()) {
+                              targetTeamPlayers = lobby.team1?.players || [];
+                         } else if (payment.teamId?.toString() === lobby.team2?.teamId?.toString()) {
+                              targetTeamPlayers = lobby.team2?.players || [];
+                         }
+                    }
+
+                    const positionTaken = targetTeamPlayers.some(
+                         (p: any) => p.matchPosition === payment.matchPosition
+                    );
+
+                    if (positionTaken) {
+                         // Payment টা failed করে দাও যাতে আর retry না হয়
+                         payment.status = "failed";
+                         await payment.save();
+                         return res.status(400).json({
+                              message: "This position is already taken. Payment has been cancelled.",
+                         });
+                    }
+               }
+               // ─────────────────────────────────────────────────────────────────────
+
                payment.status = "success";
                await payment.save();
           } else {
@@ -511,14 +549,49 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                if (intent.status !== "succeeded") {
                     return res.status(400).json({ message: "Payment not successful" });
                }
-
                if (intent.metadata.paymentId !== payment._id.toString()) {
                     return res.status(400).json({ message: "Payment metadata mismatch" });
                }
-
                if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
                     return res.status(400).json({ message: "Payment amount or currency mismatch" });
                }
+
+               // ─── Position Duplicate Check (Stripe Payment) ───────────────────────
+               if (payment.paymentType === "team fee" && payment.matchPosition) {
+                    const lobby = await LobbyModel.findById(payment.lobbyId);
+                    if (!lobby) return res.status(404).json({ message: "Lobby not found" });
+
+                    let targetTeamPlayers: any[] = [];
+
+                    if (lobby.matchType === "solo") {
+                         //@ts-ignore
+                         if (payment.teamId?.toString() === lobby.defaultTeam1?._id?.toString()) {
+                              targetTeamPlayers = lobby.defaultTeam1?.players || [];
+                              //@ts-ignore
+                         } else if (payment.teamId?.toString() === lobby.defaultTeam2?._id?.toString()) {
+                              targetTeamPlayers = lobby.defaultTeam2?.players || [];
+                         }
+                    } else {
+                         if (payment.teamId?.toString() === lobby.team1?.teamId?.toString()) {
+                              targetTeamPlayers = lobby.team1?.players || [];
+                         } else if (payment.teamId?.toString() === lobby.team2?.teamId?.toString()) {
+                              targetTeamPlayers = lobby.team2?.players || [];
+                         }
+                    }
+
+                    const positionTaken = targetTeamPlayers.some(
+                         (p: any) => p.matchPosition === payment.matchPosition
+                    );
+
+                    if (positionTaken) {
+                         payment.status = "failed";
+                         await payment.save();
+                         return res.status(400).json({
+                              message: "This position is already taken. Payment has been cancelled.",
+                         });
+                    }
+               }
+               // ─────────────────────────────────────────────────────────────────────
 
                payment.status = "paid";
                await payment.save();
