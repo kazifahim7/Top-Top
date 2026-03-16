@@ -488,6 +488,51 @@ export const joinLobby = async (req: Request, res: Response) => {
 
 
 
+// ─── Helper Function ──────────────────────────────────────────────────────────
+async function checkPositionAvailability(payment: any): Promise<string | null> {
+     if (payment.paymentType !== "team fee" || !payment.matchPosition) return null;
+
+     const lobby = await LobbyModel.findById(payment.lobbyId);
+     if (!lobby) return "Lobby not found";
+
+     let targetTeamPlayers: any[] = [];
+
+     if (lobby.matchType === "solo") {
+          //@ts-ignore
+          if (payment.teamId?.toString() === lobby.defaultTeam1?._id?.toString()) {
+               targetTeamPlayers = lobby.defaultTeam1?.players || [];
+               //@ts-ignore
+          } else if (payment.teamId?.toString() === lobby.defaultTeam2?._id?.toString()) {
+               targetTeamPlayers = lobby.defaultTeam2?.players || [];
+          }
+     } else {
+          if (payment.teamId?.toString() === lobby.team1?.teamId?.toString()) {
+               targetTeamPlayers = lobby.team1?.players || [];
+          } else if (payment.teamId?.toString() === lobby.team2?.teamId?.toString()) {
+               targetTeamPlayers = lobby.team2?.players || [];
+          }
+     }
+
+     const positionTakenInLobby = targetTeamPlayers.some(
+          (p: any) => p.matchPosition === payment.matchPosition
+     );
+
+     const positionTakenInPayment = await PaymentModel.findOne({
+          lobbyId: payment.lobbyId,
+          teamId: payment.teamId,
+          matchPosition: payment.matchPosition,
+          status: { $in: ["success", "paid"] },
+          _id: { $ne: payment._id },
+     });
+
+     if (positionTakenInLobby || positionTakenInPayment) {
+          return "This position is already taken. Payment has been cancelled.";
+     }
+
+     return null;
+}
+
+// ─── Main Controller ──────────────────────────────────────────────────────────
 export const paymentSuccess = async (req: Request, res: Response) => {
      try {
           const { paymentId } = req.query;
@@ -496,54 +541,25 @@ export const paymentSuccess = async (req: Request, res: Response) => {
           const payment = await PaymentModel.findById(paymentId);
           if (!payment) return res.status(404).json({ message: "Payment not found" });
 
-          if (payment.status === "success") {
+          // ─── Already processed check ──────────────────────────────────────────
+          if (payment.status === "success" || payment.status === "paid") {
                return res.json({ success: true, message: "Payment already processed" });
           }
 
-          // Cash payments directly success
+          // ─── Cash Payment ─────────────────────────────────────────────────────
           if (payment.method === "cash") {
-               // ─── Position Duplicate Check (Cash Payment) ──────────────────────────
-               if (payment.paymentType === "team fee" && payment.matchPosition) {
-                    const lobby = await LobbyModel.findById(payment.lobbyId);
-                    if (!lobby) return res.status(404).json({ message: "Lobby not found" });
-
-                    let targetTeamPlayers: any[] = [];
-
-                    if (lobby.matchType === "solo") {
-                         //@ts-ignore
-                         if (payment.teamId?.toString() === lobby.defaultTeam1?._id?.toString()) {
-                              targetTeamPlayers = lobby.defaultTeam1?.players || [];
-                              //@ts-ignore
-                         } else if (payment.teamId?.toString() === lobby.defaultTeam2?._id?.toString()) {
-                              targetTeamPlayers = lobby.defaultTeam2?.players || [];
-                         }
-                    } else {
-                         if (payment.teamId?.toString() === lobby.team1?.teamId?.toString()) {
-                              targetTeamPlayers = lobby.team1?.players || [];
-                         } else if (payment.teamId?.toString() === lobby.team2?.teamId?.toString()) {
-                              targetTeamPlayers = lobby.team2?.players || [];
-                         }
-                    }
-
-                    const positionTaken = targetTeamPlayers.some(
-                         (p: any) => p.matchPosition === payment.matchPosition
-                    );
-
-                    if (positionTaken) {
-                         // Payment টা failed করে দাও যাতে আর retry না হয়
-                         payment.status = "failed";
-                         await payment.save();
-                         return res.status(400).json({
-                              message: "This position is already taken. Payment has been cancelled.",
-                         });
-                    }
+               const positionError = await checkPositionAvailability(payment);
+               if (positionError) {
+                    payment.status = "failed";
+                    await payment.save();
+                    return res.status(400).json({ message: positionError });
                }
-               // ─────────────────────────────────────────────────────────────────────
 
                payment.status = "success";
                await payment.save();
+
+               // ─── Stripe Payment ───────────────────────────────────────────────────
           } else {
-               // Stripe PaymentIntent verification
                const intent = await stripe.paymentIntents.retrieve(payment.stripePaymentIntentId!);
 
                if (intent.status !== "succeeded") {
@@ -556,48 +572,20 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     return res.status(400).json({ message: "Payment amount or currency mismatch" });
                }
 
-               // ─── Position Duplicate Check (Stripe Payment) ───────────────────────
-               if (payment.paymentType === "team fee" && payment.matchPosition) {
-                    const lobby = await LobbyModel.findById(payment.lobbyId);
-                    if (!lobby) return res.status(404).json({ message: "Lobby not found" });
-
-                    let targetTeamPlayers: any[] = [];
-
-                    if (lobby.matchType === "solo") {
-                         //@ts-ignore
-                         if (payment.teamId?.toString() === lobby.defaultTeam1?._id?.toString()) {
-                              targetTeamPlayers = lobby.defaultTeam1?.players || [];
-                              //@ts-ignore
-                         } else if (payment.teamId?.toString() === lobby.defaultTeam2?._id?.toString()) {
-                              targetTeamPlayers = lobby.defaultTeam2?.players || [];
-                         }
-                    } else {
-                         if (payment.teamId?.toString() === lobby.team1?.teamId?.toString()) {
-                              targetTeamPlayers = lobby.team1?.players || [];
-                         } else if (payment.teamId?.toString() === lobby.team2?.teamId?.toString()) {
-                              targetTeamPlayers = lobby.team2?.players || [];
-                         }
-                    }
-
-                    const positionTaken = targetTeamPlayers.some(
-                         (p: any) => p.matchPosition === payment.matchPosition
-                    );
-
-                    if (positionTaken) {
-                         payment.status = "failed";
-                         await payment.save();
-                         return res.status(400).json({
-                              message: "This position is already taken. Payment has been cancelled.",
-                         });
-                    }
+               const positionError = await checkPositionAvailability(payment);
+               if (positionError) {
+                    payment.status = "failed";
+                    await payment.save();
+                    // Auto-refund
+                    await stripe.refunds.create({ payment_intent: intent.id });
+                    return res.status(400).json({ message: positionError });
                }
-               // ─────────────────────────────────────────────────────────────────────
 
                payment.status = "paid";
                await payment.save();
           }
 
-          // Post-payment actions
+          // ─── Post-payment: Team Fee ───────────────────────────────────────────
           if (payment.paymentType === "team fee") {
                const lobby = await LobbyModel.findById(payment.lobbyId);
                if (!lobby) return res.status(404).json({ message: "Lobby not found" });
@@ -605,18 +593,15 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                if (!payment.playerId) {
                     return res.status(400).json({ message: "Player ID missing for team fee payment" });
                }
-
                if (!payment.teamId) {
                     return res.status(400).json({ message: "Team ID missing for team fee payment" });
                }
 
-               // Get player's current rating from database
                const player = await userModel.findById(payment.playerId);
                if (!player) return res.status(404).json({ message: "Player not found" });
 
-               // Player data with guest_player flag and mainRating
                const playerData = {
-                    playerId: new Types.ObjectId(payment.playerId.toString()), 
+                    playerId: new Types.ObjectId(payment.playerId.toString()),
                     matchPosition: payment.matchPosition || "",
                     redCard: 0,
                     yellowCard: 0,
@@ -625,40 +610,39 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     goal: 0,
                     tackle: 0,
                     save: 0,
-                    rating: 6.5, // লবির জন্য rating (সবসময় 6.5)
-                    mainRating: player.rating, // ডাটাবেসের আসল rating
+                    rating: 6.5,
+                    mainRating: player.rating,
                     guest_player: payment.guest_player ?? false,
-                    contribution: 0,      // ✅ add
-                    goodMoment: 0,        // ✅ add
+                    contribution: 0,
+                    goodMoment: 0,
                     veryGoodMoment: 0,
                };
 
-               let targetTeam: any = null;
                let assignedTeam = "";
 
-               // Function to calculate average MAIN rating (mainRating ব্যবহার করে)
                const calculateAverageMainRating = (players: any[]) => {
                     if (!players || players.length === 0) return 0;
-                    const sum = players.reduce((total: number, player: any) => {
-                         // যদি পুরানো ডেটাতে mainRating না থাকে, তাহলে rating ব্যবহার করবে
-                         return total + (player.mainRating || player.rating || 0);
+                    const sum = players.reduce((total: number, p: any) => {
+                         return total + (p.mainRating || p.rating || 0);
                     }, 0);
                     return sum / players.length;
                };
 
+               // ─── Solo Match ────────────────────────────────────────────────────
                if (lobby.matchType === "solo") {
                     const requestedTeamId = payment.teamId.toString();
                     //@ts-ignore
                     if (requestedTeamId === lobby.defaultTeam1?._id?.toString()) {
-                         const inTeam1 = lobby.defaultTeam1?.players?.some(p =>
-                              p.playerId.toString() === payment.playerId!.toString()
+                         const inTeam1 = lobby.defaultTeam1?.players?.some(
+                              (p) => p.playerId.toString() === payment.playerId!.toString()
                          );
                          if (inTeam1) return res.status(400).json({ message: "Player already joined team 1" });
 
-                         if (payment.matchFormat &&
+                         if (
+                              payment.matchFormat &&
                               (!lobby.defaultTeam1.matchFormat || lobby.defaultTeam1.matchFormat === "") &&
-                              lobby.defaultTeam1.players.length === 0) {
-
+                              lobby.defaultTeam1.players.length === 0
+                         ) {
                               lobby.defaultTeam1.matchFormat = payment.matchFormat;
                               lobby.markModified("defaultTeam1.matchFormat");
                          }
@@ -667,41 +651,43 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                          assignedTeam = "defaultTeam1";
                          //@ts-ignore
                     } else if (requestedTeamId === lobby.defaultTeam2?._id?.toString()) {
-                         const inTeam2 = lobby.defaultTeam2?.players?.some(p =>
-                              p.playerId.toString() === payment.playerId!.toString()
+                         const inTeam2 = lobby.defaultTeam2?.players?.some(
+                              (p) => p.playerId.toString() === payment.playerId!.toString()
                          );
                          if (inTeam2) return res.status(400).json({ message: "Player already joined team 2" });
 
-                         if (payment.matchFormat &&
+                         if (
+                              payment.matchFormat &&
                               (!lobby.defaultTeam2.matchFormat || lobby.defaultTeam2.matchFormat === "") &&
-                              lobby.defaultTeam2.players.length === 0) {
-
+                              lobby.defaultTeam2.players.length === 0
+                         ) {
                               lobby.defaultTeam2.matchFormat = payment.matchFormat;
                               lobby.markModified("defaultTeam2.matchFormat");
                          }
-                   
+
                          lobby.defaultTeam2.players.push(playerData);
                          assignedTeam = "defaultTeam2";
-
                     } else {
                          return res.status(400).json({ message: "Invalid team selection" });
                     }
 
-                    // Average rating
                     if (lobby.defaultTeam1?.players) {
                          lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(lobby.defaultTeam1.players);
                     }
                     if (lobby.defaultTeam2?.players) {
                          lobby.team2AvgMatchRatingBefore = calculateAverageMainRating(lobby.defaultTeam2.players);
                     }
-               }
-               else {
+
+                    // ─── Teams Match ───────────────────────────────────────────────────
+               } else {
                     if (lobby.team1?.teamId && payment.teamId.toString() === lobby.team1.teamId.toString()) {
                          assignedTeam = "team1";
 
-                         if (payment.matchFormat &&
+                         if (
+                              payment.matchFormat &&
                               (!lobby.team1.matchFormat || lobby.team1.matchFormat === "") &&
-                              lobby.team1.players.length === 0) {
+                              lobby.team1.players.length === 0
+                         ) {
                               lobby.team1.matchFormat = payment.matchFormat;
                               lobby.markModified("team1.matchFormat");
                          }
@@ -711,9 +697,11 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     } else if (lobby.team2?.teamId && payment.teamId.toString() === lobby.team2.teamId.toString()) {
                          assignedTeam = "team2";
 
-                         if (payment.matchFormat &&
+                         if (
+                              payment.matchFormat &&
                               (!lobby.team2.matchFormat || lobby.team2.matchFormat === "") &&
-                              lobby.team2.players.length === 0) {
+                              lobby.team2.players.length === 0
+                         ) {
                               lobby.team2.matchFormat = payment.matchFormat;
                               lobby.markModified("team2.matchFormat");
                          }
@@ -724,7 +712,6 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                          return res.status(400).json({ message: "Team not found in lobby" });
                     }
 
-                    // Average rating
                     if (lobby.team1?.players) {
                          lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(lobby.team1.players);
                     }
@@ -733,44 +720,42 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     }
                }
 
-               // Update user match count
                await userModel.findByIdAndUpdate(payment.playerId, { $inc: { match: 1 } });
-
                await lobby.save();
 
                return res.json({
                     success: true,
                     message: "Payment successful and player added",
-                    assignedTeam: assignedTeam,
+                    assignedTeam,
                     guest_player: playerData.guest_player,
                     team1AvgMainRating: lobby.team1AvgMatchRatingBefore,
                     team2AvgMainRating: lobby.team2AvgMatchRatingBefore,
                });
           }
 
-          // Tournament fee handling
+          // ─── Post-payment: Tournament Fee ─────────────────────────────────────
           if (payment.paymentType === "tournament fee") {
                const tournament = await TournamentModel.findById(payment.tournamentId);
                if (!tournament) return res.status(404).json({ message: "Tournament not found" });
 
-               if (!payment.teamId) return res.status(400).json({ message: "Team ID missing for tournament fee payment" });
+               if (!payment.teamId) {
+                    return res.status(400).json({ message: "Team ID missing for tournament fee payment" });
+               }
+
                let result;
-               
-               if (tournament.type === "League" || tournament.type === "Both"){
-                     result = await TournamentModel.findByIdAndUpdate(
+               if (tournament.type === "League" || tournament.type === "Both") {
+                    result = await TournamentModel.findByIdAndUpdate(
                          payment.tournamentId,
                          { $addToSet: { teams: payment.teamId } },
                          { new: true }
                     );
-               }else{
+               } else {
                     result = await TournamentModel.findByIdAndUpdate(
                          payment.tournamentId,
                          { $addToSet: { qualifiedTeams: payment.teamId } },
                          { new: true }
                     );
                }
-
-
 
                await StandingModel.create({ tournament: tournament._id, team: payment.teamId });
 
@@ -780,12 +765,12 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     data: result,
                });
           }
+
      } catch (err) {
           console.error(err);
           res.status(500).json({ message: "Internal server error" });
      }
 };
-
 
 
 
