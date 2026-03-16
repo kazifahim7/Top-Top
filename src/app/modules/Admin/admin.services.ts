@@ -6,7 +6,7 @@ import { MatchModel } from "../TournamentMatch/match.model.js";
 const adminData = async () => {
      const totalRevenue = await PaymentModel.aggregate([
           {
-               $match: { status:"success"}
+               $match: { status: { $in: ["success", "paid"] } }
           },
           {
                $group: {
@@ -21,7 +21,7 @@ const adminData = async () => {
      const matchFromTournament = await MatchModel.countDocuments();
      const revenueGraph = await PaymentModel.aggregate([
           {
-               $match: { status: "success" }
+               $match: { status: { $in: ["success", "paid"] } }
           },
           {
                $group: {
@@ -91,13 +91,13 @@ const adminData = async () => {
 
      // Current month revenue
      const currentRevenue = await PaymentModel.aggregate([
-          { $match: { createdAt: { $gte: startOfThisMonth }, status:"success"} },
+          { $match: { createdAt: { $gte: startOfThisMonth }, status: { $in: ["success", "paid"] } } },
           { $group: { _id: null, total: { $sum: "$price" } } }
      ]);
 
      // Last month revenue
      const lastRevenue = await PaymentModel.aggregate([
-          { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }, status: "success" } },
+          { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }, status: { $in: ["success", "paid"] } } },
           { $group: { _id: null, total: { $sum: "$price" } } }
      ]);
 
@@ -142,7 +142,7 @@ const adminData = async () => {
 
 
      const revenueBarGraph = await PaymentModel.aggregate([
-          { $match: { status: "success" } },
+          { $match: { status: { $in: ["success", "paid"] } } },
           {
                $group: {
                     _id: { hour: { $hour: "$createdAt" }, day: { $dayOfMonth: "$createdAt" } },
@@ -155,8 +155,8 @@ const adminData = async () => {
      const organizerPieUsage = await userModel.aggregate([
           {
                $group: {
-                    _id: "$role",     
-                    count: { $sum: 1 } 
+                    _id: "$role",
+                    count: { $sum: 1 }
                }
           },
           {
@@ -188,12 +188,12 @@ const adminData = async () => {
                     _id: { hour: { $hour: "$updatedAt" } },
                     played: {
                          $sum: {
-                              $cond: [{ $gt: ["$match", 0] }, 1, 0]   
+                              $cond: [{ $gt: ["$match", 0] }, 1, 0]
                          }
                     },
                     available: {
                          $sum: {
-                              $cond: [{ $eq: ["$match", 0] }, 1, 0]   
+                              $cond: [{ $eq: ["$match", 0] }, 1, 0]
                          }
                     }
                }
@@ -263,11 +263,6 @@ const adminData = async () => {
      ]);
 
 
-
-
-
-
-
      return {
           totalRevenue: totalRevenue[0]?.total || 0,
           revenueBarGraph,
@@ -285,17 +280,10 @@ const adminData = async () => {
           MatchesPlayedVsAvailable,
           mostPlayableDays,
           mostPreferredAreas
-          
-
      }
-
-
-
-
-
 }
 
 
-export const adminService ={
+export const adminService = {
      adminData
 }
