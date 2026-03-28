@@ -208,6 +208,11 @@ export declare const authService: {
         } & {
             __v: number;
         })[];
+        playerTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: import("mongoose").Types.ObjectId;
+        } & {
+            __v: number;
+        }) | null;
     }>;
     deletePlayerFromDB: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;

@@ -296,12 +296,14 @@ const playerProfile = async (id) => {
     }).populate("tournament teamA teamB");
     const lobbyStats = calculatePlayerStats(allLobbies, id, tournamentMatches.length);
     const media = collectLobbyMedia(allLobbies);
+    const playerTeam = await TeamModel.findOne({ teamOwner: id });
     return {
         result,
         stats: { ...lobbyStats, motm: result?.motm, contributionpergame: result?.match ? +(result.contribution / result.match).toFixed(1) : 0 },
         media,
         allLobbies,
         tournamentMatches,
+        playerTeam
     };
 };
 export const authService = {

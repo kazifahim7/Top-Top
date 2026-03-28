@@ -410,6 +410,7 @@ const playerProfile = async (id: string) => {
      const lobbyStats = calculatePlayerStats(allLobbies, id, tournamentMatches.length);
   
      const media = collectLobbyMedia(allLobbies);
+     const playerTeam= await TeamModel.findOne({teamOwner:id})
      
 
      return {
@@ -418,6 +419,7 @@ const playerProfile = async (id: string) => {
           media,
           allLobbies,
           tournamentMatches,
+          playerTeam
      };
 };
 
