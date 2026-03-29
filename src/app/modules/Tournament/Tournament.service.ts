@@ -156,16 +156,25 @@ export const getTopPlayers = async (tournamentId: string) => {
                }
           },
 
-          // ✅ group by playerId
+          // ✅ group by playerId — accumulate all stats
           {
                $group: {
-                    _id: "$players.playerId",   // already ObjectId in your schema
+                    _id: "$players.playerId",
                     avgRating: { $avg: "$players.rating" },
-                    totalMatches: { $sum: 1 }
+                    totalMatches: { $sum: 1 },
+                    totalGoals: { $sum: "$players.goal" },
+                    totalAssists: { $sum: "$players.assists" },
+                    totalContribution: { $sum: "$players.contribution" },
+                    totalTackles: { $sum: "$players.tackle" },
+                    totalSaves: { $sum: "$players.save" },
+                    totalYellowCards: { $sum: "$players.yellowCard" },
+                    totalRedCards: { $sum: "$players.redCard" },
+                    totalGoodMoments: { $sum: "$players.goodMoment" },
+                    totalVeryGoodMoments: { $sum: "$players.veryGoodMoment" },
                }
           },
 
-          // ✅ sort by rating
+          // ✅ sort by avgRating
           { $sort: { avgRating: -1 } },
 
           // ✅ top 10
@@ -174,7 +183,7 @@ export const getTopPlayers = async (tournamentId: string) => {
           // ✅ lookup player profile
           {
                $lookup: {
-                    from: "players", // collection name from model('Players')
+                    from: "players",
                     localField: "_id",
                     foreignField: "_id",
                     as: "player"
@@ -198,9 +207,18 @@ export const getTopPlayers = async (tournamentId: string) => {
                     userName: "$player.userName",
                     image: "$player.imageUrl",
                     position: "$player.position",
-                    nationality:"$player.nationality",
+                    nationality: "$player.nationality",
                     avgRating: { $round: ["$avgRating", 2] },
-                    totalMatches: 1
+                    totalMatches: 1,
+                    totalGoals: 1,
+                    totalAssists: 1,
+                    totalContribution: 1,
+                    totalTackles: 1,
+                    totalSaves: 1,
+                    totalYellowCards: 1,
+                    totalRedCards: 1,
+                    totalGoodMoments: 1,
+                    totalVeryGoodMoments: 1,
                }
           }
 
@@ -208,7 +226,6 @@ export const getTopPlayers = async (tournamentId: string) => {
 
      return topPlayers;
 };
-
 
 
 export const TournamentService = {
