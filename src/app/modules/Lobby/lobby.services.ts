@@ -435,7 +435,7 @@ const allMatch = async (query: Record<string, unknown>) => {
           },
 
           {
-               $sort: { createdAt: -1 }
+               $sort: { date: -1 }
           }
      ]);
 

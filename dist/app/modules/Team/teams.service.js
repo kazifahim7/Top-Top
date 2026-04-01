@@ -162,8 +162,8 @@ const myTeam = async (id) => {
             // Sort by date (newest first for completed, upcoming first for ongoing)
             {
                 $sort: status === "ongoing" ?
-                    { date: 1, time: 1 } : // For upcoming: sort by nearest date
-                    { date: -1, time: -1 } // For completed: sort by latest first
+                    { date: 1 } :
+                    { date: -1 }
             }
         ]);
     };
@@ -178,14 +178,16 @@ const myTeam = async (id) => {
     })
         .populate("teamA")
         .populate("teamB")
-        .populate("tournament");
+        .populate("tournament").sort({ date: 1 });
+    ;
     const completeMatchTournament = await MatchModel.find({
         $or: [{ teamA: teamId }, { teamB: teamId }],
         status: "Completed"
     })
         .populate("teamA")
         .populate("teamB")
-        .populate("tournament");
+        .populate("tournament").sort({ date: -1 });
+    ;
     // Extract all media from complete matches and complete tournament matches
     const allMedia = [
         // Get media from regular complete matches

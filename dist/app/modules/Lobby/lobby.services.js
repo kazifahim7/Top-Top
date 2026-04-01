@@ -400,7 +400,7 @@ const allMatch = async (query) => {
             }
         },
         {
-            $sort: { createdAt: -1 }
+            $sort: { date: -1 }
         }
     ]);
     return lobbies;

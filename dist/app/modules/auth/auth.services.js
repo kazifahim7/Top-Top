@@ -275,7 +275,6 @@ const collectLobbyMedia = (lobbies) => {
 };
 const playerProfile = async (id) => {
     const result = await userModel.findById(id).select("-cleanSheet");
-    // ✅ Lobby matches (solo + teams) - সব যেখানে player join করেছে
     const allLobbies = await LobbyModel.find({
         $or: [
             { "team1.players.playerId": id },
@@ -285,15 +284,17 @@ const playerProfile = async (id) => {
         ],
     })
         .populate("team1.teamId")
-        .populate("team2.teamId");
-    // ✅ Tournament matches - আলাদা query
+        .populate("team2.teamId")
+        .sort({ date: -1 });
     const tournamentMatches = await MatchModel.find({
         $or: [
             { "teamAPlayers.playerId": id },
             { "teamBPlayers.playerId": id },
         ],
         status: "Completed",
-    }).populate("tournament teamA teamB");
+    })
+        .populate("tournament teamA teamB")
+        .sort({ date: -1 }); // ✅ latest আগে
     const lobbyStats = calculatePlayerStats(allLobbies, id, tournamentMatches.length);
     const media = collectLobbyMedia(allLobbies);
     const playerTeam = await TeamModel.findOne({ teamOwner: id });

@@ -13,7 +13,9 @@ const createMatch = async (payload, id) => {
     return result;
 };
 const allMatch = async (id) => {
-    const result = await MatchModel.find({ tournament: id }).populate("winner teamB teamA tournament");
+    const result = await MatchModel.find({ tournament: id })
+        .populate("winner teamB teamA tournament")
+        .sort({ date: -1 });
     return result;
 };
 const singleMatch = async (id) => {
