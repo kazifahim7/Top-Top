@@ -20,7 +20,7 @@ async function run() {
                     console.log("this admin is already available")
                }
                else {
-                    const hashedPassword = await bcrypt.hash(TAdmin.password, Number(config.salt_round));
+                    const hashedPassword = await bcrypt.hash(TAdmin.password!, Number(config.salt_round));
                     TAdmin.password = hashedPassword
                     await userModel.create(TAdmin)
                }
