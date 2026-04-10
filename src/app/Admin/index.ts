@@ -1,7 +1,9 @@
+import config from "../config/index.js";
+
 export const TAdmin = {
      "FullName": "TopTopFootball",
      "email": "halit@toptopfootball.com",
-     "password": "admin12345",
+     "password": config.admin_pass,
      "role": "admin",
      "isBlocked": "active",
      "mobile": "+542541341345",

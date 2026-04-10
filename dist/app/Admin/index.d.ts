@@ -1,7 +1,7 @@
 export declare const TAdmin: {
     FullName: string;
     email: string;
-    password: string;
+    password: string | undefined;
     role: string;
     isBlocked: string;
     mobile: string;

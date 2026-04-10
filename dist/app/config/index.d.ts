@@ -12,6 +12,7 @@ declare const _default: {
     SES_USER: string | undefined;
     SES_PASS: string | undefined;
     SES_FROM: string | undefined;
+    admin_pass: string | undefined;
 };
 export default _default;
 //# sourceMappingURL=index.d.ts.map
