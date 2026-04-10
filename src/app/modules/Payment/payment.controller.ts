@@ -21,7 +21,6 @@ export const joinLobby = async (req: Request, res: Response) => {
                teamId,
                defaultTeam,
                matchPosition,
-               price,
                matchFormat,
                method,
                tournamentId,
@@ -183,8 +182,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                }
 
                // ─── Duplicate position check ─────────────────────────────────────
-               // "2-3-2" format এ "Striker" position এ দুইজন join করতে পারবে
-               // বাকি সব case এ একজনই পারবে
+              
                const playersInSamePosition = currentTeam?.players?.filter(
                     (p: any) => p.matchPosition === matchPosition
                ) || [];
@@ -248,14 +246,14 @@ export const joinLobby = async (req: Request, res: Response) => {
                     "This player already has a pending request for this position. Please wait or choose another position."
                );
           }
-
+          let price: number = 0;
           let payment: any;
 
           // ─── Team Fee ─────────────────────────────────────────────────────────
           if (paymentType === "team fee") {
                const lobby = await LobbyModel.findById(lobbyId);
                if (!lobby) return res.status(404).json({ message: "Lobby not found" });
-
+               price = lobby.price;
                if (lobby.matchType === "teams") {
                     const isTeamsExist = await TeamModel.findById(teamId);
                     if (!isTeamsExist) throw new AppError(404, "Team not found");
@@ -414,6 +412,7 @@ export const joinLobby = async (req: Request, res: Response) => {
           } else if (paymentType === "tournament fee") {
                const tournament = await TournamentModel.findById(tournamentId);
                if (!tournament) throw new AppError(404, "Tournament Not Found");
+               price = tournament.price; 
 
                const findTeam = await TeamModel.findOne({ teamOwner: playerId });
                if (!findTeam) throw new AppError(404, "Team not Found");

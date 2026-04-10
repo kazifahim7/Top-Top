@@ -14,7 +14,7 @@ import { StandingModel } from "../PointTable/pointtable.model.js";
 const stripe = new Stripe(config.sk_key, { apiVersion: "2025-08-27.basil" });
 export const joinLobby = async (req, res) => {
     try {
-        const { lobbyId, teamId, defaultTeam, matchPosition, price, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId, guest_player, teamPlayerId, } = req.body;
+        const { lobbyId, teamId, defaultTeam, matchPosition, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId, guest_player, teamPlayerId, } = req.body;
         let playerId = req.user.id;
         // ─── Extra Player (Organizer OR Team Captain) ─────────────────────────
         if (ExtraPlayerId) {
@@ -128,8 +128,6 @@ export const joinLobby = async (req, res) => {
                 }
             }
             // ─── Duplicate position check ─────────────────────────────────────
-            // "2-3-2" format এ "Striker" position এ দুইজন join করতে পারবে
-            // বাকি সব case এ একজনই পারবে
             const playersInSamePosition = currentTeam?.players?.filter((p) => p.matchPosition === matchPosition) || [];
             // const allowedCountForPosition = matchPosition === "Striker" ? 2 : 1;
             if (playersInSamePosition.length >= 1) {
@@ -180,12 +178,14 @@ export const joinLobby = async (req, res) => {
         if (alreadyPendingInSamePosition) {
             throw new AppError(403, "This player already has a pending request for this position. Please wait or choose another position.");
         }
+        let price = 0;
         let payment;
         // ─── Team Fee ─────────────────────────────────────────────────────────
         if (paymentType === "team fee") {
             const lobby = await LobbyModel.findById(lobbyId);
             if (!lobby)
                 return res.status(404).json({ message: "Lobby not found" });
+            price = lobby.price;
             if (lobby.matchType === "teams") {
                 const isTeamsExist = await TeamModel.findById(teamId);
                 if (!isTeamsExist)
@@ -318,6 +318,7 @@ export const joinLobby = async (req, res) => {
             const tournament = await TournamentModel.findById(tournamentId);
             if (!tournament)
                 throw new AppError(404, "Tournament Not Found");
+            price = tournament.price;
             const findTeam = await TeamModel.findOne({ teamOwner: playerId });
             if (!findTeam)
                 throw new AppError(404, "Team not Found");

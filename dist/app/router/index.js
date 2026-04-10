@@ -10,6 +10,7 @@ import { goalRouter } from '../modules/FeatureGoal/goal.router.js';
 import { tournamentRouter } from '../modules/Tournament/Tournament.router.js';
 import { pointTableRouter } from '../modules/PointTable/pointable.router.js';
 import { tournamentMatch } from '../modules/TournamentMatch/match.router.js';
+import { areaRouter } from '../modules/Areas/Area.router.js';
 const router = express.Router();
 const moduleRouter = [
     {
@@ -55,6 +56,10 @@ const moduleRouter = [
     {
         path: "/match",
         route: tournamentMatch
+    },
+    {
+        path: "/area",
+        route: areaRouter
     },
 ];
 moduleRouter.forEach((route) => router.use(route.path, route.route));
