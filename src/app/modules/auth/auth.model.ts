@@ -12,7 +12,7 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
      nationality: { type: String , default: "" },
      dominantFoot: { type: String, default: "" },
      gameMode: { type: String, default: "" },
-     preferredAreas: { type: String, default: "" }, 
+     preferredAreas: { type: [String], default: [] }, 
      socialProfile: { type: [String], default: [] },
      playingDays: { type: [String], default: [] },
      position: { type: [String], default: [] },
