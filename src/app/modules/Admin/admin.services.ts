@@ -241,6 +241,14 @@ const adminData = async () => {
                $match: {
                     role: "player",
                     isBlocked: "active",
+                    preferredAreas: { $exists: true, $ne: [] }
+               }
+          },
+          {
+               $unwind: "$preferredAreas"
+          },
+          {
+               $match: {
                     preferredAreas: { $ne: "" }
                }
           },
