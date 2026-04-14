@@ -1552,6 +1552,10 @@ const myUpcomingLobby = async (id: string) => {
                }
           },
 
+          {
+               $sort: { date: -1 }
+          }
+
           // ─── No second $match needed — first $match already filters correctly ──
      ]);
 
