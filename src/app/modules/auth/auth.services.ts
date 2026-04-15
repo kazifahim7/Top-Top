@@ -396,7 +396,12 @@ const playerProfile = async (id: string) => {
      })
           .populate("team1.teamId")
           .populate("team2.teamId")
-          .sort({ date: -1 }); 
+          .sort({ date: -1 });
+
+    
+     const completedLobbies = allLobbies.filter(
+          (lobby) => lobby.lobbyStatus === "completed"
+     );
 
      const tournamentMatches = await MatchModel.find({
           $or: [
@@ -406,23 +411,29 @@ const playerProfile = async (id: string) => {
           status: "Completed",
      })
           .populate("tournament teamA teamB")
-          .sort({ date: -1 }); // ✅ latest আগে
+          .sort({ date: -1 });
 
-     const lobbyStats = calculatePlayerStats(allLobbies, id, tournamentMatches.length);
+   
+     const lobbyStats = calculatePlayerStats(completedLobbies, id, tournamentMatches.length);
 
-     const media = collectLobbyMedia(allLobbies);
+     const media = collectLobbyMedia(allLobbies); 
      const playerTeam = await TeamModel.findOne({ teamOwner: id });
 
      return {
           result,
-          stats: { ...lobbyStats, motm: result?.motm, contributionpergame: result?.match ? +(result.contribution! / result.match!).toFixed(1) : 0 },
+          stats: {
+               ...lobbyStats,
+               motm: result?.motm,
+               contributionpergame: result?.match
+                    ? +(result.contribution! / result.match!).toFixed(1)
+                    : 0,
+          },
           media,
-          allLobbies,
+          allLobbies, 
           tournamentMatches,
-          playerTeam
+          playerTeam,
      };
 };
-
 
 
 

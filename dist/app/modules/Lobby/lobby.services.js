@@ -1395,6 +1395,9 @@ const myUpcomingLobby = async (id) => {
                 as: "team2AllPlayers"
             }
         },
+        {
+            $sort: { date: -1 }
+        }
         // ─── No second $match needed — first $match already filters correctly ──
     ]);
     return result;

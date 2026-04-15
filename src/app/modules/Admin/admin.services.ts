@@ -178,7 +178,6 @@ const adminData = async () => {
      const MatchesPlayedVsAvailable = await userModel.aggregate([
           {
                $match: {
-                    role: "player",
                     isBlocked: "active",
                     updatedAt: { $gte: startOfToday, $lte: endOfToday }
                }
@@ -212,7 +211,7 @@ const adminData = async () => {
 
      const mostPlayableDays = await userModel.aggregate([
           {
-               $match: { role: "player", isBlocked: "active" }
+               $match: { isBlocked: "active" }
           },
           {
                $unwind: "$playingDays"
@@ -239,7 +238,6 @@ const adminData = async () => {
      const mostPreferredAreas = await userModel.aggregate([
           {
                $match: {
-                    role: "player",
                     isBlocked: "active",
                     preferredAreas: { $exists: true, $ne: [] }
                }

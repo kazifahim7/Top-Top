@@ -3,7 +3,7 @@ import auth from '../../middleware/auth.js';
 import { lobbyController } from './lobby.controller.js';
 import { upload } from '../../utils/multer.js';
 const router = express.Router();
-router.get("/my-upcoming-match", auth("player", "admin"), lobbyController.myUpcomingLobby);
+router.get("/my-upcoming-match", auth("player", "admin", "organizer"), lobbyController.myUpcomingLobby);
 router.post("/create-match", auth("organizer", "admin"), lobbyController.createMatch);
 router.get("/all-match", lobbyController.allMatch);
 router.get("/:id", lobbyController.singlelobby);
