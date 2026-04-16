@@ -200,28 +200,16 @@ export const changePassword = async (payload, userId) => {
     }
     return updatedUser;
 };
-const calculatePlayerStats = (lobbies, playerId, tournamentLength) => {
-    const matchesPlayed = lobbies.length + tournamentLength;
+const calculatePlayerStats = (lobbies, tournamentMatches, playerId) => {
     let totalGoals = 0;
     let totalAssists = 0;
     let totalSaves = 0;
     let cleanSheets = 0;
     let wins = 0;
+    // লবির ডাটা প্রসেস করা
     lobbies.forEach(lobby => {
-        // Player কোন team এ ছিল এবং সেই team এর goal কত
         let playerTeamGoal = null;
         let opponentTeamGoal = null;
-        // teams match (team1/team2)
-        const teamSides = [
-            { players: lobby.team1?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
-            // team2 জিতলে goalTeam2 > goalTeam1
-            { players: lobby.team2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
-        ];
-        // solo match (defaultTeam1/defaultTeam2)
-        const defaultSides = [
-            { players: lobby.defaultTeam1?.players, myGoal: lobby.goalTeam1, oppGoal: lobby.goalTeam2 },
-            { players: lobby.defaultTeam2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
-        ];
         const allSides = [
             { players: lobby.team1?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
             { players: lobby.team2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
@@ -236,22 +224,54 @@ const calculatePlayerStats = (lobbies, playerId, tournamentLength) => {
                 totalGoals += player.goal || 0;
                 totalAssists += player.assists || 0;
                 totalSaves += player.save || 0;
-                // player এর team এর goal track
                 playerTeamGoal = myGoal;
                 opponentTeamGoal = oppGoal;
-                // clean sheet: goalkeeper যদি কোনো goal না খায়
                 if (oppGoal === 0 && (player.save !== undefined)) {
                     cleanSheets++;
                 }
             }
         });
-        // player এর team জিতেছে কিনা
         if (playerTeamGoal !== null && opponentTeamGoal !== null) {
             if (playerTeamGoal > opponentTeamGoal)
                 wins++;
         }
     });
-    console.log(matchesPlayed, totalGoals, "fahim");
+    // টুর্নামেন্টের ডাটা প্রসেস করা
+    tournamentMatches.forEach(match => {
+        let playerTeamGoal = null;
+        let opponentTeamGoal = null;
+        // টিম A তে প্লেয়ার আছে কিনা
+        const playerInTeamA = match.teamAPlayers?.find((p) => p.playerId?.toString() === playerId);
+        if (playerInTeamA) {
+            totalGoals += playerInTeamA.goal || 0;
+            totalAssists += playerInTeamA.assists || 0;
+            totalSaves += playerInTeamA.save || 0;
+            playerTeamGoal = match.scoreA;
+            opponentTeamGoal = match.scoreB;
+            if (match.scoreB === 0 && (playerInTeamA.save !== undefined)) {
+                cleanSheets++;
+            }
+        }
+        // টিম B তে প্লেয়ার আছে কিনা
+        const playerInTeamB = match.teamBPlayers?.find((p) => p.playerId?.toString() === playerId);
+        if (playerInTeamB) {
+            totalGoals += playerInTeamB.goal || 0;
+            totalAssists += playerInTeamB.assists || 0;
+            totalSaves += playerInTeamB.save || 0;
+            playerTeamGoal = match.scoreB;
+            opponentTeamGoal = match.scoreA;
+            if (match.scoreA === 0 && (playerInTeamB.save !== undefined)) {
+                cleanSheets++;
+            }
+        }
+        // জয়/পরাজয় গণনা
+        if (playerTeamGoal !== null && opponentTeamGoal !== null) {
+            if (playerTeamGoal > opponentTeamGoal)
+                wins++;
+        }
+    });
+    const matchesPlayed = lobbies.length + tournamentMatches.length;
+    console.log(`Matches Played: ${matchesPlayed}, Total Goals: ${totalGoals}, Goals Per Game: ${matchesPlayed ? (totalGoals / matchesPlayed).toFixed(1) : 0}`);
     return {
         matchesPlayed,
         goalsPerGame: matchesPlayed ? +(totalGoals / matchesPlayed).toFixed(1) : 0,
@@ -296,13 +316,19 @@ const playerProfile = async (id) => {
     })
         .populate("tournament teamA teamB")
         .sort({ date: -1 });
-    const lobbyStats = calculatePlayerStats(completedLobbies, id, tournamentMatches.length);
+    // টুর্নামেন্ট ম্যাচগুলো পাস করতে হবে
+    const lobbyStats = calculatePlayerStats(completedLobbies, tournamentMatches, id);
     const media = collectLobbyMedia(allLobbies);
     const playerTeam = await TeamModel.findOne({ teamOwner: id });
     return {
         result,
         stats: {
-            ...lobbyStats,
+            matchesPlayed: lobbyStats.matchesPlayed,
+            goalsPerGame: lobbyStats.goalsPerGame,
+            assistsPerGame: lobbyStats.assistsPerGame,
+            savesPerGame: lobbyStats.savesPerGame,
+            cleanSheets: lobbyStats.cleanSheets,
+            winRatio: lobbyStats.winRatio,
             motm: result?.motm,
             contributionpergame: result?.match
                 ? +(result.contribution / result.match).toFixed(1)
