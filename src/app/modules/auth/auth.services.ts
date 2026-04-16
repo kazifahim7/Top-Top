@@ -355,15 +355,15 @@ const calculatePlayerStats = (lobbies: any[], playerId: string,tournamentLength:
           }
      });
 
-     console.log(matchesPlayed, totalGoals, "fahim")
+
 
      return {
           matchesPlayed,
-          goalsPerGame: matchesPlayed ? +(totalGoals / matchesPlayed).toFixed(1) : 0,
-          assistsPerGame: matchesPlayed ? +(totalAssists / matchesPlayed).toFixed(1) : 0,
-          savesPerGame: matchesPlayed ? +(totalSaves / matchesPlayed).toFixed(1) : 0,
+          goalsPerGame: matchesPlayed ? +(matchesPlayed/ totalGoals ).toFixed(1) : 0,
+          assistsPerGame: matchesPlayed ? +(matchesPlayed / totalAssists ).toFixed(1) : 0,
+          savesPerGame: matchesPlayed ? +(matchesPlayed / totalSaves ).toFixed(1) : 0,
           cleanSheets,
-          winRatio: matchesPlayed ? Math.round((wins / matchesPlayed) * 100) : 0,
+          winRatio: matchesPlayed ? Math.round((matchesPlayed / wins ) * 100) : 0,
      };
 };
 
@@ -425,7 +425,7 @@ const playerProfile = async (id: string) => {
                ...lobbyStats,
                motm: result?.motm,
                contributionpergame: result?.match
-                    ? +(result.contribution! / result.match!).toFixed(1)
+                    ? +(result.match! / result.contribution! ).toFixed(1)
                     : 0,
           },
           media,

@@ -67,7 +67,7 @@ const playerRanking = async (options) => {
             },
         ]);
     };
-    // ─── Step 1: Lobby stats ──────────────────────────────────────────────────────
+    // ─── Step 1: Lobby stats ────────────────────────────
     const lobbyStats = await aggregatePlayerStats(LobbyModel, {
         dateField: "date",
         statusField: "lobbyStatus",
@@ -78,7 +78,7 @@ const playerRanking = async (options) => {
             "defaultTeam1.players",
             "defaultTeam2.players",
         ],
-        motmField: "motm", // ✅
+        motmField: "motm",
     });
     // ─── Step 2: Tournament match stats ──────────────────────────────────────────
     const tournamentStats = await aggregatePlayerStats(MatchModel, {
