@@ -44,7 +44,8 @@ const loginUser = async (payload) => {
     return {
         accessToken,
         refreshToken,
-        role: isUserExist?.role
+        role: isUserExist?.role,
+        userid: isUserExist._id
     };
 };
 const googleLogin = async (payload) => {

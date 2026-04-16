@@ -25,6 +25,7 @@ export declare const authService: {
         accessToken: string;
         refreshToken: string;
         role: "admin" | "player" | "organizer";
+        userid: import("mongoose").Types.ObjectId;
     }>;
     updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;

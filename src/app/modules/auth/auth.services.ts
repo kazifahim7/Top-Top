@@ -62,7 +62,8 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
      return {
           accessToken,
           refreshToken,
-          role: isUserExist?.role
+          role: isUserExist?.role,
+          userid:isUserExist._id
      }
 
 
