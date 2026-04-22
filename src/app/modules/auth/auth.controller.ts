@@ -183,6 +183,21 @@ const playerProfile = catchAsync(async (req: Request, res: Response) => {
 })
 
 
+const deleteAccount = catchAsync(async (req: Request, res: Response) => {
+     const id = req.user.id;
+
+     const result = await authService.deleteAccount(id!)
+
+     res.status(200).json({
+          success: true,
+          message: "deleted successfully",
+          data: result
+     })
+
+
+})
+
+
 
 export const authController = {
      createUser,
@@ -197,5 +212,6 @@ export const authController = {
      appleLogin,
      changePassword,
      playerProfile,
-     deletePlayer
+     deletePlayer,
+     deleteAccount
 }

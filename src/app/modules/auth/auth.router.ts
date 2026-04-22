@@ -52,6 +52,9 @@ router.get("/user", auth("player","admin","organizer"), authController.singleUse
 router.get('/player-profile/:id',authController.playerProfile)
 
 
+router.delete('/delete-account',auth("player"),authController.deleteAccount)
+
+
 
 
 

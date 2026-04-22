@@ -109,22 +109,34 @@ const googleLogin = async (
 
 const appleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
 
+       const isUserExist = await userModel.findOne({ email: payload.email })
 
+     let userData;
+     let result = null;
 
+     if (!isUserExist) {
+          result = await userModel.create(payload)
 
-     const result = await userModel.create(payload)
-
-     const user = {
-          id: result?._id,
-          role: result?.role,
-          email: result?.email
+          userData = {
+               id: result?._id,
+               role: result?.role,
+               email: result?.email,
+          }
+     } else {
+          userData = {
+               id: isUserExist?._id,
+               role: isUserExist?.role,
+               email: isUserExist?.email,
+          }
      }
 
 
-     const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
-     const refreshToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+
+     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
+     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
 
      return {
+          user: userData,
           result,
           accessToken,
           refreshToken
@@ -154,6 +166,9 @@ const deletePlayerFromDB = async (id: string) => {
      return result
 
 }
+
+
+
 const updateProfileInDB = async (email: string, payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findOne({ email: email })
 
@@ -470,11 +485,22 @@ const playerProfile = async (id: string) => {
 };
 
 
+const deleteAccount = async (id: string) => {
+     const isUserExist = await userModel.findById(id)
+     if (!isUserExist) {
+          throw new AppError(404, "This user Not Found");
+
+     }
+     const result = await userModel.findByIdAndDelete(id, { new: true })
+     return result
+
+}
 
 
 
 export const authService = {
      createUserIntoDB,
+     deleteAccount,
      loginUser,
      updateStatusInDB,
      updateProfileInDB,
