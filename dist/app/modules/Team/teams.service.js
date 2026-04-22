@@ -22,12 +22,6 @@ const updateTeam = async (payload, id) => {
     const result = await TeamModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
 };
-const allTeams = async () => {
-    const result = await TeamModel.find().populate("players")
-        .populate("teamOwner")
-        .populate("teamCaptain");
-    return result;
-};
 function calculateTeamRating(team) {
     if (!team)
         return 0;
@@ -44,6 +38,21 @@ function calculateTeamRating(team) {
     const avgRating = totalRating / members.length;
     return parseFloat(avgRating.toFixed(2));
 }
+const allTeams = async () => {
+    const result = await TeamModel.find()
+        .populate("players")
+        .populate("teamOwner")
+        .populate("teamCaptain");
+    // Add rating to each team
+    const teamsWithRatings = result.map(team => {
+        const teamObj = team.toObject();
+        return {
+            ...teamObj,
+            rating: calculateTeamRating(team)
+        };
+    });
+    return teamsWithRatings;
+};
 const myTeam = async (id) => {
     // First get the team where this user is the owner
     const myTeam = await TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })

@@ -11,11 +11,23 @@ export declare const teamsService: {
     } & {
         __v: number;
     }) | null>;
-    allTeams: () => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+    allTeams: () => Promise<{
+        rating: number;
+        image: string;
+        teamName: string;
+        userName: string;
+        totalMatch: number;
+        win: number;
+        draw: number;
+        loss: number;
+        players: Types.ObjectId[];
+        teamOwner: Types.ObjectId;
+        teamCaptain: Types.ObjectId[];
+        goal: number;
+        carryGoal: number;
         _id: Types.ObjectId;
-    } & {
         __v: number;
-    })[]>;
+    }[]>;
     myTeam: (id: string) => Promise<{
         myTeam: null;
         myTeamRating: number;
