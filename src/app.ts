@@ -9,6 +9,7 @@ import fs from "fs";
 import { GoalModel } from './app/modules/FeatureGoal/goal.model.js';
 import axios from 'axios';
 import config from './app/config/index.js';
+import helmet from 'helmet';
 
 const app: Application = express();
 
@@ -25,11 +26,16 @@ if (!fs.existsSync(uploadsPath)) {
 app.use("/uploads", express.static(uploadsPath));
 
 // Parser
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ limit: '20mb', extended: true }));
 app.use(cors({
      origin: '*',
      credentials: true
+}));
+
+
+app.use(helmet({
+     crossOriginResourcePolicy: false,
 }));
 
 // Cron job
@@ -65,7 +71,10 @@ app.get("/api/autocomplete", async (req, res) => {
 
           res.json(response.data);
      } catch (error) {
-          res.status(500).json({ message: "Something went wrong", error });
+          res.status(500).json({
+               success: false,
+               message: "Internal Server Error"
+          });
      }
 });
 
