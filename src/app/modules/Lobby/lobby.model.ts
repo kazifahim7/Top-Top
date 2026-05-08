@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 import type { DefaultTeam, GeoLocation, LobbyDocument, PlayerStats, Team } from "./lobby.interface.js";
-import { boolean } from "zod";
+
 
 const PlayerStatsSchema = new Schema<PlayerStats>({
      playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
@@ -69,7 +69,7 @@ const LobbySchema = new Schema<LobbyDocument>(
           goalTeam1: { type: Number, default: 0 },
           goalTeam2: { type: Number, default: 0 },
           organizer: { type: Schema.Types.ObjectId, ref: "Players" },
-          matchPublished: { type: boolean, default: false },
+          matchPublished: { type: Boolean, default: false },
           team1AvgMatchRatingBefore: { type: Number, default: 0 },
           team2AvgMatchRatingBefore: { type: Number, default: 0 },
 
