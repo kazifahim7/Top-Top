@@ -226,7 +226,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                : undefined;
 
           // ─── Pending check ────────────────────────────────────────────────────
-         
+          // teamPlayerId থাকলে সেই member-এর জন্য check, না হলে current player-এর জন্য
           const checkPlayerForPending = teamPlayerId
                ? new Types.ObjectId(teamPlayerId)
                : playerObjectId;
