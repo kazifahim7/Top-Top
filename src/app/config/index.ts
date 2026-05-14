@@ -18,5 +18,6 @@ export default {
      SES_USER: process.env.SES_USER,
      SES_PASS: process.env.SES_PASS,
      SES_FROM: process.env.SES_FROM,
-     admin_pass: process.env.ADMIN_PASS
+     admin_pass: process.env.ADMIN_PASS,
+     web_hook_secret: process.env.STRIPE_WEBHOOK_SECRET
 }

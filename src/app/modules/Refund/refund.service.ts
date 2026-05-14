@@ -159,12 +159,11 @@ const exit_lobby = async (
           const playerObjectId = new Types.ObjectId(playerId);
           const currentUserObjectId = new Types.ObjectId(payload.currentUserId);
 
-        
           if (!playerObjectId.equals(currentUserObjectId)) {
                throw new Error("You can only remove yourself from the lobby.");
           }
 
-          //  Remove player from all possible teams
+          // Remove player from all possible teams
           await LobbyModel.updateOne(
                { _id: lobbyObjectId },
                {
@@ -178,30 +177,31 @@ const exit_lobby = async (
                { session }
           );
 
-          //  Fetch updated lobby inside transaction
+          // ─── Cancel all active payments on manual exit ────────────────────
+          await PaymentModel.updateMany(
+               {
+                    lobbyId: lobbyObjectId,
+                    playerId: playerObjectId,
+                    status: { $in: ["pending", "paid", "success"] },
+               },
+               { $set: { status: "manual_exit" } },
+               { session }
+          );
+          // ─────────────────────────────────────────────────────────────────
+
+          // Fetch updated lobby inside transaction
           const lobby = await LobbyModel.findById(lobbyObjectId).session(session);
           if (!lobby) {
                throw new Error("Lobby not found");
           }
 
-          //  Reset matchFormat if team players are empty
+          // Reset matchFormat if team players are empty
           const updateData: Record<string, any> = {};
 
-          if (lobby.team1?.players?.length === 0) {
-               updateData["team1.matchFormat"] = "";
-          }
-
-          if (lobby.team2?.players?.length === 0) {
-               updateData["team2.matchFormat"] = "";
-          }
-
-          if (lobby.defaultTeam1?.players?.length === 0) {
-               updateData["defaultTeam1.matchFormat"] = "";
-          }
-
-          if (lobby.defaultTeam2?.players?.length === 0) {
-               updateData["defaultTeam2.matchFormat"] = "";
-          }
+          if (lobby.team1?.players?.length === 0) updateData["team1.matchFormat"] = "";
+          if (lobby.team2?.players?.length === 0) updateData["team2.matchFormat"] = "";
+          if (lobby.defaultTeam1?.players?.length === 0) updateData["defaultTeam1.matchFormat"] = "";
+          if (lobby.defaultTeam2?.players?.length === 0) updateData["defaultTeam2.matchFormat"] = "";
 
           if (Object.keys(updateData).length > 0) {
                await LobbyModel.updateOne(
@@ -211,7 +211,6 @@ const exit_lobby = async (
                );
           }
 
-          //  Commit transaction
           await session.commitTransaction();
           session.endSession();
 
@@ -226,6 +225,7 @@ const exit_lobby = async (
           throw error;
      }
 };
+
 const exit_lobby_organizer = async (
      payload: {
           lobbyId: string | Types.ObjectId;
@@ -241,10 +241,7 @@ const exit_lobby_organizer = async (
           const playerObjectId = new Types.ObjectId(playerId);
           const currentUserObjectId = new Types.ObjectId(payload.currentUserId);
 
-        
-
-
-          //  Remove player from all possible teams
+          // Remove player from all possible teams
           await LobbyModel.updateOne(
                { _id: lobbyObjectId, organizer: playerObjectId },
                {
@@ -258,30 +255,31 @@ const exit_lobby_organizer = async (
                { session }
           );
 
-          //  Fetch updated lobby inside transaction
+          // ─── Cancel all active payments on organizer-forced exit ──────────
+          await PaymentModel.updateMany(
+               {
+                    lobbyId: lobbyObjectId,
+                    playerId: currentUserObjectId,
+                    status: { $in: ["pending", "paid", "success"] },
+               },
+               { $set: { status: "manual_exit" } },
+               { session }
+          );
+          // ─────────────────────────────────────────────────────────────────
+
+          // Fetch updated lobby inside transaction
           const lobby = await LobbyModel.findById(lobbyObjectId).session(session);
           if (!lobby) {
                throw new Error("Lobby not found");
           }
 
-          //  Reset matchFormat if team players are empty
+          // Reset matchFormat if team players are empty
           const updateData: Record<string, any> = {};
 
-          if (lobby.team1?.players?.length === 0) {
-               updateData["team1.matchFormat"] = "";
-          }
-
-          if (lobby.team2?.players?.length === 0) {
-               updateData["team2.matchFormat"] = "";
-          }
-
-          if (lobby.defaultTeam1?.players?.length === 0) {
-               updateData["defaultTeam1.matchFormat"] = "";
-          }
-
-          if (lobby.defaultTeam2?.players?.length === 0) {
-               updateData["defaultTeam2.matchFormat"] = "";
-          }
+          if (lobby.team1?.players?.length === 0) updateData["team1.matchFormat"] = "";
+          if (lobby.team2?.players?.length === 0) updateData["team2.matchFormat"] = "";
+          if (lobby.defaultTeam1?.players?.length === 0) updateData["defaultTeam1.matchFormat"] = "";
+          if (lobby.defaultTeam2?.players?.length === 0) updateData["defaultTeam2.matchFormat"] = "";
 
           if (Object.keys(updateData).length > 0) {
                await LobbyModel.updateOne(
@@ -291,7 +289,6 @@ const exit_lobby_organizer = async (
                );
           }
 
-          //  Commit transaction
           await session.commitTransaction();
           session.endSession();
 

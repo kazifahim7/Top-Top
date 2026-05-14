@@ -12,7 +12,7 @@ import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 
-const stripe = new Stripe(config.sk_key!, { apiVersion: "2025-08-27.basil" as any });
+const stripe = new Stripe(config.sk_key!, { apiVersion: "2024-06-20" as any });
 
 export const joinLobby = async (req: Request, res: Response) => {
      try {
