@@ -138,6 +138,17 @@ export const updateMatchAndStanding = async (matchId, data) => {
     }
     match.status = "Completed";
     await match.save();
+    // ==================== MATCH COUNT INCREMENT ====================
+    const allTournamentPlayerIds = [
+        ...(match.teamAPlayers || []),
+        ...(match.teamBPlayers || []),
+    ]
+        .filter((p) => !p.guest_player) // ✅ guest player count হবে না
+        .map((p) => p.playerId)
+        .filter(Boolean);
+    if (allTournamentPlayerIds.length > 0) {
+        await userModel.updateMany({ _id: { $in: allTournamentPlayerIds } }, { $inc: { match: 1 } });
+    }
     // ---------- Update Team Overall Statistics ----------
     if (match.teamA) {
         const teamAUpdate = {

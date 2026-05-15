@@ -13,5 +13,6 @@ export declare const authController: {
     changePassword: (req: Request, res: Response, next: import("express").NextFunction) => void;
     playerProfile: (req: Request, res: Response, next: import("express").NextFunction) => void;
     deletePlayer: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    deleteAccount: (req: Request, res: Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=auth.controller.d.ts.map

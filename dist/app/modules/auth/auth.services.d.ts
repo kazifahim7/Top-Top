@@ -21,6 +21,11 @@ export declare const authService: {
     } & {
         __v: number;
     }>;
+    deleteAccount: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: import("mongoose").Types.ObjectId;
+    } & {
+        __v: number;
+    }) | null>;
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
@@ -166,11 +171,16 @@ export declare const authService: {
         refreshToken: string;
     }>;
     appleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
-        result: import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        user: {
+            id: import("mongoose").Types.ObjectId;
+            role: "admin" | "player" | "organizer";
+            email: string;
+        };
+        result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
             _id: import("mongoose").Types.ObjectId;
         } & {
             __v: number;
-        };
+        }) | null;
         accessToken: string;
         refreshToken: string;
     }>;

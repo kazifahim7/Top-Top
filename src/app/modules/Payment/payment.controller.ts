@@ -731,7 +731,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     }
                }
 
-               await userModel.findByIdAndUpdate(payment.playerId, { $inc: { match: 1 } });
+              
                await lobby.save();
 
                return res.json({

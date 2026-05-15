@@ -10,6 +10,58 @@ interface RankingOptions {
     age?: string | number;
     position?: string;
 }
+declare const playerRanking: (options: RankingOptions) => Promise<{
+    windowStats: {
+        matchCount: number;
+        rating: number;
+        goal: number;
+        assists: number;
+        tackle: number;
+        save: number;
+        redCard: number;
+        yellowCard: number;
+        contribution: number;
+        motm: number;
+        goalsPerGame: number;
+        assistsPerGame: number;
+        contributionPerGame: number;
+        savesPerGame: number;
+        tacklesPerGame: number;
+        redCardsPerGame: number;
+        yellowCardsPerGame: number;
+    };
+    FullName: string;
+    email: string;
+    password: string;
+    role: "admin" | "player" | "organizer";
+    isBlocked: "active" | "block";
+    mobile?: string;
+    socialProfile: string[];
+    imageUrl: string;
+    nationality: string;
+    dominantFoot: string;
+    playingDays: string[];
+    gameMode: string;
+    preferredAreas: string[];
+    age: string;
+    position: string[];
+    userName: string;
+    matchPosition?: string;
+    redCard: number;
+    yellowCard: number;
+    contribution: number;
+    assists: number;
+    goal: number;
+    tackle: number;
+    save: number;
+    rating: number;
+    match: number;
+    motm?: number;
+    cleanSheet: number;
+    _id: mongoose.Types.ObjectId;
+    __v: number;
+}[]>;
+export default playerRanking;
 export declare const playerRankingService: {
     playerRanking: (options: RankingOptions) => Promise<{
         windowStats: {
@@ -25,8 +77,11 @@ export declare const playerRankingService: {
             motm: number;
             goalsPerGame: number;
             assistsPerGame: number;
-            savesPerGame: number;
             contributionPerGame: number;
+            savesPerGame: number;
+            tacklesPerGame: number;
+            redCardsPerGame: number;
+            yellowCardsPerGame: number;
         };
         FullName: string;
         email: string;
@@ -81,5 +136,4 @@ export declare const playerRankingService: {
         teamRating: number;
     }[]>;
 };
-export {};
 //# sourceMappingURL=ranking.services.d.ts.map

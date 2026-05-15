@@ -1,5 +1,4 @@
 import { model, Schema } from "mongoose";
-import { boolean } from "zod";
 const PlayerStatsSchema = new Schema({
     playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
     redCard: { type: Number, default: 0 },
@@ -60,7 +59,7 @@ const LobbySchema = new Schema({
     goalTeam1: { type: Number, default: 0 },
     goalTeam2: { type: Number, default: 0 },
     organizer: { type: Schema.Types.ObjectId, ref: "Players" },
-    matchPublished: { type: boolean, default: false },
+    matchPublished: { type: Boolean, default: false },
     team1AvgMatchRatingBefore: { type: Number, default: 0 },
     team2AvgMatchRatingBefore: { type: Number, default: 0 },
 }, { timestamps: true });

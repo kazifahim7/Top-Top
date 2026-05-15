@@ -31,7 +31,11 @@ const PaymentSchema = new Schema({
             "Right Winger",
         ]
     },
-    status: { type: String, enum: ["pending", "success", "failed", "refund", "paid"], default: "pending" },
+    status: {
+        type: String,
+        enum: ["pending", "success", "failed", "refund", "paid", "manual_exit"],
+        default: "pending"
+    },
     paymentType: { type: String, enum: ["team fee", "tournament fee"], default: "team fee" },
     stripePaymentIntentId: { type: String },
     defaultTeam: { type: String },

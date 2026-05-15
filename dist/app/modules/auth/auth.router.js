@@ -2,6 +2,7 @@ import express from 'express';
 import { authController } from './auth.controller.js';
 import auth from '../../middleware/auth.js';
 import { upload } from '../../utils/multer.js';
+import otpLimiter from '../../RateLimiting/index.js';
 const router = express.Router();
 router.post("/create-player", upload.fields([
     { name: "images", maxCount: 6 }
@@ -20,7 +21,7 @@ router.post("/create-player", upload.fields([
 router.post("/login", authController.logInUser);
 router.post("/google-login", authController.googleLogin);
 router.post("/apple-login", authController.appleLogin);
-router.post("/send-otp", authController.resetRequest);
+router.post("/send-otp", otpLimiter, authController.resetRequest);
 router.post("/reset-password", authController.resetPassword);
 router.get("/all-player", authController.allUsers);
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus);
@@ -42,5 +43,6 @@ router.put("/update-profile", upload.fields([
 router.get("/user", auth("player", "admin", "organizer"), authController.singleUser);
 // single player 
 router.get('/player-profile/:id', authController.playerProfile);
+router.delete('/delete-account', auth("player"), authController.deleteAccount);
 export const authRouter = router;
 //# sourceMappingURL=auth.router.js.map

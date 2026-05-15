@@ -11,7 +11,7 @@ import { TournamentModel } from "../Tournament/Tournament.model.js";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
-const stripe = new Stripe(config.sk_key, { apiVersion: "2025-08-27.basil" });
+const stripe = new Stripe(config.sk_key, { apiVersion: "2024-06-20" });
 export const joinLobby = async (req, res) => {
     try {
         const { lobbyId, teamId, defaultTeam, matchPosition, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId, guest_player, teamPlayerId, } = req.body;
@@ -596,7 +596,6 @@ export const paymentSuccess = async (req, res) => {
                     lobby.team2AvgMatchRatingBefore = calculateAverageMainRating(lobby.team2.players);
                 }
             }
-            await userModel.findByIdAndUpdate(payment.playerId, { $inc: { match: 1 } });
             await lobby.save();
             return res.json({
                 success: true,

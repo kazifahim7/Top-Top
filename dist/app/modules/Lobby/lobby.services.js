@@ -1208,6 +1208,19 @@ const updateLobbyInfo = async (id, payload) => {
     if (payload.lobbyStatus === "completed" && isLobbyExist.lobbyStatus !== "completed") {
         const goalTeam1 = isLobbyExist.goalTeam1 || 0;
         const goalTeam2 = isLobbyExist.goalTeam2 || 0;
+        // ==================== MATCH COUNT INCREMENT ====================
+        const allPlayerIds = [
+            ...(isLobbyExist.defaultTeam1?.players || []),
+            ...(isLobbyExist.defaultTeam2?.players || []),
+            ...(isLobbyExist.team1?.players || []),
+            ...(isLobbyExist.team2?.players || []),
+        ]
+            .filter((p) => !p.guest_player) // ✅ guest player count হবে না
+            .map((p) => p.playerId)
+            .filter(Boolean);
+        if (allPlayerIds.length > 0) {
+            await userModel.updateMany({ _id: { $in: allPlayerIds } }, { $inc: { match: 1 } });
+        }
         // ==================== TEAMS MATCH ====================
         if (isLobbyExist.matchType === "teams") {
             if (isLobbyExist.team1?.teamId) {

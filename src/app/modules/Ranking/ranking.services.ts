@@ -30,6 +30,10 @@ interface PlayerAggStats {
      motm: number; // ✅
 }
 
+
+
+
+
 const playerRanking = async (options: RankingOptions) => {
      const {
           filterBy = "all",
@@ -42,157 +46,177 @@ const playerRanking = async (options: RankingOptions) => {
 
      const now = new Date();
      let startDate: Date | undefined;
+     let minMatches: number;
 
+     // Set date range and minimum matches based on filter
      if (filterBy === "weekly") {
           startDate = new Date();
           startDate.setDate(now.getDate() - 7);
+          startDate.setHours(0, 0, 0, 0);
+          minMatches = 2;
+          console.log(`📅 Filter: Weekly (last 7 days from ${startDate.toISOString().split('T')[0]})`);
      } else if (filterBy === "monthly") {
           startDate = new Date();
           startDate.setMonth(now.getMonth() - 1);
+          startDate.setHours(0, 0, 0, 0);
+          minMatches = 4;
+          console.log(`📅 Filter: Monthly (last 30 days from ${startDate.toISOString().split('T')[0]})`);
+     } else {
+          startDate = undefined;
+          minMatches = 15;
+          console.log(`📅 Filter: All time (no date restriction)`);
      }
-
-     const minMatches =
-          filterBy === "weekly" ? 2 : filterBy === "monthly" ? 4 : 15;
 
      const dateFilter = startDate ? { $gte: startDate } : undefined;
 
-     const aggregatePlayerStats = async (
-          model: mongoose.Model<any>,
-          config: {
-               dateField: string;
-               statusField: string;
-               statusValue: string;
-               playerArrayPaths: string[];
-               motmField: string; // ✅
-          }
-     ) => {
-          const matchStage: any = { [config.statusField]: config.statusValue };
-          if (dateFilter) matchStage[config.dateField] = dateFilter;
-
-          return model.aggregate([
-               { $match: matchStage },
-
-               {
-                    $project: {
-                         motmField: `$${config.motmField}`, // ✅
-                         allPlayers: {
-                              $concatArrays: config.playerArrayPaths.map((path) => ({
-                                   $ifNull: [`$${path}`, []],
-                              })),
-                         },
-                    },
-               },
-
-               { $unwind: "$allPlayers" },
-
-               { $match: { "allPlayers.guest_player": { $ne: true } } },
-
-               {
-                    $group: {
-                         _id: "$allPlayers.playerId",
-                         matchCount: { $sum: 1 },
-                         totalGoal: { $sum: "$allPlayers.goal" },
-                         totalAssists: { $sum: "$allPlayers.assists" },
-                         totalTackle: { $sum: "$allPlayers.tackle" },
-                         totalSave: { $sum: "$allPlayers.save" },
-                         totalRedCard: { $sum: "$allPlayers.redCard" },
-                         totalYellowCard: { $sum: "$allPlayers.yellowCard" },
-                         totalContribution: { $sum: "$allPlayers.contribution" },
-                         ratingSum: { $sum: "$allPlayers.rating" },
-                         ratingCount: { $sum: 1 },
-                         // ✅ motm: player id এর সাথে motm field match করলে count
-                         motm: {
-                              $sum: {
-                                   $cond: [
-                                        {
-                                             $eq: [
-                                                  { $toString: "$allPlayers.playerId" },
-                                                  { $toString: "$motmField" },
-                                             ],
-                                        },
-                                        1,
-                                        0,
-                                   ],
-                              },
-                         },
-                    },
-               },
-          ]);
-     };
-
-     // ─── Step 1: Lobby stats ────────────────────────────
-     const lobbyStats = await aggregatePlayerStats(LobbyModel, {
-          dateField: "date",
-          statusField: "lobbyStatus",
-          statusValue: "completed",
-          playerArrayPaths: [
-               "team1.players",
-               "team2.players",
-               "defaultTeam1.players",
-               "defaultTeam2.players",
-          ],
-          motmField: "motm", 
-     });
-
-     // ─── Step 2: Tournament match stats ──────────────────────────────────────────
-     const tournamentStats = await aggregatePlayerStats(MatchModel, {
-          dateField: "date",
-          statusField: "status",
-          statusValue: "Completed",
-          playerArrayPaths: ["teamAPlayers", "teamBPlayers"],
-          motmField: "motm", // ✅
-     });
-
-     // ─── Step 3: Merge both into one Map ─────────────────────────────────────────
+     // Initialize stats map
      const statsMap = new Map<string, PlayerAggStats>();
 
-     const mergeStats = (entries: any[]) => {
-          for (const e of entries) {
-               if (!e._id) continue;
-               const id = e._id.toString();
-               const existing = statsMap.get(id);
+     // ─── 1. Process Completed Lobbies (Only within time window) ───────────────────
+     const lobbyMatchStage: any = { lobbyStatus: "completed" };
+     if (dateFilter) lobbyMatchStage.date = dateFilter;
 
+     const completedLobbies = await LobbyModel.find(lobbyMatchStage)
+          .select("_id date motm team1 team2 defaultTeam1 defaultTeam2")
+          .lean();
+
+     console.log(`📊 Processing ${completedLobbies.length} completed lobbies within the time window`);
+
+     for (const lobby of completedLobbies) {
+          const motmId = (lobby as any).motm?.toString() ?? "";
+
+          // Collect all players from both team structures
+          const allPlayers = [
+               ...((lobby as any).team1?.players ?? []),
+               ...((lobby as any).team2?.players ?? []),
+               ...((lobby as any).defaultTeam1?.players ?? []),
+               ...((lobby as any).defaultTeam2?.players ?? []),
+          ];
+
+          if (allPlayers.length === 0) continue;
+
+          // Remove duplicate players per lobby (same player appears once)
+          const seenInLobby = new Map<string, any>();
+          for (const p of allPlayers) {
+               if (!p.playerId || p.guest_player === true) continue;
+               const pid = p.playerId.toString();
+               if (!seenInLobby.has(pid)) {
+                    seenInLobby.set(pid, p);
+               }
+          }
+
+          // Update stats map
+          for (const [pid, p] of seenInLobby.entries()) {
+               const existing = statsMap.get(pid);
                if (existing) {
-                    existing.matchCount += e.matchCount;
-                    existing.totalGoal += e.totalGoal;
-                    existing.totalAssists += e.totalAssists;
-                    existing.totalTackle += e.totalTackle;
-                    existing.totalSave += e.totalSave;
-                    existing.totalRedCard += e.totalRedCard;
-                    existing.totalYellowCard += e.totalYellowCard;
-                    existing.totalContribution += e.totalContribution;
-                    existing.ratingSum += e.ratingSum;
-                    existing.ratingCount += e.ratingCount;
-                    existing.motm += e.motm; // ✅
+                    existing.matchCount += 1;
+                    existing.totalGoal += p.goal ?? 0;
+                    existing.totalAssists += p.assists ?? 0;
+                    existing.totalTackle += p.tackle ?? 0;
+                    existing.totalSave += p.save ?? 0;
+                    existing.totalRedCard += p.redCard ?? 0;
+                    existing.totalYellowCard += p.yellowCard ?? 0;
+                    existing.totalContribution += p.contribution ?? 0;
+                    existing.ratingSum += p.rating ?? 0;
+                    existing.ratingCount += 1;
+                    existing.motm += motmId === pid ? 1 : 0;
                } else {
-                    statsMap.set(id, {
-                         matchCount: e.matchCount,
-                         totalGoal: e.totalGoal,
-                         totalAssists: e.totalAssists,
-                         totalTackle: e.totalTackle,
-                         totalSave: e.totalSave,
-                         totalRedCard: e.totalRedCard,
-                         totalYellowCard: e.totalYellowCard,
-                         totalContribution: e.totalContribution,
-                         ratingSum: e.ratingSum,
-                         ratingCount: e.ratingCount,
-                         motm: e.motm, // ✅
+                    statsMap.set(pid, {
+                         matchCount: 1,
+                         totalGoal: p.goal ?? 0,
+                         totalAssists: p.assists ?? 0,
+                         totalTackle: p.tackle ?? 0,
+                         totalSave: p.save ?? 0,
+                         totalRedCard: p.redCard ?? 0,
+                         totalYellowCard: p.yellowCard ?? 0,
+                         totalContribution: p.contribution ?? 0,
+                         ratingSum: p.rating ?? 0,
+                         ratingCount: 1,
+                         motm: motmId === pid ? 1 : 0,
                     });
                }
           }
-     };
+     }
 
-     mergeStats(lobbyStats);
-     mergeStats(tournamentStats);
+     // ─── 2. Process Completed Tournament Matches (Only within time window) ────────
+     const tournamentMatchStage: any = { status: "Completed" };
+     if (dateFilter) tournamentMatchStage.date = dateFilter;
 
-     // ─── Step 4: Apply min match threshold ───────────────────────────────────────
+     const completedTournamentMatches = await MatchModel.find(tournamentMatchStage)
+          .select("_id date motm teamAPlayers teamBPlayers")
+          .lean();
+
+     console.log(`📊 Processing ${completedTournamentMatches.length} completed tournament matches within the time window`);
+
+     for (const match of completedTournamentMatches) {
+          const motmId = (match as any).motm?.toString() ?? "";
+
+          // Collect all players from both teams
+          const allPlayers = [
+               ...((match as any).teamAPlayers ?? []),
+               ...((match as any).teamBPlayers ?? []),
+          ];
+
+          if (allPlayers.length === 0) continue;
+
+          // Remove duplicate players per match
+          const seenInMatch = new Map<string, any>();
+          for (const p of allPlayers) {
+               if (!p.playerId || p.guest_player === true) continue;
+               const pid = p.playerId.toString();
+               if (!seenInMatch.has(pid)) {
+                    seenInMatch.set(pid, p);
+               }
+          }
+
+          // Update stats map
+          for (const [pid, p] of seenInMatch.entries()) {
+               const existing = statsMap.get(pid);
+               if (existing) {
+                    existing.matchCount += 1;
+                    existing.totalGoal += p.goal ?? 0;
+                    existing.totalAssists += p.assists ?? 0;
+                    existing.totalTackle += p.tackle ?? 0;
+                    existing.totalSave += p.save ?? 0;
+                    existing.totalRedCard += p.redCard ?? 0;
+                    existing.totalYellowCard += p.yellowCard ?? 0;
+                    existing.totalContribution += p.contribution ?? 0;
+                    existing.ratingSum += p.rating ?? 0;
+                    existing.ratingCount += 1;
+                    existing.motm += motmId === pid ? 1 : 0;
+               } else {
+                    statsMap.set(pid, {
+                         matchCount: 1,
+                         totalGoal: p.goal ?? 0,
+                         totalAssists: p.assists ?? 0,
+                         totalTackle: p.tackle ?? 0,
+                         totalSave: p.save ?? 0,
+                         totalRedCard: p.redCard ?? 0,
+                         totalYellowCard: p.yellowCard ?? 0,
+                         totalContribution: p.contribution ?? 0,
+                         ratingSum: p.rating ?? 0,
+                         ratingCount: 1,
+                         motm: motmId === pid ? 1 : 0,
+                    });
+               }
+          }
+     }
+
+     console.log(`📊 Total unique players found in this window: ${statsMap.size}`);
+
+     // ─── 3. Filter by Minimum Match Threshold ─────────────────────────────────────
      const eligibleIds = [...statsMap.entries()]
-          .filter(([, s]) => s.matchCount >= minMatches)
+          .filter(([, stats]) => stats.matchCount >= minMatches)
           .map(([id]) => new mongoose.Types.ObjectId(id));
 
-     if (eligibleIds.length === 0) return [];
+     if (eligibleIds.length === 0) {
+          console.log(`⚠️ No players with minimum ${minMatches} matches in this window`);
+          return [];
+     }
 
-     // ─── Step 5: Fetch user profiles ─────────────────────────────────────────────
+     console.log(`✅ ${eligibleIds.length} players have minimum ${minMatches} matches in this window`);
+
+     // ─── 4. Fetch User Profiles with Filters ──────────────────────────────────────
      const userQuery: any = {
           _id: { $in: eligibleIds },
           isBlocked: "active",
@@ -202,63 +226,108 @@ const playerRanking = async (options: RankingOptions) => {
      if (age) userQuery.age = age.toString();
      if (position) userQuery.position = { $in: [position] };
 
-     const users = await userModel
-          .find(userQuery)
-          .select("-password")
-          .lean();
+     const users = await userModel.find(userQuery).select("-password").lean();
 
-     // ─── Step 6: Attach window-specific stats ────────────────────────────────────
+     console.log(`📊 ${users.length} active users found matching filters`);
+
+     // ─── 5. Enrich with Window Stats (including per-game metrics) ─────────────────
      const enriched = users.map((user) => {
-          const s = statsMap.get((user._id as mongoose.Types.ObjectId).toString())!;
-          const avgRating =
-               s.ratingCount > 0
-                    ? parseFloat((s.ratingSum / s.ratingCount).toFixed(2))
-                    : 6.5;
+          const stats = statsMap.get((user._id as mongoose.Types.ObjectId).toString())!;
 
-          const matchCount = s.matchCount;
+          const avgRating = stats.ratingCount > 0
+               ? parseFloat((stats.ratingSum / stats.ratingCount).toFixed(2))
+               : 6.5;
+
+          const matchCount = stats.matchCount;
+
+          // Calculate per-game metrics
+          const goalsPerGame = matchCount > 0
+               ? parseFloat((stats.totalGoal / matchCount).toFixed(2))
+               : 0;
+
+          const assistsPerGame = matchCount > 0
+               ? parseFloat((stats.totalAssists / matchCount).toFixed(2))
+               : 0;
+
+          const contributionPerGame = matchCount > 0
+               ? parseFloat((stats.totalContribution / matchCount).toFixed(2))
+               : 0;
+
+          const savesPerGame = matchCount > 0
+               ? parseFloat((stats.totalSave / matchCount).toFixed(2))
+               : 0;
+
+          const tacklesPerGame = matchCount > 0
+               ? parseFloat((stats.totalTackle / matchCount).toFixed(2))
+               : 0;
+
+          const redCardsPerGame = matchCount > 0
+               ? parseFloat((stats.totalRedCard / matchCount).toFixed(2))
+               : 0;
+
+          const yellowCardsPerGame = matchCount > 0
+               ? parseFloat((stats.totalYellowCard / matchCount).toFixed(2))
+               : 0;
 
           return {
                ...user,
                windowStats: {
+                    // Basic stats
                     matchCount,
                     rating: avgRating,
-                    goal: s.totalGoal,
-                    assists: s.totalAssists,
-                    tackle: s.totalTackle,
-                    save: s.totalSave,
-                    redCard: s.totalRedCard,
-                    yellowCard: s.totalYellowCard,
-                    contribution: s.totalContribution,
-                    motm: s.motm, // ✅
-                    goalsPerGame: matchCount ? parseFloat((s.totalGoal / matchCount).toFixed(2)) : 0,
-                    assistsPerGame: matchCount ? parseFloat((s.totalAssists / matchCount).toFixed(2)) : 0,
-                    savesPerGame: matchCount ? parseFloat((s.totalSave / matchCount).toFixed(2)) : 0,
-                    contributionPerGame: matchCount ? parseFloat((s.totalContribution / matchCount).toFixed(2)) : 0,
+                    goal: stats.totalGoal,
+                    assists: stats.totalAssists,
+                    tackle: stats.totalTackle,
+                    save: stats.totalSave,
+                    redCard: stats.totalRedCard,
+                    yellowCard: stats.totalYellowCard,
+                    contribution: stats.totalContribution,
+                    motm: stats.motm,
+
+                    // Per-game stats
+                    goalsPerGame,
+                    assistsPerGame,
+                    contributionPerGame,
+                    savesPerGame,
+                    tacklesPerGame,
+                    redCardsPerGame,
+                    yellowCardsPerGame,
                },
           };
      });
 
-     // ─── Step 7: Sort ─────────────────────────────────────────────────────────────
+     // ─── 6. Sorting Logic ─────────────────────────────────────────────────────────
      const windowStatFields = new Set([
-          "rating", "goal", "assists", "tackle",
-          "save", "redCard", "yellowCard", "contribution", "matchCount",
-          "goalsPerGame", "assistsPerGame", "savesPerGame", "contributionPerGame",
-          "motm", // ✅
+          "rating", "goal", "assists", "tackle", "save",
+          "redCard", "yellowCard", "contribution", "matchCount", "motm",
+          "goalsPerGame", "assistsPerGame", "contributionPerGame",
+          "savesPerGame", "tacklesPerGame", "redCardsPerGame", "yellowCardsPerGame"
      ]);
 
      enriched.sort((a, b) => {
-          const aVal = windowStatFields.has(sortField)
-               ? (a.windowStats as any)[sortField] ?? 0
-               : (a as any)[sortField] ?? 0;
-          const bVal = windowStatFields.has(sortField)
-               ? (b.windowStats as any)[sortField] ?? 0
-               : (b as any)[sortField] ?? 0;
+          let aVal: number, bVal: number;
+
+          if (windowStatFields.has(sortField)) {
+               aVal = (a.windowStats as any)[sortField] ?? 0;
+               bVal = (b.windowStats as any)[sortField] ?? 0;
+          } else {
+               aVal = (a as any)[sortField] ?? 0;
+               bVal = (b as any)[sortField] ?? 0;
+          }
+
+          // Ensure numeric conversion
+          aVal = typeof aVal === "number" ? aVal : parseFloat(aVal) || 0;
+          bVal = typeof bVal === "number" ? bVal : parseFloat(bVal) || 0;
 
           return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
      });
 
+     console.log(`🎯 Final ranking count for ${filterBy} window: ${enriched.length}`);
+
      return enriched;
 };
+
+export default playerRanking;
 
 
 const teamRanking = async (options: RankingOptions) => {

@@ -77,15 +77,28 @@ const googleLogin = async (payload) => {
     };
 };
 const appleLogin = async (payload) => {
-    const result = await userModel.create(payload);
-    const user = {
-        id: result?._id,
-        role: result?.role,
-        email: result?.email
-    };
-    const accessToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
-    const refreshToken = jwt.sign(user, config.jwt_secret, { expiresIn: "365d" });
+    const isUserExist = await userModel.findOne({ email: payload.email });
+    let userData;
+    let result = null;
+    if (!isUserExist) {
+        result = await userModel.create(payload);
+        userData = {
+            id: result?._id,
+            role: result?.role,
+            email: result?.email,
+        };
+    }
+    else {
+        userData = {
+            id: isUserExist?._id,
+            role: isUserExist?.role,
+            email: isUserExist?.email,
+        };
+    }
+    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
+    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
     return {
+        user: userData,
         result,
         accessToken,
         refreshToken
@@ -207,17 +220,38 @@ const calculatePlayerStats = (lobbies, tournamentMatches, playerId) => {
     let totalSaves = 0;
     let cleanSheets = 0;
     let wins = 0;
-    // লবির ডাটা প্রসেস করা
+    // Process lobby data
     lobbies.forEach(lobby => {
         let playerTeamGoal = null;
         let opponentTeamGoal = null;
+        let isGoalkeeper = false;
         const allSides = [
-            { players: lobby.team1?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
-            { players: lobby.team2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
-            { players: lobby.defaultTeam1?.players, myGoal: lobby.goalTeam1, oppGoal: lobby.goalTeam2 },
-            { players: lobby.defaultTeam2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1 },
+            {
+                players: lobby.team1?.players,
+                myGoal: lobby.goalTeam1,
+                oppGoal: lobby.goalTeam2,
+                teamType: "team1"
+            },
+            {
+                players: lobby.team2?.players,
+                myGoal: lobby.goalTeam2,
+                oppGoal: lobby.goalTeam1,
+                teamType: "team2"
+            },
+            {
+                players: lobby.defaultTeam1?.players,
+                myGoal: lobby.goalTeam1,
+                oppGoal: lobby.goalTeam2,
+                teamType: "defaultTeam1"
+            },
+            {
+                players: lobby.defaultTeam2?.players,
+                myGoal: lobby.goalTeam2,
+                oppGoal: lobby.goalTeam1,
+                teamType: "defaultTeam2"
+            },
         ];
-        allSides.forEach(({ players, myGoal, oppGoal }) => {
+        allSides.forEach(({ players, myGoal, oppGoal, teamType }) => {
             if (!players)
                 return;
             const player = players.find((p) => p.playerId?.toString() === playerId);
@@ -227,21 +261,33 @@ const calculatePlayerStats = (lobbies, tournamentMatches, playerId) => {
                 totalSaves += player.save || 0;
                 playerTeamGoal = myGoal;
                 opponentTeamGoal = oppGoal;
-                if (oppGoal === 0 && (player.save !== undefined)) {
-                    cleanSheets++;
+                // Check if player is goalkeeper (by position)
+                if (player.matchPosition === "Goalkeeper" ||
+                    player.matchPosition?.toLowerCase() === "goalkeeper") {
+                    isGoalkeeper = true;
                 }
+                // For debugging
+                console.log(`Lobby ${lobby._id}: Player in ${teamType}, Position: ${player.matchPosition}, Opp Goal: ${oppGoal}, Saves: ${player.save}`);
             }
         });
+        // Calculate clean sheet for this lobby
+        // Clean sheet = Team conceded 0 goals AND player played in that match
         if (playerTeamGoal !== null && opponentTeamGoal !== null) {
+            // Win/Loss calculation
             if (playerTeamGoal > opponentTeamGoal)
                 wins++;
+            // Clean sheet: opponent scored 0 goals
+            if (opponentTeamGoal === 0) {
+                cleanSheets++;
+                console.log(`Clean sheet counted for lobby ${lobby._id} (Opponent: 0, Player played)`);
+            }
         }
     });
-    // টুর্নামেন্টের ডাটা প্রসেস করা
+    // Process tournament match data
     tournamentMatches.forEach(match => {
         let playerTeamGoal = null;
         let opponentTeamGoal = null;
-        // টিম A তে প্লেয়ার আছে কিনা
+        // Check if player is in Team A
         const playerInTeamA = match.teamAPlayers?.find((p) => p.playerId?.toString() === playerId);
         if (playerInTeamA) {
             totalGoals += playerInTeamA.goal || 0;
@@ -249,30 +295,45 @@ const calculatePlayerStats = (lobbies, tournamentMatches, playerId) => {
             totalSaves += playerInTeamA.save || 0;
             playerTeamGoal = match.scoreA;
             opponentTeamGoal = match.scoreB;
-            if (match.scoreB === 0 && (playerInTeamA.save !== undefined)) {
-                cleanSheets++;
-            }
+            console.log(`Tournament ${match._id}: Player in Team A, Score: ${match.scoreA}-${match.scoreB}, Saves: ${playerInTeamA.save}`);
         }
-        // টিম B তে প্লেয়ার আছে কিনা
+        // Check if player is in Team B
         const playerInTeamB = match.teamBPlayers?.find((p) => p.playerId?.toString() === playerId);
         if (playerInTeamB) {
-            totalGoals += playerInTeamB.goal || 0;
-            totalAssists += playerInTeamB.assists || 0;
-            totalSaves += playerInTeamB.save || 0;
+            // If player was already found in Team A, add again? No, it's separate matches
+            // But player cannot be in both teams in same match
+            if (!playerInTeamA) {
+                totalGoals += playerInTeamB.goal || 0;
+                totalAssists += playerInTeamB.assists || 0;
+                totalSaves += playerInTeamB.save || 0;
+            }
             playerTeamGoal = match.scoreB;
             opponentTeamGoal = match.scoreA;
-            if (match.scoreA === 0 && (playerInTeamB.save !== undefined)) {
-                cleanSheets++;
-            }
+            console.log(`Tournament ${match._id}: Player in Team B, Score: ${match.scoreB}-${match.scoreA}, Saves: ${playerInTeamB.save}`);
         }
-        // জয়/পরাজয় গণনা
+        // Calculate clean sheet for tournament match
         if (playerTeamGoal !== null && opponentTeamGoal !== null) {
+            // Win/Loss calculation
             if (playerTeamGoal > opponentTeamGoal)
                 wins++;
+            // Clean sheet: opponent scored 0 goals
+            if (opponentTeamGoal === 0) {
+                cleanSheets++;
+                console.log(`Clean sheet counted for tournament match ${match._id} (Opponent: 0)`);
+            }
         }
     });
     const matchesPlayed = lobbies.length + tournamentMatches.length;
-    console.log(`Matches Played: ${matchesPlayed}, Total Goals: ${totalGoals}, Goals Per Game: ${matchesPlayed ? (totalGoals / matchesPlayed).toFixed(1) : 0}`);
+    console.log(`\n========== PLAYER STATS SUMMARY ==========`);
+    console.log(`Matches Played: ${matchesPlayed}`);
+    console.log(`Total Goals: ${totalGoals}`);
+    console.log(`Total Assists: ${totalAssists}`);
+    console.log(`Total Saves: ${totalSaves}`);
+    console.log(`Clean Sheets: ${cleanSheets}`);
+    console.log(`Wins: ${wins}`);
+    console.log(`Win Ratio: ${matchesPlayed ? Math.round((wins / matchesPlayed) * 100) : 0}%`);
+    console.log(`Goals Per Game: ${matchesPlayed ? (totalGoals / matchesPlayed).toFixed(1) : 0}`);
+    console.log(`==========================================\n`);
     return {
         matchesPlayed,
         goalsPerGame: matchesPlayed ? +(totalGoals / matchesPlayed).toFixed(1) : 0,
@@ -295,6 +356,10 @@ const collectLobbyMedia = (lobbies) => {
     return Array.from(mediaSet);
 };
 const playerProfile = async (id) => {
+    const defaultLobby = await LobbyModel.findOne({
+        title: "Default team tab showing"
+    }).lean();
+    console.log("Status:", defaultLobby?.lobbyStatus);
     const result = await userModel.findById(id).select("-cleanSheet");
     const allLobbies = await LobbyModel.find({
         $or: [
@@ -341,8 +406,17 @@ const playerProfile = async (id) => {
         playerTeam,
     };
 };
+const deleteAccount = async (id) => {
+    const isUserExist = await userModel.findById(id);
+    if (!isUserExist) {
+        throw new AppError(404, "This user Not Found");
+    }
+    const result = await userModel.findByIdAndDelete(id, { new: true });
+    return result;
+};
 export const authService = {
     createUserIntoDB,
+    deleteAccount,
     loginUser,
     updateStatusInDB,
     updateProfileInDB,

@@ -13,6 +13,7 @@ declare const _default: {
     SES_PASS: string | undefined;
     SES_FROM: string | undefined;
     admin_pass: string | undefined;
+    web_hook_secret: string | undefined;
 };
 export default _default;
 //# sourceMappingURL=index.d.ts.map
