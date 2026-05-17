@@ -226,25 +226,39 @@ export const joinLobby = async (req: Request, res: Response) => {
                : undefined;
 
           // ─── Pending check ────────────────────────────────────────────────────
-          // teamPlayerId থাকলে সেই member-এর জন্য check, না হলে current player-এর জন্য
+     
           const checkPlayerForPending = teamPlayerId
                ? new Types.ObjectId(teamPlayerId)
                : playerObjectId;
 
-          const alreadyPendingInSamePosition = await PaymentModel.findOne({
+          const alreadyBooked = await PaymentModel.findOne({
                lobbyId,
                playerId: checkPlayerForPending,
                teamId,
                matchPosition,
-               status: "pending",
-               guest_player: isGuestPlayer,
+               status: { $in: ["paid", "success"] },
           });
 
-          if (alreadyPendingInSamePosition) {
-               throw new AppError(
-                    403,
-                    "This player already has a pending request for this position. Please wait or choose another position."
-               );
+          if (alreadyBooked) {
+               throw new AppError(400, "This position is already booked.");
+          }
+
+          if (method === "cash") {
+               const alreadyPendingInSamePosition = await PaymentModel.findOne({
+                    lobbyId,
+                    playerId: checkPlayerForPending,
+                    teamId,
+                    matchPosition,
+                    status: "pending",
+                    guest_player: isGuestPlayer,
+               });
+
+               if (alreadyPendingInSamePosition) {
+                    throw new AppError(
+                         403,
+                         "This player already has a pending cash request for this position."
+                    );
+               }
           }
           let price: number = 0;
           let payment: any;
