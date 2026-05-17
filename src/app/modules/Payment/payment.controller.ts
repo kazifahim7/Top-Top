@@ -448,11 +448,16 @@ export const joinLobby = async (req: Request, res: Response) => {
                     data: result,
                });
           }
+          const emailPlayerId = teamPlayerId
+               ? new Types.ObjectId(teamPlayerId)
+               : playerObjectId;
 
+          const player = await userModel.findById(emailPlayerId); 
           // ─── Stripe Payment ───────────────────────────────────────────────────
           const paymentIntent = await stripe.paymentIntents.create({
                amount: price * 100,
                currency: "aed",
+               receipt_email: player?.email || "",
                metadata: {
                     paymentId: payment._id.toString(),
                     lobbyId: lobbyId?.toString() || "",
