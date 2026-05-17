@@ -297,12 +297,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                               guest_player: isGuestPlayer,
                          });
 
-                         // ══════════════════════════════════════════════════════════════
-                         // CASE 2: Captain কোনো member-এর জন্য pay করছে (teamPlayerId আছে)
-                         // Captain সেই member-এর full price দেবে — stripe অথবা cash
-                         // Payment record member-এর নামে তৈরি হবে (playerId = teamPlayerId)
-                         // Stripe webhook সফল হলে member সরাসরি lobby-তে add হবে
-                         // ══════════════════════════════════════════════════════════════
+                         
                     } else if (isOwner && teamPlayerId) {
                          const teamPlayerObjectId = new Types.ObjectId(teamPlayerId);
 
@@ -452,12 +447,30 @@ export const joinLobby = async (req: Request, res: Response) => {
                ? new Types.ObjectId(teamPlayerId)
                : playerObjectId;
 
-          const player = await userModel.findById(emailPlayerId); 
+          const player = await userModel.findById(emailPlayerId);
+
+          // ─── Stripe Customer ───
+          let stripeCustomer;
+
+          if (player?.email) {
+               const existingCustomers = await stripe.customers.list({
+                    email: player.email, 
+                    limit: 1
+               });
+
+               stripeCustomer = existingCustomers.data.length > 0
+                    ? existingCustomers.data[0]
+                    : await stripe.customers.create({
+                         email: player.email,      
+                         name: player.FullName ?? "", 
+                    });
+          }
+
           // ─── Stripe Payment ───────────────────────────────────────────────────
           const paymentIntent = await stripe.paymentIntents.create({
                amount: price * 100,
                currency: "aed",
-               receipt_email: player?.email || "",
+               ...(stripeCustomer && { customer: stripeCustomer.id }), 
                metadata: {
                     paymentId: payment._id.toString(),
                     lobbyId: lobbyId?.toString() || "",
