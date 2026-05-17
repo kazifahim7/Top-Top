@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { userModel } from './auth.model.js';
@@ -15,10 +16,17 @@ const createUserIntoDB = async (payload) => {
     if (isUserAlreadyExist) {
         throw new AppError(401, "This user Already exists");
     }
-    payload.password = await bcrypt.hash(payload.password, Number(config.salt_round));
-    // const result1 = await sendOTP(payload.mobile!, { channel: 'sms' });
-    // console.log(result1,"otp sending")
-    const result = await userModel.create(payload);
+    const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
+    const sanitizedPayload = {
+        FullName: payload.FullName,
+        email: payload.email,
+        password: hashedPassword,
+        mobile: payload.mobile,
+        imageUrl: payload.imageUrl,
+        role: "player",
+        isBlocked: false,
+    };
+    const result = await userModel.create(sanitizedPayload);
     return result;
 };
 const loginUser = async (payload) => {
@@ -53,7 +61,14 @@ const googleLogin = async (payload) => {
     let userData;
     let result = null;
     if (!isUserExist) {
-        result = await userModel.create(payload);
+        const sanitizedPayload = {
+            FullName: payload.FullName,
+            email: payload.email,
+            imageUrl: payload.imageUrl,
+            role: "player",
+            isBlocked: false,
+        };
+        result = await userModel.create(sanitizedPayload);
         userData = {
             id: result?._id,
             role: result?.role,
@@ -61,14 +76,17 @@ const googleLogin = async (payload) => {
         };
     }
     else {
+        if (isUserExist.isBlocked) {
+            throw new AppError(403, "Your account has been blocked");
+        }
         userData = {
             id: isUserExist?._id,
             role: isUserExist?.role,
             email: isUserExist?.email,
         };
     }
-    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
-    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
+    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "15d" }); // ✅ 365d → 15d
+    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "30d" }); // ✅ 365d → 30d
     return {
         user: userData,
         result,
@@ -81,7 +99,14 @@ const appleLogin = async (payload) => {
     let userData;
     let result = null;
     if (!isUserExist) {
-        result = await userModel.create(payload);
+        const sanitizedPayload = {
+            FullName: payload.FullName,
+            email: payload.email,
+            imageUrl: payload.imageUrl,
+            role: "player",
+            isBlocked: false,
+        };
+        result = await userModel.create(sanitizedPayload);
         userData = {
             id: result?._id,
             role: result?.role,
@@ -89,6 +114,9 @@ const appleLogin = async (payload) => {
         };
     }
     else {
+        if (isUserExist.isBlocked) {
+            throw new AppError(403, "Your account has been blocked");
+        }
         userData = {
             id: isUserExist?._id,
             role: isUserExist?.role,
@@ -96,7 +124,7 @@ const appleLogin = async (payload) => {
         };
     }
     const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
-    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
+    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "360d" });
     return {
         user: userData,
         result,
@@ -155,18 +183,18 @@ const resetRequest = async (payload) => {
     if (isUserExist.isBlocked === "block") {
         throw new AppError(403, "You are not authorized");
     }
-    const otp = Math.floor(1000 + Math.random() * 9000);
+    const rawOtp = crypto.randomInt(1000, 10000).toString();
     const userOtp = {
         id: isUserExist?._id,
         role: isUserExist?.role,
         email: isUserExist?.email,
-        otp: otp,
+        otp: rawOtp,
         otpExpiry: Date.now() + 5 * 60 * 1000
     };
     const createdOtp = await OtpModel.create(userOtp);
     const emailHtml = `
         <p>Hello ${isUserExist.FullName},</p>
-        <p>Your password reset OTP is: <strong>${otp}</strong></p>
+        <p>Your password reset OTP is: <strong>${rawOtp}</strong></p>
         <p>This OTP is valid for 5 minutes.</p>
     `;
     try {
@@ -356,11 +384,7 @@ const collectLobbyMedia = (lobbies) => {
     return Array.from(mediaSet);
 };
 const playerProfile = async (id) => {
-    const defaultLobby = await LobbyModel.findOne({
-        title: "Default team tab showing"
-    }).lean();
-    console.log("Status:", defaultLobby?.lobbyStatus);
-    const result = await userModel.findById(id).select("-cleanSheet");
+    const result = await userModel.findById(id).select("-cleanSheet -password -__v -match");
     const allLobbies = await LobbyModel.find({
         $or: [
             { "team1.players.playerId": id },

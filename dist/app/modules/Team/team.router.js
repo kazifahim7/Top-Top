@@ -29,18 +29,18 @@ router.put("/update-team/:id", auth("player", "admin", "organizer"), upload.fiel
     }
     next();
 }, TeamController.updateTeam);
-router.put("/update-team/:id", TeamController.updateTeam);
+// router.put("/update-team/:id",TeamController.updateTeam)
 router.get("/all-teams", TeamController.allTeams);
 router.get("/my-team", auth("player", "admin", "organizer"), TeamController.myTeam);
 router.get("/single-team/:id", TeamController.singleTeam);
-router.delete("/delete-team/:id", TeamController.DeleteTeam);
+router.delete("/delete-team/:id", auth("player", "admin", "organizer"), TeamController.DeleteTeam);
 // assign captain in a team
 router.put("/:teamId/assign-captain", auth("player", "admin", "organizer"), TeamController.assignCaptain);
 router.put("/:teamId/remove-player", auth("player", "admin", "organizer"), TeamController.removePlayer);
 // ! notification api is below ->
 router.post("/:teamId/invite", auth("player", "admin", "organizer"), TeamController.invitePlayer);
-router.post("/accept-invite/:inviteId", TeamController.acceptInvite);
-router.put("/reject-invite/:inviteId", TeamController.rejectInvite);
+router.post("/accept-invite/:inviteId", auth("player", "admin", "organizer"), TeamController.acceptInvite);
+router.put("/reject-invite/:inviteId", auth("player", "admin", "organizer"), TeamController.rejectInvite);
 router.get("/my-request", auth("player", "admin", "organizer"), TeamController.myRequest);
 export const teamsRouter = router;
 //# sourceMappingURL=team.router.js.map

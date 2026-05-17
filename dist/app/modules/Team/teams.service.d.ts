@@ -6,7 +6,7 @@ export declare const teamsService: {
     } & {
         __v: number;
     }>;
-    updateTeam: (payload: Partial<TTeam>, id: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+    updateTeam: (payload: Partial<TTeam>, id: string, requesterId: string, requesterRole: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;
     } & {
         __v: number;
@@ -72,12 +72,12 @@ export declare const teamsService: {
     } & {
         __v: number;
     }>;
-    acceptInvite: (inviteId: string) => Promise<Omit<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+    acceptInvite: (inviteId: string, requesterId: string) => Promise<Omit<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;
     } & {
         __v: number;
     }, never>>;
-    rejectInvite: (inviteId: string) => Promise<(import("mongoose").Document<unknown, {}, import("../Notification/notification.interface.js").TInvite, {}, {}> & import("../Notification/notification.interface.js").TInvite & {
+    rejectInvite: (inviteId: string, requesterId: string) => Promise<(import("mongoose").Document<unknown, {}, import("../Notification/notification.interface.js").TInvite, {}, {}> & import("../Notification/notification.interface.js").TInvite & {
         _id: Types.ObjectId;
     } & {
         __v: number;
@@ -87,7 +87,7 @@ export declare const teamsService: {
     } & {
         __v: number;
     })[]>;
-    DeleteTeam: (teamId: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+    deleteTeam: (id: string, requesterId: string, requesterRole: string) => Promise<(import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;
     } & {
         __v: number;

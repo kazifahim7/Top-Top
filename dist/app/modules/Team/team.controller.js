@@ -20,16 +20,18 @@ const createTeam = catchAsync(async (req, res) => {
 const updateTeam = catchAsync(async (req, res) => {
     const data = req.body;
     const id = req.params?.id;
-    const imageFiles = req.files.images || [];
+    const requesterId = req.user?.id;
+    const requesterRole = req.user?.role;
+    const imageFiles = req.files?.images || [];
     for (const file of imageFiles) {
-        // const url = getLocalImageURL(file.filename);
         const url = await uploadToS3(file);
         data.image = url;
     }
-    const result = await teamsService.updateTeam(data, id);
+    // ✅ requesterId এবং requesterRole service এ পাঠানো হচ্ছে
+    const result = await teamsService.updateTeam(data, id, requesterId, requesterRole);
     res.status(200).json({
         success: true,
-        message: "Teams updated successfully",
+        message: "Team updated successfully",
         data: result
     });
 });
@@ -94,19 +96,22 @@ const invitePlayer = catchAsync(async (req, res) => {
 });
 const acceptInvite = catchAsync(async (req, res) => {
     const inviteId = req.params?.inviteId;
-    const result = await teamsService.acceptInvite(inviteId);
+    const requesterId = req.user?.id;
+    const result = await teamsService.acceptInvite(inviteId, requesterId);
     res.status(200).json({
         success: true,
-        message: "Request accept successfully",
+        message: "Request accepted successfully",
         data: result
     });
 });
 const rejectInvite = catchAsync(async (req, res) => {
     const inviteId = req.params?.inviteId;
-    const result = await teamsService.rejectInvite(inviteId);
+    // ✅ auth middleware থেকে requester এর id নেওয়া হচ্ছে
+    const requesterId = req.user?.id;
+    const result = await teamsService.rejectInvite(inviteId, requesterId);
     res.status(200).json({
         success: true,
-        message: "Request Reject successfully",
+        message: "Request rejected successfully",
         data: result
     });
 });
@@ -121,10 +126,12 @@ const myRequest = catchAsync(async (req, res) => {
 });
 const DeleteTeam = catchAsync(async (req, res) => {
     const teamId = req.params.id;
-    const result = await teamsService.DeleteTeam(teamId);
+    const requesterId = req.user?.id;
+    const requesterRole = req.user?.role;
+    const result = await teamsService.deleteTeam(teamId, requesterId, requesterRole);
     res.status(200).json({
         success: true,
-        message: "Team are deleted successfully",
+        message: "Team deleted successfully",
         data: result
     });
 });

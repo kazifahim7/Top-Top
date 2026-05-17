@@ -10,6 +10,6 @@ router.get("/payment-cancel", paymentCancel);
 router.get("/all-payment" ,auth("admin"), allPaymentHistory)
 router.get("/organizer-payment", auth("organizer"), allPaymentHistoryOrganizer)
 
-router.patch("/payment-paid",makePaid)
+router.patch("/payment-paid", auth("organizer", "admin"),makePaid)
 
 export const paymentRouter = router;

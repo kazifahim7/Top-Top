@@ -163,20 +163,31 @@ export const joinLobby = async (req, res) => {
             ? typeof teamId === "string" ? new Types.ObjectId(teamId) : teamId
             : undefined;
         // ─── Pending check ────────────────────────────────────────────────────
-        // teamPlayerId থাকলে সেই member-এর জন্য check, না হলে current player-এর জন্য
         const checkPlayerForPending = teamPlayerId
             ? new Types.ObjectId(teamPlayerId)
             : playerObjectId;
-        const alreadyPendingInSamePosition = await PaymentModel.findOne({
+        const alreadyBooked = await PaymentModel.findOne({
             lobbyId,
             playerId: checkPlayerForPending,
             teamId,
             matchPosition,
-            status: "pending",
-            guest_player: isGuestPlayer,
+            status: { $in: ["paid", "success"] },
         });
-        if (alreadyPendingInSamePosition) {
-            throw new AppError(403, "This player already has a pending request for this position. Please wait or choose another position.");
+        if (alreadyBooked) {
+            throw new AppError(400, "This position is already booked.");
+        }
+        if (method === "cash") {
+            const alreadyPendingInSamePosition = await PaymentModel.findOne({
+                lobbyId,
+                playerId: checkPlayerForPending,
+                teamId,
+                matchPosition,
+                status: "pending",
+                guest_player: isGuestPlayer,
+            });
+            if (alreadyPendingInSamePosition) {
+                throw new AppError(403, "This player already has a pending cash request for this position.");
+            }
         }
         let price = 0;
         let payment;
@@ -220,12 +231,6 @@ export const joinLobby = async (req, res) => {
                         paymentType,
                         guest_player: isGuestPlayer,
                     });
-                    // ══════════════════════════════════════════════════════════════
-                    // CASE 2: Captain কোনো member-এর জন্য pay করছে (teamPlayerId আছে)
-                    // Captain সেই member-এর full price দেবে — stripe অথবা cash
-                    // Payment record member-এর নামে তৈরি হবে (playerId = teamPlayerId)
-                    // Stripe webhook সফল হলে member সরাসরি lobby-তে add হবে
-                    // ══════════════════════════════════════════════════════════════
                 }
                 else if (isOwner && teamPlayerId) {
                     const teamPlayerObjectId = new Types.ObjectId(teamPlayerId);
@@ -352,10 +357,29 @@ export const joinLobby = async (req, res) => {
                 data: result,
             });
         }
+        const emailPlayerId = teamPlayerId
+            ? new Types.ObjectId(teamPlayerId)
+            : playerObjectId;
+        const player = await userModel.findById(emailPlayerId);
+        // ─── Stripe Customer ───
+        let stripeCustomer;
+        if (player?.email) {
+            const existingCustomers = await stripe.customers.list({
+                email: player.email,
+                limit: 1
+            });
+            stripeCustomer = existingCustomers.data.length > 0
+                ? existingCustomers.data[0]
+                : await stripe.customers.create({
+                    email: player.email,
+                    name: player.FullName ?? "",
+                });
+        }
         // ─── Stripe Payment ───────────────────────────────────────────────────
         const paymentIntent = await stripe.paymentIntents.create({
             amount: price * 100,
             currency: "aed",
+            ...(stripeCustomer && { customer: stripeCustomer.id }),
             metadata: {
                 paymentId: payment._id.toString(),
                 lobbyId: lobbyId?.toString() || "",

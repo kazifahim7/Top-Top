@@ -14,10 +14,16 @@ const createTeam = async (payload, owner) => {
     const result = await TeamModel.create(payload);
     return result;
 };
-const updateTeam = async (payload, id) => {
-    const isTeamIsExist = await TeamModel.findById(id);
-    if (!isTeamIsExist) {
+const updateTeam = async (payload, id, requesterId, requesterRole) => {
+    const isTeamExist = await TeamModel.findById(id);
+    if (!isTeamExist) {
         throw new AppError(404, "This team not found");
+    }
+    // ✅ Owner অথবা Admin ছাড়া update করতে পারবে না
+    const isOwner = isTeamExist.teamOwner.toString() === requesterId;
+    const isAdmin = requesterRole === "admin";
+    if (!isOwner && !isAdmin) {
+        throw new AppError(403, "You are not authorized to update this team");
     }
     const result = await TeamModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
@@ -469,18 +475,20 @@ const invitePlayer = async (ownerId, teamId, playerId, message) => {
     // sendPushNotification(receiverId, `You have a new invite to join ${team.teamName}`);
     return invite;
 };
-const acceptInvite = async (inviteId) => {
+const acceptInvite = async (inviteId, requesterId) => {
     const invite = await InviteModel.findById(inviteId);
     if (!invite) {
         throw new AppError(404, "This request not found");
+    }
+    // ✅ Invite এর receiver এবং requester একই কিনা check
+    if (invite.receiver.toString() !== requesterId) {
+        throw new AppError(403, "You are not authorized to accept this invite");
     }
     const team = await TeamModel.findById(invite.team);
     if (!team) {
         throw new AppError(404, "Team not found");
     }
-    const playerTeams = await TeamModel.find({
-        players: invite.receiver,
-    });
+    const playerTeams = await TeamModel.find({ players: invite.receiver });
     if (playerTeams.length >= 2) {
         throw new AppError(400, "This player already belongs to 2 teams. Cannot join more.");
     }
@@ -493,10 +501,14 @@ const acceptInvite = async (inviteId) => {
     await InviteModel.findByIdAndUpdate(inviteId, { status: "accepted" }, { new: true });
     return await result.populate("players teamOwner teamCaptain");
 };
-const rejectInvite = async (inviteId) => {
-    const isRequestIsExist = await InviteModel.findById(inviteId);
-    if (!isRequestIsExist) {
+const rejectInvite = async (inviteId, requesterId) => {
+    const invite = await InviteModel.findById(inviteId);
+    if (!invite) {
         throw new AppError(404, "This request not found");
+    }
+    // ✅ Invite এর receiver এবং requester একই কিনা check
+    if (invite.receiver.toString() !== requesterId) {
+        throw new AppError(403, "You are not authorized to reject this invite");
     }
     const result = await InviteModel.findByIdAndUpdate(inviteId, { status: "rejected" }, { new: true });
     return result;
@@ -511,9 +523,17 @@ const myRequest = async (userId) => {
     }
     return result;
 };
-const DeleteTeam = async (teamId) => {
-    const result = await TeamModel.findByIdAndDelete(teamId);
-    return result;
+const deleteTeam = async (id, requesterId, requesterRole) => {
+    const isTeamExist = await TeamModel.findById(id);
+    if (!isTeamExist) {
+        throw new AppError(404, "This team not found");
+    }
+    const isOwner = isTeamExist.teamOwner.toString() === requesterId;
+    const isAdmin = requesterRole === "admin";
+    if (!isOwner && !isAdmin) {
+        throw new AppError(403, "You are not authorized to delete this team");
+    }
+    return await TeamModel.findByIdAndDelete(id);
 };
 export const teamsService = {
     createTeam,
@@ -526,7 +546,7 @@ export const teamsService = {
     acceptInvite,
     rejectInvite,
     myRequest,
-    DeleteTeam,
+    deleteTeam,
     singleTeam
 };
 //# sourceMappingURL=teams.service.js.map

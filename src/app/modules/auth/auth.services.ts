@@ -1,5 +1,5 @@
 
-
+import crypto from 'crypto'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
@@ -23,13 +23,22 @@ const createUserIntoDB = async (payload: TCreateProfile) => {
      const isUserAlreadyExist = await userModel.findOne({ email: payload?.email })
      if (isUserAlreadyExist) {
           throw new AppError(401, "This user Already exists");
-
      }
-     payload.password = await bcrypt.hash(payload.password, Number(config.salt_round))
-    
-     // const result1 = await sendOTP(payload.mobile!, { channel: 'sms' });
-     // console.log(result1,"otp sending")
-     const result = await userModel.create(payload)
+
+     const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round))
+
+
+     const sanitizedPayload = {
+          FullName: payload.FullName,
+          email: payload.email,
+          password: hashedPassword,
+          mobile: payload.mobile,
+          imageUrl: payload.imageUrl,
+          role: "player" as const,       
+          isBlocked: false,               
+     }
+
+     const result = await userModel.create(sanitizedPayload)
      return result;
 }
 
@@ -69,17 +78,25 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
 
 
 }
+
 const googleLogin = async (
      payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">
 ) => {
-
      const isUserExist = await userModel.findOne({ email: payload.email })
 
      let userData;
      let result = null;
 
      if (!isUserExist) {
-          result = await userModel.create(payload)
+          const sanitizedPayload = {
+               FullName: payload.FullName,
+               email: payload.email,
+               imageUrl: payload.imageUrl,
+               role: "player" as const,  
+               isBlocked: false,          
+          }
+
+          result = await userModel.create(sanitizedPayload)
 
           userData = {
                id: result?._id,
@@ -87,6 +104,11 @@ const googleLogin = async (
                email: result?.email,
           }
      } else {
+     
+          if (isUserExist.isBlocked) {
+               throw new AppError(403, "Your account has been blocked");
+          }
+
           userData = {
                id: isUserExist?._id,
                role: isUserExist?.role,
@@ -94,10 +116,8 @@ const googleLogin = async (
           }
      }
 
-
-
-     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
-     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
+     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "15d" })   // ✅ 365d → 15d
+     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "30d" })  // ✅ 365d → 30d
 
      return {
           user: userData,
@@ -107,15 +127,25 @@ const googleLogin = async (
      }
 }
 
-const appleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => {
-
-       const isUserExist = await userModel.findOne({ email: payload.email })
+const appleLogin = async (
+     payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">
+) => {
+     const isUserExist = await userModel.findOne({ email: payload.email })
 
      let userData;
      let result = null;
 
      if (!isUserExist) {
-          result = await userModel.create(payload)
+          
+          const sanitizedPayload = {
+               FullName: payload.FullName,
+               email: payload.email,
+               imageUrl: payload.imageUrl,
+               role: "player" as const,   
+               isBlocked: false,         
+          }
+
+          result = await userModel.create(sanitizedPayload)
 
           userData = {
                id: result?._id,
@@ -123,6 +153,11 @@ const appleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "
                email: result?.email,
           }
      } else {
+         
+          if (isUserExist.isBlocked) {
+               throw new AppError(403, "Your account has been blocked");
+          }
+
           userData = {
                id: isUserExist?._id,
                role: isUserExist?.role,
@@ -130,10 +165,8 @@ const appleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "
           }
      }
 
-
-
-     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
-     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })
+     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })   
+     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "360d" }) 
 
      return {
           user: userData,
@@ -141,9 +174,6 @@ const appleLogin = async (payload: Pick<TCreateProfile, "email" | "password" | "
           accessToken,
           refreshToken
      }
-
-
-
 }
 
 const updateStatusInDB = async (id: string, payload: Record<string, unknown>) => {
@@ -217,12 +247,12 @@ const resetRequest = async (payload: Record<string, unknown>) => {
           throw new AppError(403, "You are not authorized");
      }
 
-     const otp = Math.floor(1000 + Math.random() * 9000);
+     const rawOtp = crypto.randomInt(1000, 10000).toString();
      const userOtp = {
           id: isUserExist?._id,
           role: isUserExist?.role,
           email: isUserExist?.email,
-          otp: otp,
+          otp: rawOtp,
           otpExpiry: Date.now() + 5 * 60 * 1000
      }
 
@@ -230,7 +260,7 @@ const resetRequest = async (payload: Record<string, unknown>) => {
 
      const emailHtml = `
         <p>Hello ${isUserExist.FullName},</p>
-        <p>Your password reset OTP is: <strong>${otp}</strong></p>
+        <p>Your password reset OTP is: <strong>${rawOtp}</strong></p>
         <p>This OTP is valid for 5 minutes.</p>
     `;
 
@@ -481,12 +511,9 @@ const collectLobbyMedia = (lobbies: any[]) => {
 
 const playerProfile = async (id: string) => {
 
-     const defaultLobby = await LobbyModel.findOne({
-          title: "Default team tab showing"
-     }).lean();
-
-     console.log("Status:", (defaultLobby as any)?.lobbyStatus);
-     const result = await userModel.findById(id).select("-cleanSheet");
+     
+  
+     const result = await userModel.findById(id).select("-cleanSheet -password -__v -match");
 
      const allLobbies = await LobbyModel.find({
           $or: [
