@@ -29,7 +29,7 @@ export declare const authService: {
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
-        role: "player" | "admin" | "organizer";
+        role: "admin" | "player" | "organizer";
         userid: import("mongoose").Types.ObjectId;
     }>;
     updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
@@ -159,7 +159,7 @@ export declare const authService: {
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: import("mongoose").Types.ObjectId;
-            role: "player" | "admin" | "organizer";
+            role: "admin" | "player" | "organizer";
             email: string;
         };
         result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
@@ -173,7 +173,7 @@ export declare const authService: {
     appleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: import("mongoose").Types.ObjectId;
-            role: "player" | "admin" | "organizer";
+            role: "admin" | "player" | "organizer";
             email: string;
         };
         result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
