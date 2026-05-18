@@ -35,7 +35,7 @@ const createUserIntoDB = async (payload: TCreateProfile) => {
           mobile: payload.mobile,
           imageUrl: payload.imageUrl,
           role: "player" as const,       
-          isBlocked: false,               
+          isBlocked: "active",               
      }
 
      const result = await userModel.create(sanitizedPayload)
@@ -93,7 +93,7 @@ const googleLogin = async (
                email: payload.email,
                imageUrl: payload.imageUrl,
                role: "player" as const,  
-               isBlocked: false,          
+               isBlocked: "active",        
           }
 
           result = await userModel.create(sanitizedPayload)
@@ -142,7 +142,7 @@ const appleLogin = async (
                email: payload.email,
                imageUrl: payload.imageUrl,
                role: "player" as const,   
-               isBlocked: false,         
+               isBlocked: "active",    
           }
 
           result = await userModel.create(sanitizedPayload)
