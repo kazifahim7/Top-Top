@@ -54,7 +54,8 @@ const allMatch = async (query) => {
     const lobbies = await LobbyModel.aggregate([
         {
             $match: {
-                lobbyStatus: { $ne: "inactive" }
+                lobbyStatus: { $ne: "inactive" },
+                isDelete: { $ne: true }
             }
         },
         // ✅ সব team এর players এর playerId collect করো
@@ -1298,7 +1299,7 @@ function getMatchResult(teamGoals, opponentGoals) {
     return 'draw';
 }
 const deleteLobby = async (id) => {
-    const result = await LobbyModel.findByIdAndUpdate(id, { lobbyStatus: "inactive" }, { new: true });
+    const result = await LobbyModel.findByIdAndUpdate(id, { isDelete: true }, { new: true });
     return result;
 };
 const myUpcomingLobby = async (id) => {

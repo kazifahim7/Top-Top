@@ -19,7 +19,8 @@ const tournamentSchema = new Schema<ITournament>({
      maxTeam: { type: Number, default: 16 },
      status: { type: String, enum: ["active", "block","completed","inactive"], default: "active" },
      organizer: { type: Schema.Types.ObjectId, ref: "Players" },
-     imageUrl: { type: String }
+     imageUrl: { type: String },
+     isDelete: {type:Boolean,default:false}
           
 },{
      timestamps:true

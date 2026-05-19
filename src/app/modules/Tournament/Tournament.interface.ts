@@ -18,4 +18,5 @@ export interface ITournament   {
      imageUrl:string,
      status: string,
      organizer: Types.ObjectId,
+     isDelete:boolean;
 }

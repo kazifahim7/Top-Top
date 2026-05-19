@@ -24,7 +24,7 @@ const createUserIntoDB = async (payload) => {
         mobile: payload.mobile,
         imageUrl: payload.imageUrl,
         role: "player",
-        isBlocked: false,
+        isBlocked: "active",
     };
     const result = await userModel.create(sanitizedPayload);
     return result;
@@ -66,7 +66,7 @@ const googleLogin = async (payload) => {
             email: payload.email,
             imageUrl: payload.imageUrl,
             role: "player",
-            isBlocked: false,
+            isBlocked: "active",
         };
         result = await userModel.create(sanitizedPayload);
         userData = {
@@ -104,7 +104,7 @@ const appleLogin = async (payload) => {
             email: payload.email,
             imageUrl: payload.imageUrl,
             role: "player",
-            isBlocked: false,
+            isBlocked: "active",
         };
         result = await userModel.create(sanitizedPayload);
         userData = {

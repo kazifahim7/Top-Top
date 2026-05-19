@@ -17,7 +17,7 @@ const singleTournament = async (id: string) => {
 }
 
 const allTournament = async () => {
-     const tournaments = await TournamentModel.find({ status: { $ne: "inactive" } })
+     const tournaments = await TournamentModel.find({ status: { $ne: "inactive" }, isDelete: { $ne: true } })
           .populate("winner")
           .populate("qualifiedTeams")
           .populate({
@@ -96,7 +96,7 @@ const deleteTournament = async (id: string) => {
           throw new AppError(404, "this tournament is not found");
 
      }
-     const result = await TournamentModel.findByIdAndUpdate(id,{status:"inactive"},{new:true})
+     const result = await TournamentModel.findByIdAndUpdate(id, { isDelete:true},{new:true})
      return result;
 }
  const qualifyTeamsService = async (tournamentId: string, teamIds: string[]) => {

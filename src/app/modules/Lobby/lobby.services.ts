@@ -74,7 +74,8 @@ const allMatch = async (query: Record<string, unknown>) => {
      const lobbies = await LobbyModel.aggregate([
           {
                $match: {
-                    lobbyStatus: { $ne: "inactive" }
+                    lobbyStatus: { $ne: "inactive" },
+                    isDelete: { $ne: true }
                }
           },
 
@@ -1443,7 +1444,7 @@ function getMatchResult(teamGoals: number, opponentGoals: number): 'win' | 'draw
 }
 
 const deleteLobby = async (id: string) => {
-     const result = await LobbyModel.findByIdAndUpdate(id,{lobbyStatus:"inactive"},{new:true})
+     const result = await LobbyModel.findByIdAndUpdate(id,{isDelete:true},{new:true})
 
      return result
 }

@@ -62,6 +62,7 @@ const LobbySchema = new Schema({
     matchPublished: { type: Boolean, default: false },
     team1AvgMatchRatingBefore: { type: Number, default: 0 },
     team2AvgMatchRatingBefore: { type: Number, default: 0 },
+    isDelete: { type: Boolean, default: false }
 }, { timestamps: true });
 export const LobbyModel = model("Lobby", LobbySchema);
 //# sourceMappingURL=lobby.model.js.map

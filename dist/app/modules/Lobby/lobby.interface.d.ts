@@ -64,5 +64,6 @@ export interface LobbyDocument extends Document {
     matchPublished?: boolean;
     team1AvgMatchRatingBefore?: number;
     team2AvgMatchRatingBefore?: number;
+    isDelete: boolean;
 }
 //# sourceMappingURL=lobby.interface.d.ts.map

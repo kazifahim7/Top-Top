@@ -30,6 +30,7 @@ export declare const TournamentService: {
         imageUrl: string;
         status: string;
         organizer: Types.ObjectId;
+        isDelete: boolean;
         _id: Types.ObjectId;
         __v: number;
     }[]>;

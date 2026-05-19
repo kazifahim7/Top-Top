@@ -72,6 +72,7 @@ const LobbySchema = new Schema<LobbyDocument>(
           matchPublished: { type: Boolean, default: false },
           team1AvgMatchRatingBefore: { type: Number, default: 0 },
           team2AvgMatchRatingBefore: { type: Number, default: 0 },
+          isDelete:{type:Boolean,default:false}
 
      },
      { timestamps: true }

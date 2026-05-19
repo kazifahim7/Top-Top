@@ -17,5 +17,6 @@ export interface ITournament {
     imageUrl: string;
     status: string;
     organizer: Types.ObjectId;
+    isDelete: boolean;
 }
 //# sourceMappingURL=Tournament.interface.d.ts.map

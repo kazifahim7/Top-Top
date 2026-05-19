@@ -69,5 +69,7 @@ export interface LobbyDocument extends Document {
      organizer: Types.ObjectId;
      matchPublished?:boolean,
      team1AvgMatchRatingBefore?:number
-     team2AvgMatchRatingBefore?:number
+     team2AvgMatchRatingBefore?:number,
+     isDelete:boolean
+     
 }
