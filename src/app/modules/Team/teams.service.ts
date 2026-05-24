@@ -442,9 +442,9 @@ const assignCaptain = async (ownerId: string, teamId: string, captainId: string)
           throw new AppError(404, "Team not found");
      }
 
-     if (team.teamOwner.toString() !== ownerId) {
-          throw new AppError(403, "You are not allowed to assign captains");
-     }
+     // if (team.teamOwner.toString() !== ownerId) {
+     //      throw new AppError(403, "You are not allowed to assign captains");
+     // }
 
      if (team.teamCaptain.some(c => c.toString() === captainId)) {
           throw new AppError(400, "This player is already a captain");

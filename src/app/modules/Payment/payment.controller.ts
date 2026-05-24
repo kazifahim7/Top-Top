@@ -34,28 +34,35 @@ export const joinLobby = async (req: Request, res: Response) => {
           let playerId = req.user.id;
 
 
-          // ─── Extra Player (Organizer OR Team Captain) ─────────────────────────
+          
+          // ─── Extra Player (Organizer OR Team Captain OR Team Owner) ───────────
           if (ExtraPlayerId) {
                const isOrganizer = req.user.role === "organizer";
 
                let isCaptainOfThisTeam = false;
+               let isOwnerOfThisTeam = false;  
+
                if (teamId) {
                     const team = await TeamModel.findById(teamId);
                     if (team) {
+                         // Captain check
                          isCaptainOfThisTeam = team.teamCaptain.some(
                               (captain) => captain.toString() === req.user.id.toString()
                          );
+
+                         // ✅ Owner check
+                         isOwnerOfThisTeam = team.teamOwner.toString() === req.user.id.toString();
                     }
                }
 
-               if (!isOrganizer && !isCaptainOfThisTeam) {
+               if (!isOrganizer && !isCaptainOfThisTeam && !isOwnerOfThisTeam) {  // ✅
                     throw new AppError(
                          403,
-                         "Only the organizer or team captain can add an extra player"
+                         "Only the organizer, team owner or team captain can add an extra player"
                     );
                }
 
-               // Organizer হলে lobby ownership check
+               
                if (isOrganizer) {
                     const lobby = await LobbyModel.findById(lobbyId);
                     if (!lobby) throw new AppError(404, "Lobby not found");
@@ -484,6 +491,9 @@ export const joinLobby = async (req: Request, res: Response) => {
           const paymentIntent = await stripe.paymentIntents.create({
                amount: price * 100,
                currency: "aed",
+               automatic_payment_methods: {
+                    enabled: true,  
+               },
                ...(stripeCustomer && { customer: stripeCustomer.id }), 
                metadata: {
                     paymentId: payment._id.toString(),
