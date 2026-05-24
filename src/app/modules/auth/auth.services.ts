@@ -92,8 +92,8 @@ const googleLogin = async (
                FullName: payload.FullName,
                email: payload.email,
                imageUrl: payload.imageUrl,
-               role: "player" as const,  
-               isBlocked: "active",        
+               role: "player" as const,
+               isBlocked: "active",
           }
 
           result = await userModel.create(sanitizedPayload)
@@ -104,8 +104,8 @@ const googleLogin = async (
                email: result?.email,
           }
      } else {
-     
-          if (isUserExist.isBlocked) {
+
+          if (isUserExist.isBlocked === "block") {   // ✅ fixed
                throw new AppError(403, "Your account has been blocked");
           }
 
@@ -116,8 +116,8 @@ const googleLogin = async (
           }
      }
 
-     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "15d" })   // ✅ 365d → 15d
-     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "30d" })  // ✅ 365d → 30d
+     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "15d" })
+     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "30d" })
 
      return {
           user: userData,
@@ -136,13 +136,12 @@ const appleLogin = async (
      let result = null;
 
      if (!isUserExist) {
-          
           const sanitizedPayload = {
                FullName: payload.FullName,
                email: payload.email,
                imageUrl: payload.imageUrl,
-               role: "player" as const,   
-               isBlocked: "active",    
+               role: "player" as const,
+               isBlocked: "active",
           }
 
           result = await userModel.create(sanitizedPayload)
@@ -153,8 +152,8 @@ const appleLogin = async (
                email: result?.email,
           }
      } else {
-         
-          if (isUserExist.isBlocked) {
+
+          if (isUserExist.isBlocked === "block") {   // ✅ fixed
                throw new AppError(403, "Your account has been blocked");
           }
 
@@ -165,8 +164,8 @@ const appleLogin = async (
           }
      }
 
-     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "365d" })   
-     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "360d" }) 
+     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "15d" })   // ✅ 365d → 15d
+     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "30d" })  // ✅ 360d → 30d
 
      return {
           user: userData,
