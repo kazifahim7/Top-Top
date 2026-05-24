@@ -34,8 +34,8 @@ const createUserIntoDB = async (payload: TCreateProfile) => {
           password: hashedPassword,
           mobile: payload.mobile,
           imageUrl: payload.imageUrl,
-          role: "player" as const,       
-          isBlocked: "active",               
+          role: payload.role ? payload.role : "player" as const,
+          isBlocked: "active",
      }
 
      const result = await userModel.create(sanitizedPayload)
@@ -130,50 +130,74 @@ const googleLogin = async (
 const appleLogin = async (
      payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">
 ) => {
-     const isUserExist = await userModel.findOne({ email: payload.email })
+     // ✅ email ছাড়া কিছুই করা যাবে না
+     if (!payload.email) {
+          throw new AppError(400, "Email is required for Apple Sign In");
+     }
+
+     const isUserExist = await userModel.findOne({ email: payload.email });
 
      let userData;
      let result = null;
 
      if (!isUserExist) {
+          // ✅ নতুন user — Apple প্রথমবারই FullName দেয়, না দিলে fallback
           const sanitizedPayload = {
-               FullName: payload.FullName,
+               FullName: payload.FullName || "Apple User",       // ✅ fallback
                email: payload.email,
-               imageUrl: payload.imageUrl,
+               imageUrl: payload.imageUrl || "",                  // ✅ fallback
                role: "player" as const,
                isBlocked: "active",
-          }
+               password: Math.random().toString(36).slice(-10),   // ✅ dummy password (Apple-এ দরকার)
+          };
 
-          result = await userModel.create(sanitizedPayload)
+          result = await userModel.create(sanitizedPayload);
 
           userData = {
                id: result?._id,
                role: result?.role,
                email: result?.email,
-          }
-     } else {
+          };
 
-          if (isUserExist.isBlocked === "block") {   // ✅ fixed
+     } else {
+         
+          if (isUserExist.isBlocked === "block") {
                throw new AppError(403, "Your account has been blocked");
+          }
+
+          // ✅ যদি নতুন info আসে (কখনো কখনো আসে) — update করো
+          if (payload.FullName || payload.imageUrl) {
+               await userModel.findByIdAndUpdate(isUserExist._id, {
+                    ...(payload.FullName && { FullName: payload.FullName }),
+                    ...(payload.imageUrl && { imageUrl: payload.imageUrl }),
+               });
           }
 
           userData = {
                id: isUserExist?._id,
                role: isUserExist?.role,
                email: isUserExist?.email,
-          }
+          };
      }
 
-     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "15d" })   // ✅ 365d → 15d
-     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "30d" })  // ✅ 360d → 30d
+     const accessToken = jwt.sign(
+          userData,
+          config.jwt_secret as string,
+          { expiresIn: "15d" }
+     );
+     const refreshToken = jwt.sign(
+          userData,
+          config.jwt_secret as string,
+          { expiresIn: "30d" }
+     );
 
      return {
           user: userData,
           result,
           accessToken,
-          refreshToken
-     }
-}
+          refreshToken,
+     };
+};
 
 const updateStatusInDB = async (id: string, payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findById(id)
