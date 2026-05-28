@@ -14,8 +14,35 @@ import { LobbyModel } from '../Lobby/lobby.model.js';
 import OtpModel from './auth.otpmodel.js';
 import emailSender from '../../utils/sendEmail.js';
 import { TeamModel } from '../Team/team.model.js';
-import { sendOTP } from '../../utils/twilio.js';
+import { isValidPhone, sendOTP, verifyOTP } from '../../utils/twilio.js';
 import { MatchModel } from '../TournamentMatch/match.model.js';
+
+
+const normalizeMobile = (mobile: unknown) => {
+     if (typeof mobile !== "string") return "";
+     const normalizedMobile = mobile.trim();
+     if (!normalizedMobile) return "";
+     return normalizedMobile.startsWith("+") ? normalizedMobile : `+${normalizedMobile}`;
+}
+
+const removeClientControlledPhoneVerificationFields = (payload: Record<string, unknown>) => {
+     const sanitizedPayload = { ...payload };
+     delete sanitizedPayload.isMobileVerified;
+     delete sanitizedPayload.mobileVerifiedAt;
+     return sanitizedPayload;
+}
+
+const assertMobileCanBeVerified = async (mobile: string, userId: string) => {
+     const existingVerifiedUser = await userModel.findOne({
+          _id: { $ne: userId },
+          mobile,
+          isMobileVerified: true,
+     });
+
+     if (existingVerifiedUser) {
+          throw new AppError(409, "This phone number is already verified by another account");
+     }
+}
 
 
 
@@ -32,10 +59,12 @@ const createUserIntoDB = async (payload: TCreateProfile) => {
           FullName: payload.FullName,
           email: payload.email,
           password: hashedPassword,
-          mobile: payload.mobile,
+          mobile: normalizeMobile(payload.mobile),
           imageUrl: payload.imageUrl,
           role: payload.role ? payload.role : "player" as const,
           isBlocked: "active",
+          isMobileVerified: false,
+          mobileVerifiedAt: null,
      }
 
      const result = await userModel.create(sanitizedPayload)
@@ -72,7 +101,10 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
           accessToken,
           refreshToken,
           role: isUserExist?.role,
-          userid:isUserExist._id
+          userid:isUserExist._id,
+          mobile: isUserExist?.mobile,
+          isMobileVerified: Boolean(isUserExist?.isMobileVerified),
+          mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
      }
 
 
@@ -102,6 +134,8 @@ const googleLogin = async (
                id: result?._id,
                role: result?.role,
                email: result?.email,
+               isMobileVerified: Boolean(result?.isMobileVerified),
+               mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
           }
      } else {
 
@@ -113,6 +147,8 @@ const googleLogin = async (
                id: isUserExist?._id,
                role: isUserExist?.role,
                email: isUserExist?.email,
+               isMobileVerified: Boolean(isUserExist?.isMobileVerified),
+               mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
           }
      }
 
@@ -157,6 +193,8 @@ const appleLogin = async (
                id: result?._id,
                role: result?.role,
                email: result?.email,
+               isMobileVerified: Boolean(result?.isMobileVerified),
+               mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
           };
 
      } else {
@@ -177,6 +215,8 @@ const appleLogin = async (
                id: isUserExist?._id,
                role: isUserExist?.role,
                email: isUserExist?.email,
+               isMobileVerified: Boolean(isUserExist?.isMobileVerified),
+               mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
           };
      }
 
@@ -229,8 +269,32 @@ const updateProfileInDB = async (email: string, payload: Record<string, unknown>
           throw new AppError(404, "This user Not Found");
 
      }
-     const result = await userModel.findOneAndUpdate({ email: email }, payload, { new: true })
-     return result
+     const sanitizedPayload = removeClientControlledPhoneVerificationFields(payload);
+     const hasMobileUpdate = Object.prototype.hasOwnProperty.call(sanitizedPayload, "mobile");
+
+     if (hasMobileUpdate) {
+          if (typeof sanitizedPayload.mobile !== "string") {
+               throw new AppError(400, "Mobile number must be a string");
+          }
+
+          const normalizedMobile = normalizeMobile(sanitizedPayload.mobile);
+          sanitizedPayload.mobile = normalizedMobile;
+
+          if (normalizedMobile !== normalizeMobile(isUserExist.mobile)) {
+               sanitizedPayload.isMobileVerified = false;
+               sanitizedPayload.mobileVerifiedAt = null;
+          }
+     }
+
+     const result = await userModel.findOneAndUpdate({ email: email }, sanitizedPayload, { new: true }).select("-password")
+     if (!result) return result;
+
+     const resultObject = result.toObject();
+     return {
+          ...resultObject,
+          isMobileVerified: Boolean(resultObject.isMobileVerified),
+          mobileVerifiedAt: resultObject.mobileVerifiedAt ?? null,
+     };
 }
 const allStudentFromDB = async (query: Record<string, unknown>) => {
      const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName", "FullName"]).sort()
@@ -250,9 +314,12 @@ const getSingleUser = async (email: string) => {
      });
 
      const hasOwnTeam= await TeamModel.findOne({teamOwner:user._id})
+     const userObject = user.toObject();
 
      return {
-          ...user.toObject(),
+          ...userObject,
+          isMobileVerified: Boolean(userObject.isMobileVerified),
+          mobileVerifiedAt: userObject.mobileVerifiedAt ?? null,
           myJoinedTeam,
           hasOwnTeam : hasOwnTeam 
      };
@@ -357,6 +424,88 @@ export const changePassword = async (payload: { oldPassword: string, newPassword
      return updatedUser;
 };
 
+
+const sendPhoneOtp = async (userId: string) => {
+     const isUserExist = await userModel.findById(userId)
+     if (!isUserExist) {
+          throw new AppError(404, "This user Not Found");
+     }
+     if (isUserExist.isBlocked === "block") {
+          throw new AppError(403, "This User is blocked");
+     }
+
+     const mobile = normalizeMobile(isUserExist.mobile);
+     if (!mobile) {
+          throw new AppError(400, "Mobile number is required before phone verification");
+     }
+     if (!isValidPhone(mobile)) {
+          throw new AppError(400, "Invalid phone number. Use E.164 format e.g. +201001234567");
+     }
+
+     await assertMobileCanBeVerified(mobile, userId);
+
+     const result = await sendOTP(mobile, { channel: "sms" });
+     if (!result.success) {
+          const statusCode = result.status === "invalid_phone" ? 400 : 500;
+          throw new AppError(statusCode, result.error);
+     }
+
+     return {
+          status: result.status,
+          channel: result.channel,
+          to: result.to,
+          isMobileVerified: Boolean(isUserExist.isMobileVerified),
+     };
+}
+
+const verifyPhoneOtp = async (userId: string, payload: { code?: string | number }) => {
+     const code = String(payload?.code ?? "").trim();
+     if (!code) {
+          throw new AppError(400, "OTP code is required");
+     }
+
+     const isUserExist = await userModel.findById(userId)
+     if (!isUserExist) {
+          throw new AppError(404, "This user Not Found");
+     }
+     if (isUserExist.isBlocked === "block") {
+          throw new AppError(403, "This User is blocked");
+     }
+
+     const mobile = normalizeMobile(isUserExist.mobile);
+     if (!mobile) {
+          throw new AppError(400, "Mobile number is required before phone verification");
+     }
+     if (!isValidPhone(mobile)) {
+          throw new AppError(400, "Invalid phone number. Use E.164 format e.g. +201001234567");
+     }
+
+     await assertMobileCanBeVerified(mobile, userId);
+
+     const result = await verifyOTP(mobile, code);
+     if (!result.success) {
+          const statusCode = result.status === "failed" ? 500 : 400;
+          throw new AppError(statusCode, result.error);
+     }
+
+     await assertMobileCanBeVerified(mobile, userId);
+
+     const updatedUser = await userModel.findByIdAndUpdate(
+          userId,
+          {
+               mobile,
+               isMobileVerified: true,
+               mobileVerifiedAt: new Date(),
+          },
+          { new: true }
+     ).select("-password");
+
+     if (!updatedUser) {
+          throw new AppError(404, "User not found");
+     }
+
+     return updatedUser;
+}
 
 
 const calculatePlayerStats = (lobbies: any[], tournamentMatches: any[], playerId: string) => {
@@ -615,6 +764,8 @@ export const authService = {
      getSingleUser,
      resetRequest,
      resetPassword,
+     sendPhoneOtp,
+     verifyPhoneOtp,
      googleLogin,
      appleLogin,
      changePassword,

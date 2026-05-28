@@ -8,7 +8,9 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
      password: { type: String },
      role: { type: String, enum: ['admin', 'player', 'organizer'], required: true , default:"player" },
      isBlocked: { type: String, enum: ['active', 'block'], default: 'active' },
-     mobile: { type: String ,default:"" },
+     mobile: { type: String, trim: true, default:"" },
+     isMobileVerified: { type: Boolean, default: false },
+     mobileVerifiedAt: { type: Date, default: null },
      nationality: { type: String , default: "" },
      dominantFoot: { type: String, default: "" },
      gameMode: { type: String, default: "" },
@@ -34,5 +36,7 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
 }, {
      timestamps: true,
 });
+
+ProfileSchema.index({ mobile: 1, isMobileVerified: 1 });
 
 export const userModel = model<TCreateProfile>('Players', ProfileSchema);

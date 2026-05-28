@@ -6,7 +6,7 @@ import { getLocalImageURL, uploadToS3 } from "../../utils/multer.js";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
      const data = req.body;
-     const imageFiles = (req.files as any).images || [];
+     const imageFiles = (req.files as any)?.images || [];
      for (const file of imageFiles) {
           const url = await uploadToS3(file);
           data.imageUrl = url   
@@ -20,7 +20,9 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
                _id: result?._id,
                fullName: result?.FullName,
                email: result?.email,
-               userName:result?.userName
+               userName:result?.userName,
+               isMobileVerified: Boolean(result?.isMobileVerified),
+               mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
           }
      })
 
@@ -74,6 +76,28 @@ const resetRequest = catchAsync(async (req: Request, res: Response) => {
 
 
 })
+const sendPhoneOtp = catchAsync(async (req: Request, res: Response) => {
+     const result = await authService.sendPhoneOtp(req.user.id)
+
+     res.status(200).json({
+          success: true,
+          message: "Phone OTP sent successfully",
+          data: result
+     })
+
+
+})
+const verifyPhoneOtp = catchAsync(async (req: Request, res: Response) => {
+     const result = await authService.verifyPhoneOtp(req.user.id, req.body)
+
+     res.status(200).json({
+          success: true,
+          message: "Phone number verified successfully",
+          data: result
+     })
+
+
+})
 const updateStatus = catchAsync(async (req: Request, res: Response) => {
      const id = req.params.id;
      const data = req.body
@@ -104,7 +128,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
      const id = req.user?.email;
      const data = req.body
 
-     const imageFiles = (req.files as any).images || [];
+     const imageFiles = (req.files as any)?.images || [];
      for (const file of imageFiles) {
           const url = await uploadToS3(file);
           data.imageUrl = url
@@ -208,6 +232,8 @@ export const authController = {
      singleUser,
      resetRequest,
      resetPassword,
+     sendPhoneOtp,
+     verifyPhoneOtp,
      googleLogin,
      appleLogin,
      changePassword,

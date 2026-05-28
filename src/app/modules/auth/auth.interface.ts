@@ -7,6 +7,8 @@ export type TCreateProfile = {
      role: "admin" | "player" | "organizer",
      isBlocked: "active" | "block",
      mobile?: string,
+     isMobileVerified: boolean,
+     mobileVerifiedAt?: Date | null,
      socialProfile: string[],
      imageUrl: string,
      nationality: string,

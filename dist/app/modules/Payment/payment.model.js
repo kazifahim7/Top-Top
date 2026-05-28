@@ -13,20 +13,25 @@ const PaymentSchema = new Schema({
             "Goalkeeper",
             // Defenders
             "Center Back",
+            "Second Center Back",
             "Left Back",
             "Right Back",
             "Sweeper",
             "Wing Back",
+            "Second Wing Back",
             // Midfielders
             "Defensive Midfielder",
+            "Second Defensive Midfielder",
             "Central Midfielder",
+            "Second Central Midfielder",
             "Attacking Midfielder",
             "Left Midfielder",
             "Right Midfielder",
-            // Forwards / Attackers
+            // Forwards
             "Striker",
-            "Center Forward",
             "Second Striker",
+            "Center Forward",
+            "Second Center Forward", // ✅
             "Left Winger",
             "Right Winger",
         ]

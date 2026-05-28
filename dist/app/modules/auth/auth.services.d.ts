@@ -31,17 +31,49 @@ export declare const authService: {
         refreshToken: string;
         role: "admin" | "player" | "organizer";
         userid: import("mongoose").Types.ObjectId;
+        mobile: string | undefined;
+        isMobileVerified: boolean;
+        mobileVerifiedAt: Date | null;
     }>;
     updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: import("mongoose").Types.ObjectId;
     } & {
         __v: number;
     }) | null>;
-    updateProfileInDB: (email: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+    updateProfileInDB: (email: string, payload: Record<string, unknown>) => Promise<{
+        isMobileVerified: boolean;
+        mobileVerifiedAt: Date | null;
+        FullName: string;
+        email: string;
+        password: string;
+        role: "admin" | "player" | "organizer";
+        isBlocked: "active" | "block";
+        mobile?: string;
+        socialProfile: string[];
+        imageUrl: string;
+        nationality: string;
+        dominantFoot: string;
+        playingDays: string[];
+        gameMode: string;
+        preferredAreas: string[];
+        age: string;
+        position: string[];
+        userName: string;
+        matchPosition?: string;
+        redCard: number;
+        yellowCard: number;
+        contribution: number;
+        assists: number;
+        goal: number;
+        tackle: number;
+        save: number;
+        rating: number;
+        match: number;
+        motm?: number;
+        cleanSheet: number;
         _id: import("mongoose").Types.ObjectId;
-    } & {
         __v: number;
-    }) | null>;
+    } | null>;
     allStudentFromDB: (query: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, {
         FullName?: any;
         email?: any;
@@ -49,6 +81,8 @@ export declare const authService: {
         role?: any;
         isBlocked?: any;
         mobile?: any;
+        isMobileVerified?: any;
+        mobileVerifiedAt?: any;
         socialProfile?: any;
         imageUrl?: any;
         nationality?: any;
@@ -78,6 +112,8 @@ export declare const authService: {
         role?: any;
         isBlocked?: any;
         mobile?: any;
+        isMobileVerified?: any;
+        mobileVerifiedAt?: any;
         socialProfile?: any;
         imageUrl?: any;
         nationality?: any;
@@ -106,6 +142,8 @@ export declare const authService: {
         __v: number;
     })[]>;
     getSingleUser: (email: string) => Promise<{
+        isMobileVerified: boolean;
+        mobileVerifiedAt: Date | null;
         myJoinedTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
             _id: import("mongoose").Types.ObjectId;
         } & {
@@ -156,11 +194,26 @@ export declare const authService: {
     } & {
         __v: number;
     }>;
+    sendPhoneOtp: (userId: string) => Promise<{
+        status: string;
+        channel: string | undefined;
+        to: string | undefined;
+        isMobileVerified: boolean;
+    }>;
+    verifyPhoneOtp: (userId: string, payload: {
+        code?: string | number;
+    }) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: import("mongoose").Types.ObjectId;
+    } & {
+        __v: number;
+    }>;
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: import("mongoose").Types.ObjectId;
             role: "admin" | "player" | "organizer";
             email: string;
+            isMobileVerified: boolean;
+            mobileVerifiedAt: Date | null;
         };
         result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
             _id: import("mongoose").Types.ObjectId;
@@ -175,6 +228,8 @@ export declare const authService: {
             id: import("mongoose").Types.ObjectId;
             role: "admin" | "player" | "organizer";
             email: string;
+            isMobileVerified: boolean;
+            mobileVerifiedAt: Date | null;
         };
         result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
             _id: import("mongoose").Types.ObjectId;

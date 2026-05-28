@@ -36,6 +36,26 @@ const client = twilio(
 
 const SERVICE_SID = process.env.TWILIO_VERIFY_SERVICE_SID!;
 
+const getTwilioConfigError = (): string | null => {
+     if (!process.env.TWILIO_ACCOUNT_SID) {
+          return "TWILIO_ACCOUNT_SID is missing";
+     }
+     if (!process.env.TWILIO_ACCOUNT_SID.startsWith("AC")) {
+          return "TWILIO_ACCOUNT_SID must start with AC";
+     }
+     if (!process.env.TWILIO_AUTH_TOKEN) {
+          return "TWILIO_AUTH_TOKEN is missing";
+     }
+     if (!SERVICE_SID) {
+          return "TWILIO_VERIFY_SERVICE_SID is missing";
+     }
+     if (!SERVICE_SID.startsWith("VA")) {
+          return "TWILIO_VERIFY_SERVICE_SID must be a Verify Service SID starting with VA";
+     }
+
+     return null;
+}
+
 // ─── Validate Phone ───────────────────────────────────────────────────────────
 
 /**
@@ -71,6 +91,15 @@ export async function sendOTP(
                success: false,
                status: "invalid_phone",
                error: "Invalid phone number. Use E.164 format e.g. +971501234567",
+          };
+     }
+
+     const configError = getTwilioConfigError();
+     if (configError) {
+          return {
+               success: false,
+               status: "invalid_config",
+               error: configError,
           };
      }
 
@@ -124,6 +153,15 @@ export async function verifyOTP(
                success: false,
                status: "invalid_code",
                error: "OTP code is required",
+          };
+     }
+
+     const configError = getTwilioConfigError();
+     if (configError) {
+          return {
+               success: false,
+               status: "invalid_config",
+               error: configError,
           };
      }
 

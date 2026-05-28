@@ -6,7 +6,9 @@ const ProfileSchema = new Schema({
     password: { type: String },
     role: { type: String, enum: ['admin', 'player', 'organizer'], required: true, default: "player" },
     isBlocked: { type: String, enum: ['active', 'block'], default: 'active' },
-    mobile: { type: String, default: "" },
+    mobile: { type: String, trim: true, default: "" },
+    isMobileVerified: { type: Boolean, default: false },
+    mobileVerifiedAt: { type: Date, default: null },
     nationality: { type: String, default: "" },
     dominantFoot: { type: String, default: "" },
     gameMode: { type: String, default: "" },
@@ -32,5 +34,6 @@ const ProfileSchema = new Schema({
 }, {
     timestamps: true,
 });
+ProfileSchema.index({ mobile: 1, isMobileVerified: 1 });
 export const userModel = model('Players', ProfileSchema);
 //# sourceMappingURL=auth.model.js.map

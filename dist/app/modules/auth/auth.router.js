@@ -23,6 +23,8 @@ router.post("/google-login", authController.googleLogin);
 router.post("/apple-login", authController.appleLogin);
 router.post("/send-otp", otpLimiter, authController.resetRequest);
 router.post("/reset-password", otpLimiter, authController.resetPassword);
+router.post("/phone/send-otp", auth("player", "admin", "organizer"), otpLimiter, authController.sendPhoneOtp);
+router.post("/phone/verify-otp", auth("player", "admin", "organizer"), otpLimiter, authController.verifyPhoneOtp);
 router.get("/all-player", authController.allUsers);
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus);
 router.delete("/delete-player/:id", auth("admin"), authController.deletePlayer);

@@ -36,6 +36,8 @@ declare const playerRanking: (options: RankingOptions) => Promise<{
     role: "admin" | "player" | "organizer";
     isBlocked: "active" | "block";
     mobile?: string;
+    isMobileVerified: boolean;
+    mobileVerifiedAt?: Date | null;
     socialProfile: string[];
     imageUrl: string;
     nationality: string;
@@ -89,6 +91,8 @@ export declare const playerRankingService: {
         role: "admin" | "player" | "organizer";
         isBlocked: "active" | "block";
         mobile?: string;
+        isMobileVerified: boolean;
+        mobileVerifiedAt?: Date | null;
         socialProfile: string[];
         imageUrl: string;
         nationality: string;

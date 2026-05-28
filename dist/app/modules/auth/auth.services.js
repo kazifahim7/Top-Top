@@ -9,8 +9,32 @@ import { LobbyModel } from '../Lobby/lobby.model.js';
 import OtpModel from './auth.otpmodel.js';
 import emailSender from '../../utils/sendEmail.js';
 import { TeamModel } from '../Team/team.model.js';
-import { sendOTP } from '../../utils/twilio.js';
+import { isValidPhone, sendOTP, verifyOTP } from '../../utils/twilio.js';
 import { MatchModel } from '../TournamentMatch/match.model.js';
+const normalizeMobile = (mobile) => {
+    if (typeof mobile !== "string")
+        return "";
+    const normalizedMobile = mobile.trim();
+    if (!normalizedMobile)
+        return "";
+    return normalizedMobile.startsWith("+") ? normalizedMobile : `+${normalizedMobile}`;
+};
+const removeClientControlledPhoneVerificationFields = (payload) => {
+    const sanitizedPayload = { ...payload };
+    delete sanitizedPayload.isMobileVerified;
+    delete sanitizedPayload.mobileVerifiedAt;
+    return sanitizedPayload;
+};
+const assertMobileCanBeVerified = async (mobile, userId) => {
+    const existingVerifiedUser = await userModel.findOne({
+        _id: { $ne: userId },
+        mobile,
+        isMobileVerified: true,
+    });
+    if (existingVerifiedUser) {
+        throw new AppError(409, "This phone number is already verified by another account");
+    }
+};
 const createUserIntoDB = async (payload) => {
     const isUserAlreadyExist = await userModel.findOne({ email: payload?.email });
     if (isUserAlreadyExist) {
@@ -21,10 +45,12 @@ const createUserIntoDB = async (payload) => {
         FullName: payload.FullName,
         email: payload.email,
         password: hashedPassword,
-        mobile: payload.mobile,
+        mobile: normalizeMobile(payload.mobile),
         imageUrl: payload.imageUrl,
-        role: "player",
+        role: payload.role ? payload.role : "player",
         isBlocked: "active",
+        isMobileVerified: false,
+        mobileVerifiedAt: null,
     };
     const result = await userModel.create(sanitizedPayload);
     return result;
@@ -53,7 +79,10 @@ const loginUser = async (payload) => {
         accessToken,
         refreshToken,
         role: isUserExist?.role,
-        userid: isUserExist._id
+        userid: isUserExist._id,
+        mobile: isUserExist?.mobile,
+        isMobileVerified: Boolean(isUserExist?.isMobileVerified),
+        mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
     };
 };
 const googleLogin = async (payload) => {
@@ -73,20 +102,24 @@ const googleLogin = async (payload) => {
             id: result?._id,
             role: result?.role,
             email: result?.email,
+            isMobileVerified: Boolean(result?.isMobileVerified),
+            mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
         };
     }
     else {
-        if (isUserExist.isBlocked) {
+        if (isUserExist.isBlocked === "block") { // ✅ fixed
             throw new AppError(403, "Your account has been blocked");
         }
         userData = {
             id: isUserExist?._id,
             role: isUserExist?.role,
             email: isUserExist?.email,
+            isMobileVerified: Boolean(isUserExist?.isMobileVerified),
+            mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
         };
     }
-    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "15d" }); // ✅ 365d → 15d
-    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "30d" }); // ✅ 365d → 30d
+    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "15d" });
+    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "30d" });
     return {
         user: userData,
         result,
@@ -95,41 +128,58 @@ const googleLogin = async (payload) => {
     };
 };
 const appleLogin = async (payload) => {
+    // ✅ email ছাড়া কিছুই করা যাবে না
+    if (!payload.email) {
+        throw new AppError(400, "Email is required for Apple Sign In");
+    }
     const isUserExist = await userModel.findOne({ email: payload.email });
     let userData;
     let result = null;
     if (!isUserExist) {
+        // ✅ নতুন user — Apple প্রথমবারই FullName দেয়, না দিলে fallback
         const sanitizedPayload = {
-            FullName: payload.FullName,
+            FullName: payload.FullName || "Apple User", // ✅ fallback
             email: payload.email,
-            imageUrl: payload.imageUrl,
+            imageUrl: payload.imageUrl || "", // ✅ fallback
             role: "player",
             isBlocked: "active",
+            password: Math.random().toString(36).slice(-10), // ✅ dummy password (Apple-এ দরকার)
         };
         result = await userModel.create(sanitizedPayload);
         userData = {
             id: result?._id,
             role: result?.role,
             email: result?.email,
+            isMobileVerified: Boolean(result?.isMobileVerified),
+            mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
         };
     }
     else {
-        if (isUserExist.isBlocked) {
+        if (isUserExist.isBlocked === "block") {
             throw new AppError(403, "Your account has been blocked");
+        }
+        // ✅ যদি নতুন info আসে (কখনো কখনো আসে) — update করো
+        if (payload.FullName || payload.imageUrl) {
+            await userModel.findByIdAndUpdate(isUserExist._id, {
+                ...(payload.FullName && { FullName: payload.FullName }),
+                ...(payload.imageUrl && { imageUrl: payload.imageUrl }),
+            });
         }
         userData = {
             id: isUserExist?._id,
             role: isUserExist?.role,
             email: isUserExist?.email,
+            isMobileVerified: Boolean(isUserExist?.isMobileVerified),
+            mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
         };
     }
-    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "365d" });
-    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "360d" });
+    const accessToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "15d" });
+    const refreshToken = jwt.sign(userData, config.jwt_secret, { expiresIn: "30d" });
     return {
         user: userData,
         result,
         accessToken,
-        refreshToken
+        refreshToken,
     };
 };
 const updateStatusInDB = async (id, payload) => {
@@ -153,8 +203,28 @@ const updateProfileInDB = async (email, payload) => {
     if (!isUserExist) {
         throw new AppError(404, "This user Not Found");
     }
-    const result = await userModel.findOneAndUpdate({ email: email }, payload, { new: true });
-    return result;
+    const sanitizedPayload = removeClientControlledPhoneVerificationFields(payload);
+    const hasMobileUpdate = Object.prototype.hasOwnProperty.call(sanitizedPayload, "mobile");
+    if (hasMobileUpdate) {
+        if (typeof sanitizedPayload.mobile !== "string") {
+            throw new AppError(400, "Mobile number must be a string");
+        }
+        const normalizedMobile = normalizeMobile(sanitizedPayload.mobile);
+        sanitizedPayload.mobile = normalizedMobile;
+        if (normalizedMobile !== normalizeMobile(isUserExist.mobile)) {
+            sanitizedPayload.isMobileVerified = false;
+            sanitizedPayload.mobileVerifiedAt = null;
+        }
+    }
+    const result = await userModel.findOneAndUpdate({ email: email }, sanitizedPayload, { new: true }).select("-password");
+    if (!result)
+        return result;
+    const resultObject = result.toObject();
+    return {
+        ...resultObject,
+        isMobileVerified: Boolean(resultObject.isMobileVerified),
+        mobileVerifiedAt: resultObject.mobileVerifiedAt ?? null,
+    };
 };
 const allStudentFromDB = async (query) => {
     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName", "FullName"]).sort();
@@ -169,8 +239,11 @@ const getSingleUser = async (email) => {
         players: { $in: [user._id] }
     });
     const hasOwnTeam = await TeamModel.findOne({ teamOwner: user._id });
+    const userObject = user.toObject();
     return {
-        ...user.toObject(),
+        ...userObject,
+        isMobileVerified: Boolean(userObject.isMobileVerified),
+        mobileVerifiedAt: userObject.mobileVerifiedAt ?? null,
         myJoinedTeam,
         hasOwnTeam: hasOwnTeam
     };
@@ -237,6 +310,70 @@ export const changePassword = async (payload, userId) => {
     }
     const hashedPassword = await bcrypt.hash(payload.newPassword, Number(config.salt_round));
     const updatedUser = await userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true });
+    if (!updatedUser) {
+        throw new AppError(404, "User not found");
+    }
+    return updatedUser;
+};
+const sendPhoneOtp = async (userId) => {
+    const isUserExist = await userModel.findById(userId);
+    if (!isUserExist) {
+        throw new AppError(404, "This user Not Found");
+    }
+    if (isUserExist.isBlocked === "block") {
+        throw new AppError(403, "This User is blocked");
+    }
+    const mobile = normalizeMobile(isUserExist.mobile);
+    if (!mobile) {
+        throw new AppError(400, "Mobile number is required before phone verification");
+    }
+    if (!isValidPhone(mobile)) {
+        throw new AppError(400, "Invalid phone number. Use E.164 format e.g. +201001234567");
+    }
+    await assertMobileCanBeVerified(mobile, userId);
+    const result = await sendOTP(mobile, { channel: "sms" });
+    if (!result.success) {
+        const statusCode = result.status === "invalid_phone" ? 400 : 500;
+        throw new AppError(statusCode, result.error);
+    }
+    return {
+        status: result.status,
+        channel: result.channel,
+        to: result.to,
+        isMobileVerified: Boolean(isUserExist.isMobileVerified),
+    };
+};
+const verifyPhoneOtp = async (userId, payload) => {
+    const code = String(payload?.code ?? "").trim();
+    if (!code) {
+        throw new AppError(400, "OTP code is required");
+    }
+    const isUserExist = await userModel.findById(userId);
+    if (!isUserExist) {
+        throw new AppError(404, "This user Not Found");
+    }
+    if (isUserExist.isBlocked === "block") {
+        throw new AppError(403, "This User is blocked");
+    }
+    const mobile = normalizeMobile(isUserExist.mobile);
+    if (!mobile) {
+        throw new AppError(400, "Mobile number is required before phone verification");
+    }
+    if (!isValidPhone(mobile)) {
+        throw new AppError(400, "Invalid phone number. Use E.164 format e.g. +201001234567");
+    }
+    await assertMobileCanBeVerified(mobile, userId);
+    const result = await verifyOTP(mobile, code);
+    if (!result.success) {
+        const statusCode = result.status === "failed" ? 500 : 400;
+        throw new AppError(statusCode, result.error);
+    }
+    await assertMobileCanBeVerified(mobile, userId);
+    const updatedUser = await userModel.findByIdAndUpdate(userId, {
+        mobile,
+        isMobileVerified: true,
+        mobileVerifiedAt: new Date(),
+    }, { new: true }).select("-password");
     if (!updatedUser) {
         throw new AppError(404, "User not found");
     }
@@ -448,6 +585,8 @@ export const authService = {
     getSingleUser,
     resetRequest,
     resetPassword,
+    sendPhoneOtp,
+    verifyPhoneOtp,
     googleLogin,
     appleLogin,
     changePassword,

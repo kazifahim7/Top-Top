@@ -8,6 +8,8 @@ export declare const authController: {
     singleUser: (req: Request, res: Response, next: import("express").NextFunction) => void;
     resetRequest: (req: Request, res: Response, next: import("express").NextFunction) => void;
     resetPassword: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    sendPhoneOtp: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    verifyPhoneOtp: (req: Request, res: Response, next: import("express").NextFunction) => void;
     googleLogin: (req: Request, res: Response, next: import("express").NextFunction) => void;
     appleLogin: (req: Request, res: Response, next: import("express").NextFunction) => void;
     changePassword: (req: Request, res: Response, next: import("express").NextFunction) => void;

@@ -7,12 +7,14 @@ import { TAdmin } from "./app/Admin/index.js";
 import bcrypt from 'bcrypt'
 
 let server: Server;
+const port = Number(config.port) || 5001;
+
 async function run() {
 
      try {
           await connect(config.dataBase_url as string);
-          server = app.listen(config.port, () => {
-               console.log(`app is listening on port ${config.port}`);
+          server = app.listen(port, () => {
+               console.log(`app is listening on port ${port}`);
           });
           if (server) {
                const isExists = await userModel.findOne({ email: TAdmin.email })
