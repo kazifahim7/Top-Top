@@ -25,6 +25,18 @@ const normalizeMobile = (mobile: unknown) => {
      return normalizedMobile.startsWith("+") ? normalizedMobile : `+${normalizedMobile}`;
 }
 
+const normalizeStringArray = (value: unknown) => {
+     if (!Array.isArray(value)) return [];
+
+     return value
+          .map((item) => typeof item === "string" ? item.trim() : "")
+          .filter((item) => item.length > 0);
+}
+
+const normalizeOptionalString = (value: unknown) => {
+     return typeof value === "string" ? value.trim() : "";
+}
+
 const removeClientControlledPhoneVerificationFields = (payload: Record<string, unknown>) => {
      const sanitizedPayload = { ...payload };
      delete sanitizedPayload.isMobileVerified;
@@ -55,16 +67,28 @@ const createUserIntoDB = async (payload: TCreateProfile) => {
      const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round))
 
 
+     const position = normalizeStringArray(payload.position);
+
      const sanitizedPayload = {
           FullName: payload.FullName,
+          userName: normalizeOptionalString(payload.userName),
           email: payload.email,
           password: hashedPassword,
           mobile: normalizeMobile(payload.mobile),
           imageUrl: payload.imageUrl,
-          role: payload.role ? payload.role : "player" as const,
-          isBlocked: "active",
+          role: "player" as const,
+          isBlocked: "active" as const,
           isMobileVerified: false,
           mobileVerifiedAt: null,
+          nationality: normalizeOptionalString(payload.nationality),
+          dominantFoot: normalizeOptionalString(payload.dominantFoot),
+          gameMode: normalizeOptionalString(payload.gameMode),
+          preferredAreas: normalizeStringArray(payload.preferredAreas),
+          socialProfile: normalizeStringArray(payload.socialProfile),
+          playingDays: normalizeStringArray(payload.playingDays),
+          position,
+          age: normalizeOptionalString(payload.age),
+          matchPosition: normalizeOptionalString(payload.matchPosition) || position[0] || "",
      }
 
      const result = await userModel.create(sanitizedPayload)
