@@ -31,7 +31,10 @@ app.use("/uploads", express.static(uploadsPath));
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
 const allowedOrigins = [
-     'https://admin.toptopfootball.com', 
+     'https://admin.toptopfootball.com',
+     'https://toptopfootball.com',
+     'http://localhost:5173',
+     'http://localhost:5174', 
 ];
 
 app.use(cors({
