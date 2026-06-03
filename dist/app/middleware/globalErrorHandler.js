@@ -3,7 +3,6 @@ import handleZodError from '../Error/ZodError.js';
 import AppError from '../Error/AppError.js';
 import config from '../config/index.js';
 const globalErrorHandler = (err, req, res, next) => {
-    //setting default values
     let statusCode = 500;
     let message = 'Something went wrong!';
     let errorSources = [
@@ -36,12 +35,15 @@ const globalErrorHandler = (err, req, res, next) => {
             },
         ];
     }
-    //ultimate return
+    // Log full error details server-side only
+    if (config.node_env !== 'development') {
+        console.error(`[ERROR] ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`, err);
+    }
     res.status(statusCode).json({
         success: false,
         message,
         errorSources,
-        err,
+        ...(config.node_env === 'development' && { err }),
         stack: config.node_env === 'development' ? err?.stack : null,
     });
 };

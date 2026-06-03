@@ -63,9 +63,11 @@ const singleTeam = catchAsync(async (req, res) => {
 });
 const assignCaptain = catchAsync(async (req, res) => {
     const ownerId = req.user.id;
+    const userRole = req.user.role;
     const teamId = req.params?.teamId;
     const { captainId } = req?.body;
-    const result = await teamsService.assignCaptain(ownerId, teamId, captainId);
+    const result = await teamsService.assignCaptain(ownerId, teamId, captainId, userRole // ✅
+    );
     res.status(200).json({
         success: true,
         message: "Captain assigned successfully",

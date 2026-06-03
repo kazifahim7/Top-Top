@@ -13,7 +13,7 @@ const allMatch = catchAsync(async (req, res) => {
     const result = await tournamentMatchService.allMatch(req?.params?.id);
     res.status(200).json({
         success: true,
-        message: "All TOurnament match are retrieved  successfully",
+        message: "All tournament matches retrieved successfully",
         data: result
     });
 });
@@ -21,15 +21,16 @@ const singleMatch = catchAsync(async (req, res) => {
     const result = await tournamentMatchService.singleMatch(req.params.id);
     res.status(200).json({
         success: true,
-        message: "  TOurnament match are retrieved  successfully",
+        message: "Tournament match retrieved successfully",
         data: result
     });
 });
 const deleteMatch = catchAsync(async (req, res) => {
-    const result = await tournamentMatchService.deleteMatch(req.params.id);
+    await tournamentMatchService.deleteMatch(req.params.id, req.user.id // ← pass requester identity for ownership check
+    );
     res.status(200).json({
         success: true,
-        message: " match are deleted  successfully",
+        message: "Match deleted successfully",
         data: {}
     });
 });
@@ -39,16 +40,16 @@ const updateMatch = catchAsync(async (req, res) => {
     const imageFiles = req.files.images || [];
     const uploadedUrls = await Promise.all(imageFiles.map((file) => uploadToS3(file)));
     if (uploadedUrls.length > 0) {
-        // Initialize media array if it doesn't exist
         if (!data.media) {
             data.media = [];
         }
         data.media.push(...uploadedUrls);
     }
-    const updatedMatch = await tournamentMatchService.updateMatchAndStanding(id, data);
+    const updatedMatch = await tournamentMatchService.updateMatchAndStanding(id, data, req.user.id // ← pass requester identity for ownership check
+    );
     res.status(200).json({
         success: true,
-        message: " match are updated  successfully",
+        message: "Match updated successfully",
         data: updatedMatch
     });
 });
@@ -70,7 +71,7 @@ const removePlayerFromMatch = catchAsync(async (req, res) => {
     const updatedMatch = await tournamentMatchService.removePlayerFromMatch(matchId, data, userId);
     res.status(200).json({
         success: true,
-        message: "Player remove successfully",
+        message: "Player removed successfully",
         data: updatedMatch
     });
 });
@@ -80,7 +81,7 @@ const updatePlayerState = catchAsync(async (req, res) => {
     const result = await tournamentMatchService.updatePlayerStats(data);
     res.status(200).json({
         success: true,
-        message: "updated successfully",
+        message: "Updated successfully",
         data: result
     });
 });

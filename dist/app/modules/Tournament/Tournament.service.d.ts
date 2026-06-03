@@ -34,17 +34,17 @@ export declare const TournamentService: {
         _id: Types.ObjectId;
         __v: number;
     }[]>;
-    updateTournament: (id: string, payload: Partial<ITournament>) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
+    updateTournament: (id: string, payload: Partial<ITournament>, callerId: string, callerRole: string) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
         _id: Types.ObjectId;
     } & {
         __v: number;
     }) | null>;
-    deleteTournament: (id: string) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
+    deleteTournament: (id: string, callerId: string, callerRole: string) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
         _id: Types.ObjectId;
     } & {
         __v: number;
     }) | null>;
-    qualifyTeamsService: (tournamentId: string, teamIds: string[]) => Promise<import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
+    qualifyTeamsService: (tournamentId: string, teamIds: string[], callerId: string, callerRole: string) => Promise<import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
         _id: Types.ObjectId;
     } & {
         __v: number;

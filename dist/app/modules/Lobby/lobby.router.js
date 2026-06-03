@@ -9,9 +9,7 @@ router.get("/all-match", lobbyController.allMatch);
 router.get("/:id", lobbyController.singlelobby);
 router.post("/all-organizer-match", auth("organizer"), lobbyController.organizerMatch);
 router.put("/:lobbyId/player", auth("organizer", "admin"), lobbyController.updatePlayerState);
-router.put("/:lobbyId/lobby-info", upload.fields([
-    { name: "images", maxCount: 6 }
-]), (req, _res, next) => {
+router.put("/:lobbyId/lobby-info", auth("organizer", "admin"), upload.fields([{ name: "images", maxCount: 6 }]), (req, _res, next) => {
     if (req.body.data) {
         try {
             req.body = { ...JSON.parse(req.body.data) };

@@ -57,7 +57,7 @@ export declare const teamsService: {
         })[];
         media: any[];
     }>;
-    assignCaptain: (ownerId: string, teamId: string, captainId: string) => Promise<Omit<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
+    assignCaptain: (ownerId: string, teamId: string, captainId: string, userRole: string) => Promise<Omit<import("mongoose").Document<unknown, {}, TTeam, {}, {}> & TTeam & {
         _id: Types.ObjectId;
     } & {
         __v: number;

@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "./team.model.js";
 import { InviteModel } from "../Notification/notification.model.js";
@@ -379,16 +379,26 @@ const singleTeam = async (id) => {
         media: allMedia // Array containing all media URLs from completed matches
     };
 };
-const assignCaptain = async (ownerId, teamId, captainId) => {
-    if (!captainId) {
-        throw new AppError(400, "Captain ID is required");
+const assignCaptain = async (ownerId, teamId, captainId, userRole) => {
+    if (!captainId || !isValidObjectId(captainId)) {
+        throw new AppError(400, "Valid Captain ID is required");
+    }
+    if (!isValidObjectId(teamId)) {
+        throw new AppError(400, "Valid Team ID is required");
     }
     const team = await TeamModel.findById(teamId);
     if (!team) {
         throw new AppError(404, "Team not found");
     }
-    // if (team.teamOwner.toString() !== ownerId) {
-    //      throw new AppError(403, "You are not allowed to assign captains");
+    if (userRole === "player" && team.teamOwner.toString() !== ownerId) {
+        throw new AppError(403, "You are not allowed to assign captains");
+    }
+    const isTeamMember = team.players.some(p => p.toString() === captainId);
+    if (!isTeamMember) {
+        throw new AppError(400, "This player is not a member of the team");
+    }
+    // if (team.teamOwner.toString() === captainId) {
+    //      throw new AppError(400, "Team owner cannot be assigned as captain");
     // }
     if (team.teamCaptain.some(c => c.toString() === captainId)) {
         throw new AppError(400, "This player is already a captain");
@@ -396,14 +406,9 @@ const assignCaptain = async (ownerId, teamId, captainId) => {
     if (team.teamCaptain.length >= 3) {
         throw new AppError(400, "Team already has 3 captains. Cannot assign more.");
     }
-    if (team.teamOwner.toString() === captainId) {
-        throw new AppError(400, "Team owner cannot be assigned as captain");
-    }
-    // Assign captain
     team.teamCaptain.push(new Types.ObjectId(captainId));
     await team.save();
-    const result = await team.populate("players teamOwner teamCaptain");
-    return result;
+    return await team.populate("players teamOwner teamCaptain");
 };
 const removePlayer = async (ownerId, teamId, playerId) => {
     const team = await TeamModel.findById(teamId);

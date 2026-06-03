@@ -12,6 +12,7 @@ import config from './app/config/index.js';
 import helmet from 'helmet';
 import { placesLimiter } from './app/RateLimiting/placeLimiter.js';
 import auth from './app/middleware/auth.js';
+import { stripeWebhook } from './app/modules/Payment/webhook.controller.js';
 
 const app: Application = express();
 
@@ -26,6 +27,13 @@ if (!fs.existsSync(uploadsPath)) {
 
 // Serve static uploads folder
 app.use("/uploads", express.static(uploadsPath));
+
+
+app.post(
+     "/api/v1/payment/webhook/stripe",
+     express.raw({ type: "application/json" }),
+     stripeWebhook
+);
 
 // Parser
 app.use(express.json({ limit: '20mb' }));

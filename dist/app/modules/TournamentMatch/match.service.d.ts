@@ -10,7 +10,7 @@ interface AddPlayersData {
     matchFormat?: string;
     players: PlayerData[];
 }
-export declare const updateMatchAndStanding: (matchId: string, data: Partial<IMatch>) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+export declare const updateMatchAndStanding: (matchId: string, data: Partial<IMatch>, requesterId: string) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
     _id: Types.ObjectId;
 } & {
     __v: number;
@@ -113,7 +113,7 @@ export declare const tournamentMatchService: {
         _id: Types.ObjectId;
         __v: number;
     } | null>;
-    deleteMatch: (id: string) => Promise<(import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+    deleteMatch: (id: string, requesterId: string) => Promise<(import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
         _id: Types.ObjectId;
     } & {
         __v: number;
@@ -123,7 +123,7 @@ export declare const tournamentMatchService: {
     } & {
         __v: number;
     })[]>;
-    updateMatchAndStanding: (matchId: string, data: Partial<IMatch>) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+    updateMatchAndStanding: (matchId: string, data: Partial<IMatch>, requesterId: string) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
         _id: Types.ObjectId;
     } & {
         __v: number;

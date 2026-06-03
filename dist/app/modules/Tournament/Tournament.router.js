@@ -19,12 +19,12 @@ router.post("/create-tournament", upload.fields([{ name: "images", maxCount: 6 }
 }, TournamentController.createTournament);
 router.get('/single-tournament/:id', TournamentController.singleTournament);
 router.get('/all-tournament', TournamentController.allTournament);
-router.patch('/update-tournament/:id', upload.fields([
-    { name: "images", maxCount: 6 }
-]), (req, _res, next) => {
+router.get('/:tournamentId/top-players', TournamentController.getTopPlayers);
+router.get('/all-tournament-organizer', auth("organizer"), TournamentController.organizerTournament);
+// F-05 FIX: organizer ও admin 
+router.patch('/update-tournament/:id', auth("organizer", "admin"), upload.fields([{ name: "images", maxCount: 6 }]), (req, _res, next) => {
     if (req.body.data) {
         try {
-            console.log(req.body.data);
             req.body = { ...JSON.parse(req.body.data) };
         }
         catch (err) {
@@ -33,9 +33,9 @@ router.patch('/update-tournament/:id', upload.fields([
     }
     next();
 }, TournamentController.updateTournament);
-router.delete('/delete-tournament/:id', TournamentController.deleteTournament);
-router.post("/:tournamentId/qualify", TournamentController.qualifyTeamsController);
-router.get("/:tournamentId/top-players", TournamentController.getTopPlayers);
-router.get('/all-tournament-organizer', auth("organizer"), TournamentController.organizerTournament);
+// F-05 FIX: organizer ও admin 
+router.delete('/delete-tournament/:id', auth("organizer", "admin"), TournamentController.deleteTournament);
+// F-05 FIX: organizer ও admin 
+router.post("/:tournamentId/qualify", auth("organizer", "admin"), TournamentController.qualifyTeamsController);
 export const tournamentRouter = router;
 //# sourceMappingURL=Tournament.router.js.map

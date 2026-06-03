@@ -10,6 +10,9 @@ import { GoalModel } from './app/modules/FeatureGoal/goal.model.js';
 import axios from 'axios';
 import config from './app/config/index.js';
 import helmet from 'helmet';
+import { placesLimiter } from './app/RateLimiting/placeLimiter.js';
+import auth from './app/middleware/auth.js';
+import { stripeWebhook } from './app/modules/Payment/webhook.controller.js';
 const app = express();
 const uploadsPath = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsPath)) {
@@ -21,12 +24,28 @@ else {
 }
 // Serve static uploads folder
 app.use("/uploads", express.static(uploadsPath));
+app.post("/api/v1/payment/webhook/stripe", express.raw({ type: "application/json" }), stripeWebhook);
 // Parser
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
+const allowedOrigins = [
+    'https://admin.toptopfootball.com',
+    'https://toptopfootball.com',
+    'http://localhost:5173',
+    'http://localhost:5174',
+];
 app.use(cors({
-    origin: '*',
-    credentials: true
+    origin: (origin, callback) => {
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error('CORS blocked'));
+        }
+    },
+    credentials: true,
 }));
 app.use(helmet({
     crossOriginResourcePolicy: false,
@@ -49,7 +68,7 @@ cron.schedule("* * * * *", async () => {
     }
 });
 // location 
-app.get("/api/autocomplete", async (req, res) => {
+app.get("/api/autocomplete", placesLimiter, auth("player", "admin", "organizer"), async (req, res) => {
     try {
         const { input } = req.query;
         const response = await axios.get(`https://maps.googleapis.com/maps/api/place/autocomplete/json`, {
@@ -64,7 +83,7 @@ app.get("/api/autocomplete", async (req, res) => {
         });
     }
 });
-app.get("/api/place-details", async (req, res) => {
+app.get("/api/place-details", placesLimiter, auth("player", "admin", "organizer"), async (req, res) => {
     try {
         const { place_id } = req.query;
         const response = await axios.get(`https://maps.googleapis.com/maps/api/place/details/json`, {

@@ -6,9 +6,8 @@ const router = express.Router();
 router.post('/create-tournamentMatch', auth("organizer"), tournamentMatchController.createMatch);
 router.get('/all-tournamentMatch/:id', tournamentMatchController.allMatch);
 router.get('/single-tournamentMatchDetails/:id', tournamentMatchController.singleMatch);
-router.delete('/delete-tournamentMatch/:id', tournamentMatchController.deleteMatch);
-// match id dite hbe
-router.patch('/update-tournamentMatch/:id', upload.fields([
+router.delete('/delete-tournamentMatch/:id', auth("organizer", "admin"), tournamentMatchController.deleteMatch);
+router.patch('/update-tournamentMatch/:id', auth("organizer", "admin"), upload.fields([
     { name: "images", maxCount: 6 }
 ]), (req, _res, next) => {
     if (req.body.data) {
@@ -21,7 +20,6 @@ router.patch('/update-tournamentMatch/:id', upload.fields([
     }
     next();
 }, tournamentMatchController.updateMatch);
-//
 router.post('/:matchId/add-player', auth("player", "admin", "organizer"), tournamentMatchController.addPlayers);
 router.delete('/:matchId/remove-player', auth("player", "admin", "organizer"), tournamentMatchController.removePlayerFromMatch);
 router.put("/:matchId/player", auth("player", "admin", "organizer"), tournamentMatchController.updatePlayerState);
