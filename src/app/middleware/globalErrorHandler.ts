@@ -1,21 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable no-unused-vars */
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 import handleZodError from '../Error/ZodError.js';
 import AppError from '../Error/AppError.js';
 import config from '../config/index.js';
 
-
-
-
-
-
 const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
 
-     //setting default values
      let statusCode = 500;
      let message = 'Something went wrong!';
      let errorSources = [
@@ -29,7 +21,7 @@ const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFun
           const simplifiedError = handleZodError(err);
           statusCode = simplifiedError?.statusCode;
           message = simplifiedError?.message;
-     } else if (err instanceof AppError ){
+     } else if (err instanceof AppError) {
           statusCode = err?.statusCode;
           message = err.message;
           errorSources = [
@@ -48,17 +40,18 @@ const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFun
           ];
      }
 
-     //ultimate return
+     // Log full error details server-side only
+     if (config.node_env !== 'development') {
+          console.error(`[ERROR] ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`, err);
+     }
+
      res.status(statusCode).json({
           success: false,
           message,
           errorSources,
-          err,
+          ...(config.node_env === 'development' && { err }),
           stack: config.node_env === 'development' ? err?.stack : null,
      });
 };
 
-
-
-export default globalErrorHandler
-
+export default globalErrorHandler;

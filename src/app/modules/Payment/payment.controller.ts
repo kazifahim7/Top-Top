@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 import { PaymentModel } from "./payment.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
-import { Types } from "mongoose";
+import { isValidObjectId, Types } from "mongoose";
 import { response, type Request, type Response } from "express";
 import config from "../../config/index.js";
 import catchAsync from "../../utils/catcgAsync.js";
@@ -835,20 +835,56 @@ export const paymentCancel = async (req: Request, res: Response) => {
           const payment = await PaymentModel.findById(paymentId);
           if (!payment) return res.status(404).json({ message: "Payment not found" });
 
+          if (payment.status === "paid" || payment.status === "success") {
+               return res.status(400).json({ message: "Cannot cancel a completed payment" });
+          }
+
+          const callerId = req.user.id;
+          const callerRole = req.user.role;
+
+          if (callerRole === "player") {
+               
+               if (payment.paymentType === "team fee") {
+                    if (payment.playerId?.toString() !== callerId.toString()) {
+                         return res.status(403).json({ message: "You can only cancel your own payment" });
+                    }
+               }
+
+            
+               if (payment.paymentType === "tournament fee") {
+                    const team = await TeamModel.findById(payment.teamId);
+                    if (!team) return res.status(404).json({ message: "Team not found" });
+                    if (team.teamOwner.toString() !== callerId.toString()) {
+                         return res.status(403).json({ message: "Only the team owner can cancel this payment" });
+                    }
+               }
+
+          } else if (callerRole === "organizer") {
+            
+               const lobby = payment.lobbyId
+                    ? await LobbyModel.findById(payment.lobbyId).select("organizer")
+                    : null;
+               const tournament = payment.tournamentId
+                    ? await TournamentModel.findById(payment.tournamentId).select("organizer")
+                    : null;
+
+               const ownsLobby = lobby?.organizer?.toString() === callerId.toString();
+               const ownsTournament = tournament?.organizer?.toString() === callerId.toString();
+
+               if (!ownsLobby && !ownsTournament) {
+                    return res.status(403).json({ message: "You are not authorized to cancel this payment" });
+               }
+          }
+         
+
           payment.status = "failed";
           await payment.save();
 
+          return res.json({ success: true, message: "Payment cancelled", result: {} });
 
-           res.json({
-               success: true,
-               message: "Payment cancelled",
-               result: {}
-          });
-
-         
-     } catch (err) {
+     } catch (err: any) {
           console.error(err);
-          res.status(500).json({ message: "Internal server error" });
+          return res.status(500).json({ message: "Internal server error" });
      }
 };
 
@@ -907,18 +943,64 @@ export const allPaymentHistoryOrganizer = catchAsync(async (req, res) => {
 });
 
 
-export const makePaid = async(req:Request, res: Response)=>{
-     const { paymentId } = req.query;
-     if (!paymentId) return res.status(400).json({ message: "Payment ID missing" });
+export const makePaid = async (req: Request, res: Response) => {
+     try {
+          const { paymentId } = req.params;
+          const requesterId = req.user.id;
+          const requesterRole = req.user.role;
 
-     const payment = await PaymentModel.findById(paymentId);
-     if (!payment) return res.status(404).json({ message: "Payment not found" });
+          if (!paymentId || !isValidObjectId(paymentId)) {
+               return res.status(400).json({ message: "Valid Payment ID is required" });
+          }
 
-     const result = await PaymentModel.findByIdAndUpdate(paymentId, { status : "paid"},{new:true})
-     return res.json({
-          success: true,
-          message: "Payment paid successfully",
-          result : result
-     });
-}
+          const payment = await PaymentModel.findById(paymentId)
+               .populate("lobbyId")
+               .populate("tournamentId");
+
+          if (!payment) {
+               return res.status(404).json({ message: "Payment not found" });
+          }
+
+          if (payment.status === "paid") {
+               return res.status(400).json({ message: "Payment is already marked as paid" });
+          }
+
+          // Organizer হলে ownership যাচাই, Admin হলে সরাসরি
+          if (requesterRole === "organizer") {
+               let isOwner = false;
+
+               if (payment.lobbyId) {
+                    const lobby = payment.lobbyId as any;
+                    isOwner = lobby.organizer?.toString() === requesterId;
+               }
+
+               if (payment.tournamentId) {
+                    const tournament = payment.tournamentId as any;
+                    isOwner = tournament.organizer?.toString() === requesterId;
+               }
+
+               if (!isOwner) {
+                    return res.status(403).json({
+                         message: "You are not authorized to mark this payment as paid"
+                    });
+               }
+          }
+
+          const result = await PaymentModel.findByIdAndUpdate(
+               paymentId,
+               { status: "paid" },
+               { new: true }
+          );
+
+          return res.status(200).json({
+               success: true,
+               message: "Payment marked as paid successfully",
+               result
+          });
+
+     } catch (error) {
+          console.error("makePaid error:", error);
+          return res.status(500).json({ message: "Internal server error" });
+     }
+};
 

@@ -7,7 +7,7 @@ const router = express.Router()
 router.post("/create-goal", auth("admin", "organizer"), goalController.createGoal)
 
 router.get("/all-goal", goalController.allGoal)
-router.delete("/delete-goal/:id", goalController.deleteGoal)
+router.delete("/delete-goal/:id", auth("admin", "organizer"), goalController.deleteGoal)
 
 
 export const goalRouter = router;

@@ -9,6 +9,7 @@ import { TournamentModel } from "../Tournament/Tournament.model.js";
 import type { IMatch } from "./match.interface.js";
 import { MatchModel } from "./match.model.js";
 import { Types } from "mongoose";
+
 interface PlayerData {
      playerId: string;
      matchPosition?: string;
@@ -23,9 +24,9 @@ interface AddPlayersData {
 
 const createMatch = async (payload: IMatch, id: string) => {
      payload.organizer = new Types.ObjectId(id);
-     const result = await MatchModel.create(payload)
+     const result = await MatchModel.create(payload);
      return result;
-}
+};
 
 const allMatch = async (id: string) => {
      const result = await MatchModel.find({ tournament: id })
@@ -66,7 +67,7 @@ const singleMatch = async (id: string) => {
                path: "teamBPlayers",
                populate: { path: "playerId" }
           })
-          .lean(); // lean() add করুন যাতে plain object পাই
+          .lean();
 
      if (!result) return null;
 
@@ -83,10 +84,18 @@ const singleMatch = async (id: string) => {
      };
 };
 
-const deleteMatch = async (id: string) => {
-     const result = await MatchModel.findByIdAndDelete(id)
-     return result
-}
+const deleteMatch = async (id: string, requesterId: string) => {
+     const match = await MatchModel.findById(id);
+     if (!match) throw new AppError(404, "Match not found");
+
+     // Only the organizer who created the match may delete it
+     if (String(match.organizer) !== String(requesterId)) {
+          throw new AppError(403, "You are not authorized to delete this match");
+     }
+
+     const result = await MatchModel.findByIdAndDelete(id);
+     return result;
+};
 
 const updateStanding = async (
      tournamentId: string,
@@ -113,7 +122,6 @@ const updateStanding = async (
           });
      }
 
-     // update stats
      standing.played += 1;
      standing.goalsFor += scored;
      standing.goalsAgainst += conceded;
@@ -132,17 +140,21 @@ const updateStanding = async (
      return standing;
 };
 
-
-
 export const updateMatchAndStanding = async (
      matchId: string,
-     data: Partial<IMatch>
+     data: Partial<IMatch>,
+     requesterId: string
 ) => {
      const match = await MatchModel.findById(matchId)
           .populate('teamA')
           .populate('teamB');
 
      if (!match) throw new AppError(404, "Match not found");
+
+     // Only the organizer who created the match may update it
+     if (String(match.organizer) !== String(requesterId)) {
+          throw new AppError(403, "You are not authorized to update this match");
+     }
 
      if (match.status === "Completed") {
           throw new AppError(403, "Match already completed");
@@ -182,7 +194,7 @@ export const updateMatchAndStanding = async (
           ...(match.teamAPlayers || []),
           ...(match.teamBPlayers || []),
      ]
-          .filter((p: any) => !p.guest_player) // ✅ guest player count হবে না
+          .filter((p: any) => !p.guest_player)
           .map((p: any) => p.playerId)
           .filter(Boolean);
 
@@ -284,12 +296,6 @@ function getMatchResult(teamGoals: number, opponentGoals: number): 'win' | 'draw
      return 'draw';
 }
 
-
-
-
-
-
-
 const addPlayers = async (
      matchId: string,
      data: AddPlayersData,
@@ -297,71 +303,58 @@ const addPlayers = async (
 ) => {
      const { team, players, matchFormat } = data;
 
-     // 1️⃣ Find Match
      const match = await MatchModel.findById(matchId);
      if (!match) throw new AppError(404, "Match not found");
 
      if (match.status === "Completed") {
-          throw new AppError(400, "Match already  completed");
+          throw new AppError(400, "Match already completed");
      }
 
-     // 2️⃣ Find Team
      const teamId = team === "A" ? match.teamA : match.teamB;
      const teamDoc = await TeamModel.findById(teamId);
-
      if (!teamDoc) throw new AppError(404, "Team not found");
 
-     const tournamentExist = await TournamentModel.findOne(match.tournament)
+     const tournamentExist = await TournamentModel.findOne(match.tournament);
      if (!tournamentExist) {
-          throw new AppError(404, "Tournament  not found");
+          throw new AppError(404, "Tournament not found");
      }
 
-     // 3️⃣ Check if user is team owner or captain
      const isOwner = String(teamDoc.teamOwner) === String(userId);
-    
      const isCaptain = teamDoc.teamCaptain.some(
           id => String(id) === String(userId)
      );
-    
      const isLeader = isOwner || isCaptain;
 
      if (!isLeader) {
           throw new AppError(403, "You can not add player");
      }
 
-
-
-     // 4️⃣ Set match format (Leader only)
      if (isLeader && matchFormat) {
           if (team === "A") match.team1MatchFormat = matchFormat;
           else match.team2MatchFormat = matchFormat;
      }
 
-     // 5️⃣ Add players
      const targetField = team === "A" ? "teamAPlayers" : "teamBPlayers";
 
      for (const p of players) {
           const isTeamMember = teamDoc.players.some(
                id => id.equals(p.playerId)
           );
-
           const isTeamOwner = teamDoc.teamOwner.equals(p.playerId);
 
           if (!isTeamMember && !isTeamOwner) {
                throw new AppError(403, "Player is not in this team");
           }
 
-
-
           const exists = match[targetField].some(
                pl => String(pl.playerId) === String(p.playerId)
           );
           if (exists) {
-               throw new AppError(403, "Already exits");
+               throw new AppError(403, "Already exists");
+          }
 
-          };
-          const enteriedPlayer = match[targetField].filter((player) => player.guest_player == true)
-          if (enteriedPlayer.length >= tournamentExist.fieldSize) {
+          const enteredPlayers = match[targetField].filter((player) => player.guest_player == true);
+          if (enteredPlayers.length >= tournamentExist.fieldSize) {
                throw new AppError(403, "Already team is full");
           }
 
@@ -369,8 +362,6 @@ const addPlayers = async (
                playerId: new Types.ObjectId(p.playerId),
                matchPosition: p.matchPosition ?? "",
                guest_player: p.guest_player ?? false,
-
-               // Default stats
                redCard: 0,
                yellowCard: 0,
                contribution: 0,
@@ -384,15 +375,11 @@ const addPlayers = async (
           });
      }
 
-     // 6️⃣ Calculate avg profile rating
      const calculateAvg = async (arr: any[]) => {
           if (!arr.length) return 0;
-
           const ids = arr.map(p => p.playerId);
           const profiles = await userModel.find({ _id: { $in: ids } }, { rating: 1 });
-
           if (!profiles.length) return 0;
-
           const total = profiles.reduce((sum, p) => sum + (p.rating || 6.5), 0);
           return Number((total / profiles.length).toFixed(2));
      };
@@ -400,11 +387,9 @@ const addPlayers = async (
      match.team1AvgMatchRatingBefore = await calculateAvg(match.teamAPlayers);
      match.team2AvgMatchRatingBefore = await calculateAvg(match.teamBPlayers);
 
-     // 7️⃣ Save match
      const result = await match.save();
      return result;
 };
-
 
 interface RemovePlayerData {
      team: "A" | "B";
@@ -418,7 +403,6 @@ export const removePlayerFromMatch = async (
 ) => {
      const { team, playerId } = data;
 
-     // 1️⃣ Find Match
      const match = await MatchModel.findById(matchId);
      if (!match) throw new AppError(404, "Match not found");
 
@@ -426,24 +410,19 @@ export const removePlayerFromMatch = async (
           throw new AppError(400, "Cannot remove player from a started or completed match");
      }
 
-     // 2️⃣ Find Team
      const teamId = team === "A" ? match.teamA : match.teamB;
      const teamDoc = await TeamModel.findById(teamId);
      if (!teamDoc) throw new AppError(404, "Team not found");
 
-     // 3️⃣ Check if user is team owner or captain
      const isOwner = String(teamDoc.teamOwner) === String(userId);
      const isCaptain = teamDoc.teamCaptain.some(id => String(id) === String(userId));
      const isLeader = isOwner || isCaptain;
 
-     // ❌ Normal player restriction
      if (!isLeader && String(playerId) !== String(userId)) {
           throw new AppError(403, "You can only remove yourself");
      }
 
-     // 4️⃣ Remove player
      const targetField = team === "A" ? "teamAPlayers" : "teamBPlayers";
-
      const beforeLength = match[targetField].length;
 
      match[targetField] = match[targetField].filter(
@@ -454,15 +433,11 @@ export const removePlayerFromMatch = async (
           throw new AppError(404, "Player not found in this match");
      }
 
-     // 5️⃣ Recalculate avg profile rating
      const calculateAvg = async (arr: any[]) => {
           if (!arr.length) return 0;
-
           const ids = arr.map(p => p.playerId);
           const profiles = await userModel.find({ _id: { $in: ids } }, { rating: 1 });
-
           if (!profiles.length) return 0;
-
           const total = profiles.reduce((sum, p) => sum + (p.rating || 6.5), 0);
           return Number((total / profiles.length).toFixed(2));
      };
@@ -470,17 +445,13 @@ export const removePlayerFromMatch = async (
      match.team1AvgMatchRatingBefore = await calculateAvg(match.teamAPlayers);
      match.team2AvgMatchRatingBefore = await calculateAvg(match.teamBPlayers);
 
-     // 6️⃣ Save match
      const result = await match.save();
-
      return result;
 };
 
-
-
 interface UpdatePlayerStatsDTO {
      matchId: string;
-     playerId?: string; // ownGoal এর ক্ষেত্রে optional
+     playerId?: string;
      redCard?: number;
      yellowCard?: number;
      goal?: number;
@@ -497,7 +468,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      const match = await MatchModel.findById(data.matchId);
      if (!match) throw new Error("Match not found");
 
-     // -------- ownGoal with teamId: score update only ----------
      if (data.ownGoal !== undefined && data.ownGoal !== 0) {
           if (!data.teamId) throw new Error("teamId is required for ownGoal");
 
@@ -508,7 +478,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
           return { scoreA: match.scoreA, scoreB: match.scoreB };
      }
 
-     // -------- playerId দিলে player stats update ----------
      if (data.playerId) {
           let player: any = null;
           let teamKey: "A" | "B" | null = null;
@@ -527,7 +496,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
           if (!player || !teamKey) throw new Error("Player not found in match");
 
-          // -------- Rating calculation ----------
           let rawRating = player.rawRating ?? player.rating ?? 6.5;
 
           rawRating -= (data.redCard ?? 0) * 0.5;
@@ -542,7 +510,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
           player.rawRating = Number(rawRating.toFixed(2));
           player.rating = Number(Math.max(0, Math.min(10, rawRating)).toFixed(2));
 
-          // -------- Update stats ----------
           const fields: (keyof UpdatePlayerStatsDTO)[] = [
                "redCard",
                "yellowCard",
@@ -560,7 +527,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
                }
           });
 
-          // -------- Update match score ----------
           if (data.goal !== undefined && data.goal !== 0) {
                if (teamKey === "A") match.scoreA += data.goal;
                if (teamKey === "B") match.scoreB += data.goal;
@@ -568,11 +534,9 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
           await match.save();
 
-          // -------- Recalculate player avg rating ----------
           const { averageRating, matchCount } =
                await getPlayerOverallRating(data.playerId);
 
-          // -------- Update player profile ----------
           await userModel.findByIdAndUpdate(
                data.playerId,
                {
@@ -596,7 +560,6 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
      throw new Error("Either playerId or ownGoal with teamId is required");
 };
 
-
 export const tournamentMatchService = {
      createMatch,
      singleMatch,
@@ -606,5 +569,4 @@ export const tournamentMatchService = {
      addPlayers,
      removePlayerFromMatch,
      updatePlayerStats
-
-}
+};

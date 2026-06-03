@@ -5,16 +5,14 @@ import { TournamentModel } from "./Tournament.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
 
 const createTournament = async (payload: ITournament) => {
-     const result = await TournamentModel.create(payload)
+     const result = await TournamentModel.create(payload);
      return result;
-}
-
+};
 
 const singleTournament = async (id: string) => {
-     const result = await TournamentModel.findById(id).populate("winner qualifiedTeams teams organizer")
-     return result
-
-}
+     const result = await TournamentModel.findById(id).populate("winner qualifiedTeams teams organizer");
+     return result;
+};
 
 const allTournament = async () => {
      const tournaments = await TournamentModel.find({ status: { $ne: "inactive" }, isDelete: { $ne: true } })
@@ -23,9 +21,9 @@ const allTournament = async () => {
           .populate({
                path: "teams",
                populate: [
-                    { path: "players" },      // ✅ team এর players populate
-                    { path: "teamOwner" }     // ✅ team এর teamOwner populate
-               ]
+                    { path: "players" },
+                    { path: "teamOwner" },
+               ],
           })
           .populate("organizer")
           .sort({ createdAt: -1 })
@@ -51,112 +49,103 @@ const allTournament = async () => {
 
 function calculateTeamRating(team: any): number {
      if (!team) return 0;
-
-     // ✅ players + teamOwner সবার rating এর average
-     const members = [
-          ...(team.players || []),
-          team.teamOwner,
-     ].filter(Boolean);
-
+     const members = [...(team.players || []), team.teamOwner].filter(Boolean);
      if (members.length === 0) return 0;
-
      const totalRating = members.reduce((sum: number, member: any) => {
           const rating = typeof member === "object" ? (member.rating || 0) : 0;
           return sum + rating;
      }, 0);
-
-     const avgRating = totalRating / members.length;
-     return parseFloat(avgRating.toFixed(2));
+     return parseFloat((totalRating / members.length).toFixed(2));
 }
+
 const organizerTournament = async (id: string) => {
      const result = await TournamentModel.find({
           organizer: id,
-          status: { $in: ["active", "block"] } 
+          status: { $in: ["active", "block"] },
      })
           .populate("winner qualifiedTeams teams organizer")
-          .sort({ status: 1, createdAt: -1 }); 
-
+          .sort({ status: 1, createdAt: -1 });
      return result;
-}
+};
 
+// ─── F-05 FIX: ownership check helper ────────────────────────────────────────
 
-const updateTournament = async (id: string, payload: Partial<ITournament>) => {
-     const isTournamentIsExists = await TournamentModel.findById(id)
-     if (!isTournamentIsExists) {
-          throw new AppError(404, "this tournament is not found");
-
+const assertTournamentAccess = (tournament: any, callerId: string, callerRole: string) => {
+     if (callerRole === "admin") return; // admin সব করতে পারবে
+     if (callerRole === "organizer") {
+          if (tournament.organizer.toString() !== callerId.toString()) {
+               throw new AppError(403, "You are not authorized to modify this tournament");
+          }
+          return;
      }
-     const result = await TournamentModel.findByIdAndUpdate(id, payload, { new: true })
-     return result;
-}
+     throw new AppError(403, "You are not authorized");
+};
 
-const deleteTournament = async (id: string) => {
-     const isTournamentIsExists = await TournamentModel.findById(id)
-     if (!isTournamentIsExists) {
-          throw new AppError(404, "this tournament is not found");
+// F-05 FIX: callerId ও callerRole service-এ 
+const updateTournament = async (
+     id: string,
+     payload: Partial<ITournament>,
+     callerId: string,
+     callerRole: string
+) => {
+     const tournament = await TournamentModel.findById(id);
+     if (!tournament) throw new AppError(404, "This tournament is not found");
 
-     }
-     const result = await TournamentModel.findByIdAndUpdate(id, { isDelete:true},{new:true})
+     // F-05 FIX: organizer 
+     assertTournamentAccess(tournament, callerId, callerRole);
+
+     const result = await TournamentModel.findByIdAndUpdate(id, payload, { new: true });
      return result;
-}
- const qualifyTeamsService = async (tournamentId: string, teamIds: string[]) => {
-   
+};
+
+// F-05 FIX: callerId ও callerRole service
+const deleteTournament = async (
+     id: string,
+     callerId: string,
+     callerRole: string
+) => {
+     const tournament = await TournamentModel.findById(id);
+     if (!tournament) throw new AppError(404, "This tournament is not found");
+
+     // F-05 FIX:
+     assertTournamentAccess(tournament, callerId, callerRole);
+
+     const result = await TournamentModel.findByIdAndUpdate(id, { isDelete: true }, { new: true });
+     return result;
+};
+
+// F-05 FIX: 
+const qualifyTeamsService = async (
+     tournamentId: string,
+     teamIds: string[],
+     callerId: string,
+     callerRole: string
+) => {
      const tournament = await TournamentModel.findById(tournamentId);
-     if (!tournament) {
-          throw new AppError(404,"Tournament not found");
-     }
+     if (!tournament) throw new AppError(404, "Tournament not found");
 
      
-     const currentQualified = tournament.qualifiedTeams.map((id) => id.toString());
+     assertTournamentAccess(tournament, callerId, callerRole);
 
-     const uniqueTeams = teamIds.filter(
-          (id) => !currentQualified.includes(id.toString())
-     );
+     const currentQualified = tournament.qualifiedTeams.map((id) => id.toString());
+     const uniqueTeams = teamIds.filter((id) => !currentQualified.includes(id.toString()));
 
      if (uniqueTeams.length === 0) {
-          throw new AppError(403,"All teams already qualified or invalid");
+          throw new AppError(403, "All teams already qualified or invalid");
      }
 
-  
      tournament.qualifiedTeams.push(...uniqueTeams.map((id) => new Types.ObjectId(id)));
-
      await tournament.save();
 
      return tournament;
 };
 
-
 export const getTopPlayers = async (tournamentId: string) => {
      const topPlayers = await MatchModel.aggregate([
-
-          // ✅ only completed matches of this tournament
-          {
-               $match: {
-                    tournament: new Types.ObjectId(tournamentId),
-                    status: "Completed"
-               }
-          },
-
-          // ✅ merge both team players arrays
-          {
-               $project: {
-                    players: {
-                         $concatArrays: ["$teamAPlayers", "$teamBPlayers"]
-                    }
-               }
-          },
-
-          // ✅ flatten players
+          { $match: { tournament: new Types.ObjectId(tournamentId), status: "Completed" } },
+          { $project: { players: { $concatArrays: ["$teamAPlayers", "$teamBPlayers"] } } },
           { $unwind: "$players" },
-
-          // ✅ remove guest players
-          {
-               $match: {
-                    "players.guest_player": false
-               }
-          },
-
-          // ✅ group by playerId — accumulate all stats
+          { $match: { "players.guest_player": false } },
           {
                $group: {
                     _id: "$players.playerId",
@@ -171,34 +160,12 @@ export const getTopPlayers = async (tournamentId: string) => {
                     totalRedCards: { $sum: "$players.redCard" },
                     totalGoodMoments: { $sum: "$players.goodMoment" },
                     totalVeryGoodMoments: { $sum: "$players.veryGoodMoment" },
-               }
+               },
           },
-
-          // ✅ sort by avgRating
           { $sort: { avgRating: -1 } },
-
-          // ✅ top 10
           { $limit: 10 },
-
-          // ✅ lookup player profile
-          {
-               $lookup: {
-                    from: "players",
-                    localField: "_id",
-                    foreignField: "_id",
-                    as: "player"
-               }
-          },
-
-          // ✅ unwind populated player
-          {
-               $unwind: {
-                    path: "$player",
-                    preserveNullAndEmptyArrays: false
-               }
-          },
-
-          // ✅ final output shape
+          { $lookup: { from: "players", localField: "_id", foreignField: "_id", as: "player" } },
+          { $unwind: { path: "$player", preserveNullAndEmptyArrays: false } },
           {
                $project: {
                     _id: 0,
@@ -219,14 +186,12 @@ export const getTopPlayers = async (tournamentId: string) => {
                     totalRedCards: 1,
                     totalGoodMoments: 1,
                     totalVeryGoodMoments: 1,
-               }
-          }
-
+               },
+          },
      ]);
 
      return topPlayers;
 };
-
 
 export const TournamentService = {
      createTournament,
@@ -236,6 +201,5 @@ export const TournamentService = {
      deleteTournament,
      qualifyTeamsService,
      getTopPlayers,
-     organizerTournament
-}
-
+     organizerTournament,
+};

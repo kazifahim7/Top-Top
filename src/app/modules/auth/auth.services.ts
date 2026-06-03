@@ -1,4 +1,3 @@
-
 import crypto from 'crypto'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
@@ -18,6 +17,8 @@ import { isValidPhone, sendOTP, verifyOTP } from '../../utils/twilio.js';
 import { MatchModel } from '../TournamentMatch/match.model.js';
 
 
+// ─── Normalisation helpers ────────────────────────────────────────────────────
+
 const normalizeMobile = (mobile: unknown) => {
      if (typeof mobile !== "string") return "";
      const normalizedMobile = mobile.trim();
@@ -27,7 +28,6 @@ const normalizeMobile = (mobile: unknown) => {
 
 const normalizeStringArray = (value: unknown) => {
      if (!Array.isArray(value)) return [];
-
      return value
           .map((item) => typeof item === "string" ? item.trim() : "")
           .filter((item) => item.length > 0);
@@ -44,6 +44,40 @@ const removeClientControlledPhoneVerificationFields = (payload: Record<string, u
      return sanitizedPayload;
 }
 
+// ─── F-02 FIX: Explicit allowlist for user-editable profile fields ────────────
+/**
+ * Only fields in this set may be submitted by an authenticated user via the
+ * public profile-update endpoint.  Any other key — role, isBlocked, password,
+ * rating, match statistics, etc. — is silently dropped before the DB write.
+ */
+const PROFILE_UPDATE_ALLOWLIST = new Set([
+     "FullName",
+     "userName",
+     "mobile",
+     "imageUrl",
+     "nationality",
+     "dominantFoot",
+     "gameMode",
+     "preferredAreas",
+     "socialProfile",
+     "playingDays",
+     "position",
+     "age",
+     "matchPosition",
+]);
+
+const buildProfileUpdatePayload = (raw: Record<string, unknown>): Record<string, unknown> => {
+     const safe: Record<string, unknown> = {};
+     for (const key of PROFILE_UPDATE_ALLOWLIST) {
+          if (Object.prototype.hasOwnProperty.call(raw, key)) {
+               safe[key] = raw[key];
+          }
+     }
+     return safe;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 const assertMobileCanBeVerified = async (mobile: string, userId: string) => {
      const existingVerifiedUser = await userModel.findOne({
           _id: { $ne: userId },
@@ -57,6 +91,7 @@ const assertMobileCanBeVerified = async (mobile: string, userId: string) => {
 }
 
 
+// ─── Auth services ────────────────────────────────────────────────────────────
 
 const createUserIntoDB = async (payload: TCreateProfile) => {
      const isUserAlreadyExist = await userModel.findOne({ email: payload?.email })
@@ -66,9 +101,10 @@ const createUserIntoDB = async (payload: TCreateProfile) => {
 
      const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round))
 
-
      const position = normalizeStringArray(payload.position);
 
+     // F-01 FIX: role and isBlocked are hard-coded constants — never sourced from
+     // the request payload, so a caller cannot self-assign admin / organizer.
      const sanitizedPayload = {
           FullName: payload.FullName,
           userName: normalizeOptionalString(payload.userName),
@@ -76,8 +112,8 @@ const createUserIntoDB = async (payload: TCreateProfile) => {
           password: hashedPassword,
           mobile: normalizeMobile(payload.mobile),
           imageUrl: payload.imageUrl,
-          role: "player" as const,
-          isBlocked: "active" as const,
+          role: "player" as const,        // ← always forced; never from payload
+          isBlocked: "active" as const,   // ← always forced; never from payload
           isMobileVerified: false,
           mobileVerifiedAt: null,
           nationality: normalizeOptionalString(payload.nationality),
@@ -100,16 +136,14 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
      const isUserExist = await userModel.findOne({ email: payload.email })
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
-
      }
      if (isUserExist.isBlocked === "block") {
           throw new AppError(403, "This User is blocked");
      }
-     // <- check the  password ok or not ->
-     const isPassIsOk = await bcrypt.compare(payload?.password, isUserExist?.password)
 
+     const isPassIsOk = await bcrypt.compare(payload?.password, isUserExist?.password)
      if (!isPassIsOk) {
-          throw new AppError(401, "This password  is invalid");
+          throw new AppError(401, "This password is invalid");
      }
 
      const user = {
@@ -118,21 +152,18 @@ const loginUser = async (payload: Pick<TCreateProfile, "email" | "password">) =>
           email: isUserExist?.email
      }
 
-     const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
-     const refreshToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "365d" })
+     const accessToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "15d" })
+     const refreshToken = jwt.sign(user, config.jwt_secret as string, { expiresIn: "30d" })
 
      return {
           accessToken,
           refreshToken,
           role: isUserExist?.role,
-          userid:isUserExist._id,
+          userid: isUserExist._id,
           mobile: isUserExist?.mobile,
           isMobileVerified: Boolean(isUserExist?.isMobileVerified),
           mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
      }
-
-
-
 }
 
 const googleLogin = async (
@@ -144,12 +175,14 @@ const googleLogin = async (
      let result = null;
 
      if (!isUserExist) {
+          // F-01 FIX: role and isBlocked are hard-coded — never sourced from the
+      
           const sanitizedPayload = {
                FullName: payload.FullName,
                email: payload.email,
                imageUrl: payload.imageUrl,
-               role: "player" as const,
-               isBlocked: "active",
+               role: "player" as const,       // ← always forced
+               isBlocked: "active" as const,  // ← always forced
           }
 
           result = await userModel.create(sanitizedPayload)
@@ -162,8 +195,7 @@ const googleLogin = async (
                mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
           }
      } else {
-
-          if (isUserExist.isBlocked === "block") {   // ✅ fixed
+          if (isUserExist.isBlocked === "block") {
                throw new AppError(403, "Your account has been blocked");
           }
 
@@ -190,7 +222,6 @@ const googleLogin = async (
 const appleLogin = async (
      payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">
 ) => {
-     // ✅ email ছাড়া কিছুই করা যাবে না
      if (!payload.email) {
           throw new AppError(400, "Email is required for Apple Sign In");
      }
@@ -201,14 +232,15 @@ const appleLogin = async (
      let result = null;
 
      if (!isUserExist) {
-          // ✅ নতুন user — Apple প্রথমবারই FullName দেয়, না দিলে fallback
+          // F-01 FIX: role and isBlocked are hard-coded — never sourced from the
+          // Apple identity token payload, which is partially user-controlled data.
           const sanitizedPayload = {
-               FullName: payload.FullName || "Apple User",       // ✅ fallback
+               FullName: payload.FullName || "Apple User",
                email: payload.email,
-               imageUrl: payload.imageUrl || "",                  // ✅ fallback
-               role: "player" as const,
-               isBlocked: "active",
-               password: Math.random().toString(36).slice(-10),   // ✅ dummy password (Apple-এ দরকার)
+               imageUrl: payload.imageUrl || "",
+               role: "player" as const,       // ← always forced
+               isBlocked: "active" as const,  // ← always forced
+               password: Math.random().toString(36).slice(-10),
           };
 
           result = await userModel.create(sanitizedPayload);
@@ -220,14 +252,13 @@ const appleLogin = async (
                isMobileVerified: Boolean(result?.isMobileVerified),
                mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
           };
-
      } else {
-         
           if (isUserExist.isBlocked === "block") {
                throw new AppError(403, "Your account has been blocked");
           }
 
-          // ✅ যদি নতুন info আসে (কখনো কখনো আসে) — update করো
+          // Only FullName and imageUrl may be updated from the Apple payload —
+          // both are cosmetic profile fields, not privilege-bearing fields.
           if (payload.FullName || payload.imageUrl) {
                await userModel.findByIdAndUpdate(isUserExist._id, {
                     ...(payload.FullName && { FullName: payload.FullName }),
@@ -244,16 +275,8 @@ const appleLogin = async (
           };
      }
 
-     const accessToken = jwt.sign(
-          userData,
-          config.jwt_secret as string,
-          { expiresIn: "15d" }
-     );
-     const refreshToken = jwt.sign(
-          userData,
-          config.jwt_secret as string,
-          { expiresIn: "30d" }
-     );
+     const accessToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "15d" });
+     const refreshToken = jwt.sign(userData, config.jwt_secret as string, { expiresIn: "30d" });
 
      return {
           user: userData,
@@ -267,33 +290,36 @@ const updateStatusInDB = async (id: string, payload: Record<string, unknown>) =>
      const isUserExist = await userModel.findById(id)
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
-
      }
      const result = await userModel.findByIdAndUpdate(id, payload, { new: true })
      return result
-
 }
+
 const deletePlayerFromDB = async (id: string) => {
      const isUserExist = await userModel.findById(id)
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
-
      }
      const result = await userModel.findByIdAndDelete(id, { new: true })
      return result
-
 }
-
-
 
 const updateProfileInDB = async (email: string, payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findOne({ email: email })
-
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
-
      }
-     const sanitizedPayload = removeClientControlledPhoneVerificationFields(payload);
+
+     // F-02 FIX: Apply allowlist FIRST so only permitted fields survive.
+     // This replaces the previous approach of stripping a handful of known-bad
+     // fields, which is fragile — any new privileged field added to the model
+     // would be exposed automatically.  An allowlist is closed by default.
+     const allowlistedPayload = buildProfileUpdatePayload(payload);
+
+     // Strip server-controlled phone-verification flags (defence-in-depth; the
+     // allowlist above already excludes these, but keep it explicit).
+     const sanitizedPayload = removeClientControlledPhoneVerificationFields(allowlistedPayload);
+
      const hasMobileUpdate = Object.prototype.hasOwnProperty.call(sanitizedPayload, "mobile");
 
      if (hasMobileUpdate) {
@@ -310,7 +336,12 @@ const updateProfileInDB = async (email: string, payload: Record<string, unknown>
           }
      }
 
-     const result = await userModel.findOneAndUpdate({ email: email }, sanitizedPayload, { new: true }).select("-password")
+     const result = await userModel.findOneAndUpdate(
+          { email: email },
+          sanitizedPayload,
+          { new: true }
+     ).select("-password")
+
      if (!result) return result;
 
      const resultObject = result.toObject();
@@ -320,24 +351,25 @@ const updateProfileInDB = async (email: string, payload: Record<string, unknown>
           mobileVerifiedAt: resultObject.mobileVerifiedAt ?? null,
      };
 }
+
 const allStudentFromDB = async (query: Record<string, unknown>) => {
-     const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName", "FullName"]).sort()
+     const playerQuery = new QueryBuilder(
+          userModel.find().select("-password"),
+          query
+     ).filter().search(["userName", "FullName"]).sort()
      const result = await playerQuery.modelQuery
      return result;
-
 }
 
 const getSingleUser = async (email: string) => {
-   
-
      const user = await userModel.findOne({ email }).select("-password");
      if (!user) return null;
 
      const myJoinedTeam = await TeamModel.find({
-          players: { $in: [user._id] } 
+          players: { $in: [user._id] }
      });
 
-     const hasOwnTeam= await TeamModel.findOne({teamOwner:user._id})
+     const hasOwnTeam = await TeamModel.findOne({ teamOwner: user._id })
      const userObject = user.toObject();
 
      return {
@@ -345,10 +377,9 @@ const getSingleUser = async (email: string) => {
           isMobileVerified: Boolean(userObject.isMobileVerified),
           mobileVerifiedAt: userObject.mobileVerifiedAt ?? null,
           myJoinedTeam,
-          hasOwnTeam : hasOwnTeam 
+          hasOwnTeam: hasOwnTeam
      };
 };
-
 
 const resetRequest = async (payload: Record<string, unknown>) => {
      const isUserExist = await userModel.findOne({ email: payload?.email });
@@ -356,7 +387,6 @@ const resetRequest = async (payload: Record<string, unknown>) => {
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
      }
-
      if (isUserExist.isBlocked === "block") {
           throw new AppError(403, "You are not authorized");
      }
@@ -382,72 +412,64 @@ const resetRequest = async (payload: Record<string, unknown>) => {
           await emailSender(payload.email as string, "Password Reset OTP", emailHtml);
           console.log("OTP Email sent successfully");
      } catch (error) {
-          // Delete the OTP if email fails
           await OtpModel.findByIdAndDelete(createdOtp._id);
           console.error("Error sending OTP email:", error);
           throw new AppError(500, "Failed to send OTP. Please try again later.");
      }
 };
 
-
 export const resetPassword = async (payload: { password: string, otp?: number }) => {
-
-
      const otpExist = await OtpModel.findOne({ otp: payload.otp })
      if (!otpExist) throw new AppError(404, "OTP not found");
      if (otpExist.otp !== payload.otp) throw new AppError(400, "Invalid OTP");
      if (Date.now() > +otpExist.otpExpiry) throw new AppError(400, "OTP expired");
 
-
      const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
-
 
      const updatedUser = await userModel.findOneAndUpdate(
           { email: otpExist.email },
           { $set: { password: hashedPassword } },
           { new: true }
      ).select("-password");
+
      if (updatedUser) {
           await OtpModel.findByIdAndDelete(otpExist._id)
      }
 
-
      if (!updatedUser) {
           throw new AppError(404, "User not found");
      }
 
-
      return updatedUser;
 };
-export const changePassword = async (payload: { oldPassword: string, newPassword: string }, userId: string) => {
 
-
+export const changePassword = async (
+     payload: { oldPassword: string, newPassword: string },
+     userId: string
+) => {
      const isUserExist = await userModel.findById(userId)
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
-
      }
 
      const isPassIsOk = await bcrypt.compare(payload?.oldPassword, isUserExist?.password)
-
      if (!isPassIsOk) {
-          throw new AppError(401, "This password  is invalid");
+          throw new AppError(401, "This password is invalid");
      }
 
      const hashedPassword = await bcrypt.hash(payload.newPassword, Number(config.salt_round));
-
-
-     const updatedUser = await userModel.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true })
-
+     const updatedUser = await userModel.findByIdAndUpdate(
+          userId,
+          { password: hashedPassword },
+          { new: true }
+     )
 
      if (!updatedUser) {
           throw new AppError(404, "User not found");
      }
 
-
      return updatedUser;
 };
-
 
 const sendPhoneOtp = async (userId: string) => {
      const isUserExist = await userModel.findById(userId)
@@ -531,7 +553,6 @@ const verifyPhoneOtp = async (userId: string, payload: { code?: string | number 
      return updatedUser;
 }
 
-
 const calculatePlayerStats = (lobbies: any[], tournamentMatches: any[], playerId: string) => {
      let totalGoals = 0;
      let totalAssists = 0;
@@ -539,72 +560,32 @@ const calculatePlayerStats = (lobbies: any[], tournamentMatches: any[], playerId
      let cleanSheets = 0;
      let wins = 0;
 
-     // Process lobby data
      lobbies.forEach(lobby => {
           let playerTeamGoal: number | null = null;
           let opponentTeamGoal: number | null = null;
-          let isGoalkeeper = false;
 
           const allSides = [
-               {
-                    players: lobby.team1?.players,
-                    myGoal: lobby.goalTeam1,
-                    oppGoal: lobby.goalTeam2,
-                    teamType: "team1"
-               },
-               {
-                    players: lobby.team2?.players,
-                    myGoal: lobby.goalTeam2,
-                    oppGoal: lobby.goalTeam1,
-                    teamType: "team2"
-               },
-               {
-                    players: lobby.defaultTeam1?.players,
-                    myGoal: lobby.goalTeam1,
-                    oppGoal: lobby.goalTeam2,
-                    teamType: "defaultTeam1"
-               },
-               {
-                    players: lobby.defaultTeam2?.players,
-                    myGoal: lobby.goalTeam2,
-                    oppGoal: lobby.goalTeam1,
-                    teamType: "defaultTeam2"
-               },
+               { players: lobby.team1?.players, myGoal: lobby.goalTeam1, oppGoal: lobby.goalTeam2, teamType: "team1" },
+               { players: lobby.team2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1, teamType: "team2" },
+               { players: lobby.defaultTeam1?.players, myGoal: lobby.goalTeam1, oppGoal: lobby.goalTeam2, teamType: "defaultTeam1" },
+               { players: lobby.defaultTeam2?.players, myGoal: lobby.goalTeam2, oppGoal: lobby.goalTeam1, teamType: "defaultTeam2" },
           ];
 
           allSides.forEach(({ players, myGoal, oppGoal, teamType }) => {
                if (!players) return;
-
-               const player = players.find(
-                    (p: any) => p.playerId?.toString() === playerId
-               );
-
+               const player = players.find((p: any) => p.playerId?.toString() === playerId);
                if (player) {
                     totalGoals += player.goal || 0;
                     totalAssists += player.assists || 0;
                     totalSaves += player.save || 0;
-
                     playerTeamGoal = myGoal;
                     opponentTeamGoal = oppGoal;
-
-                    // Check if player is goalkeeper (by position)
-                    if (player.matchPosition === "Goalkeeper" ||
-                         player.matchPosition?.toLowerCase() === "goalkeeper") {
-                         isGoalkeeper = true;
-                    }
-
-                    // For debugging
                     console.log(`Lobby ${lobby._id}: Player in ${teamType}, Position: ${player.matchPosition}, Opp Goal: ${oppGoal}, Saves: ${player.save}`);
                }
           });
 
-          // Calculate clean sheet for this lobby
-          // Clean sheet = Team conceded 0 goals AND player played in that match
           if (playerTeamGoal !== null && opponentTeamGoal !== null) {
-               // Win/Loss calculation
                if (playerTeamGoal > opponentTeamGoal) wins++;
-
-               // Clean sheet: opponent scored 0 goals
                if (opponentTeamGoal === 0) {
                     cleanSheets++;
                     console.log(`Clean sheet counted for lobby ${lobby._id} (Opponent: 0, Player played)`);
@@ -612,53 +593,34 @@ const calculatePlayerStats = (lobbies: any[], tournamentMatches: any[], playerId
           }
      });
 
-     // Process tournament match data
      tournamentMatches.forEach(match => {
           let playerTeamGoal: number | null = null;
           let opponentTeamGoal: number | null = null;
 
-          // Check if player is in Team A
-          const playerInTeamA = match.teamAPlayers?.find(
-               (p: any) => p.playerId?.toString() === playerId
-          );
-
+          const playerInTeamA = match.teamAPlayers?.find((p: any) => p.playerId?.toString() === playerId);
           if (playerInTeamA) {
                totalGoals += playerInTeamA.goal || 0;
                totalAssists += playerInTeamA.assists || 0;
                totalSaves += playerInTeamA.save || 0;
-
                playerTeamGoal = match.scoreA;
                opponentTeamGoal = match.scoreB;
-
                console.log(`Tournament ${match._id}: Player in Team A, Score: ${match.scoreA}-${match.scoreB}, Saves: ${playerInTeamA.save}`);
           }
 
-          // Check if player is in Team B
-          const playerInTeamB = match.teamBPlayers?.find(
-               (p: any) => p.playerId?.toString() === playerId
-          );
-
+          const playerInTeamB = match.teamBPlayers?.find((p: any) => p.playerId?.toString() === playerId);
           if (playerInTeamB) {
-               // If player was already found in Team A, add again? No, it's separate matches
-               // But player cannot be in both teams in same match
                if (!playerInTeamA) {
                     totalGoals += playerInTeamB.goal || 0;
                     totalAssists += playerInTeamB.assists || 0;
                     totalSaves += playerInTeamB.save || 0;
                }
-
                playerTeamGoal = match.scoreB;
                opponentTeamGoal = match.scoreA;
-
                console.log(`Tournament ${match._id}: Player in Team B, Score: ${match.scoreB}-${match.scoreA}, Saves: ${playerInTeamB.save}`);
           }
 
-          // Calculate clean sheet for tournament match
           if (playerTeamGoal !== null && opponentTeamGoal !== null) {
-               // Win/Loss calculation
                if (playerTeamGoal > opponentTeamGoal) wins++;
-
-               // Clean sheet: opponent scored 0 goals
                if (opponentTeamGoal === 0) {
                     cleanSheets++;
                     console.log(`Clean sheet counted for tournament match ${match._id} (Opponent: 0)`);
@@ -691,24 +653,15 @@ const calculatePlayerStats = (lobbies: any[], tournamentMatches: any[], playerId
 
 const collectLobbyMedia = (lobbies: any[]) => {
      const mediaSet = new Set<string>();
-
      lobbies.forEach(lobby => {
           if (Array.isArray(lobby.media)) {
-               lobby.media.forEach((m: string) => {
-                    if (m) mediaSet.add(m);
-               });
+               lobby.media.forEach((m: string) => { if (m) mediaSet.add(m); });
           }
      });
-
      return Array.from(mediaSet);
 };
 
-
-
 const playerProfile = async (id: string) => {
-
-     
-  
      const result = await userModel.findById(id).select("-cleanSheet -password -__v -match");
 
      const allLobbies = await LobbyModel.find({
@@ -723,9 +676,7 @@ const playerProfile = async (id: string) => {
           .populate("team2.teamId")
           .sort({ date: -1 });
 
-     const completedLobbies = allLobbies.filter(
-          (lobby) => lobby.lobbyStatus === "completed"
-     );
+     const completedLobbies = allLobbies.filter((lobby) => lobby.lobbyStatus === "completed");
 
      const tournamentMatches = await MatchModel.find({
           $or: [
@@ -737,9 +688,7 @@ const playerProfile = async (id: string) => {
           .populate("tournament teamA teamB")
           .sort({ date: -1 });
 
-     // টুর্নামেন্ট ম্যাচগুলো পাস করতে হবে
      const lobbyStats = calculatePlayerStats(completedLobbies, tournamentMatches, id);
-
      const media = collectLobbyMedia(allLobbies);
      const playerTeam = await TeamModel.findOne({ teamOwner: id });
 
@@ -764,19 +713,14 @@ const playerProfile = async (id: string) => {
      };
 };
 
-
 const deleteAccount = async (id: string) => {
      const isUserExist = await userModel.findById(id)
      if (!isUserExist) {
           throw new AppError(404, "This user Not Found");
-
      }
      const result = await userModel.findByIdAndDelete(id, { new: true })
      return result
-
 }
-
-
 
 export const authService = {
      createUserIntoDB,

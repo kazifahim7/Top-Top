@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/join-lobby", auth("player","organizer","admin"), joinLobby);
 router.get("/payment-success", auth("organizer", "admin","player"),paymentSuccess);
-router.get("/payment-cancel", paymentCancel);
+router.get("/payment-cancel", auth("organizer", "admin"), paymentCancel);
 router.get("/all-payment" ,auth("admin"), allPaymentHistory)
 router.get("/organizer-payment", auth("organizer"), allPaymentHistoryOrganizer)
 

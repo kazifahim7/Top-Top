@@ -10,6 +10,8 @@ import { GoalModel } from './app/modules/FeatureGoal/goal.model.js';
 import axios from 'axios';
 import config from './app/config/index.js';
 import helmet from 'helmet';
+import { placesLimiter } from './app/RateLimiting/placeLimiter.js';
+import auth from './app/middleware/auth.js';
 
 const app: Application = express();
 
@@ -28,11 +30,22 @@ app.use("/uploads", express.static(uploadsPath));
 // Parser
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
-app.use(cors({
-     origin: '*',
-     credentials: true
-}));
+const allowedOrigins = [
+     'https://admin.toptopfootball.com', 
+];
 
+app.use(cors({
+     origin: (origin, callback) => {
+          if (!origin) return callback(null, true); 
+
+          if (allowedOrigins.includes(origin)) {
+               callback(null, true);
+          } else {
+               callback(new Error('CORS blocked')); 
+          }
+     },
+     credentials: true,
+}));
 
 app.use(helmet({
      crossOriginResourcePolicy: false,
@@ -59,7 +72,8 @@ cron.schedule("* * * * *", async () => {
 
 // location 
 
-app.get("/api/autocomplete", async (req, res) => {
+app.get("/api/autocomplete", placesLimiter,
+     auth("player", "admin", "organizer"), async (req, res) => {
      try {
           const { input } = req.query;
           const response = await axios.get(
@@ -79,7 +93,8 @@ app.get("/api/autocomplete", async (req, res) => {
 });
 
 
-app.get("/api/place-details", async (req, res) => {
+app.get("/api/place-details", placesLimiter,
+     auth("player", "admin", "organizer"), async (req, res) => {
      try {
           const { place_id } = req.query;
           const response = await axios.get(

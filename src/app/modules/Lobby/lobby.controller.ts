@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import catchAsync from "../../utils/catcgAsync.js";
 import { lobbyService } from "./lobby.services.js";
 import { getLocalImageURL, uploadToS3 } from "../../utils/multer.js";
+import { LobbyModel } from "./lobby.model.js";
+import AppError from "../../Error/AppError.js";
 
 const createMatch = catchAsync(async (req: Request, res: Response) => {
      const data = req.body;
@@ -61,28 +63,40 @@ const updatePlayerState = catchAsync(async (req: Request, res: Response) => {
 
 const lobbyInFo = catchAsync(async (req: Request, res: Response) => {
      const id = req.params?.lobbyId;
-     const data = req.body
-     console.log(id, data)
+     const requesterId = req.user?.id;
+     const requesterRole = req.user?.role;
 
-     const imageFiles = (req.files as any).images || [];
-     const uploadedUrls = await Promise.all(imageFiles.map((file: any) => uploadToS3(file)));
+     const lobby = await LobbyModel.findById(id).select("organizer lobbyStatus");
+     if (!lobby) throw new AppError(404, "Lobby not found");
 
-     if (uploadedUrls.length > 0) {
-          // Initialize media array if it doesn't exist
-          if (!data.media) {
-               data.media = [];
+     if (requesterRole === "organizer") {
+          if (String(lobby.organizer) !== String(requesterId)) {
+               throw new AppError(403, "You are not authorised to update this lobby");
           }
+     } else if (requesterRole !== "admin") {
+          throw new AppError(403, "You are not authorised to update this lobby");
+     }
+
+     const data = req.body;
+
+     // Handle image uploads
+     const imageFiles = ((req.files as any)?.images) || [];
+     const uploadedUrls = await Promise.all(
+          imageFiles.map((file: any) => uploadToS3(file))
+     );
+     if (uploadedUrls.length > 0) {
+          if (!data.media) data.media = [];
           data.media.push(...uploadedUrls);
      }
 
-     const result = await lobbyService.updateLobbyInfo(id!, data)
+     const result = await lobbyService.updateLobbyInfo(id!, data);
 
      res.status(200).json({
           success: true,
-          message: "lobby update successfully",
-          data: result
-     })
-})
+          message: "Lobby updated successfully",
+          data: result,
+     });
+});
 const deleteLobby = catchAsync(async (req: Request, res: Response) => {
      const id = req.params?.id;
     
