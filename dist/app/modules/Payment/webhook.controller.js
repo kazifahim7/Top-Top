@@ -187,7 +187,7 @@ export const stripeWebhook = async (req, res) => {
         const paymentId = intent.metadata?.paymentId;
         if (!paymentId) {
             console.error("No paymentId in metadata");
-            return res.status(200).json({ received: true }); // 200 always for stripe
+            return res.status(200).json({ received: true });
         }
         try {
             const payment = await PaymentModel.findById(paymentId);

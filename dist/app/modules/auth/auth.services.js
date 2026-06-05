@@ -11,6 +11,7 @@ import emailSender from '../../utils/sendEmail.js';
 import { TeamModel } from '../Team/team.model.js';
 import { isValidPhone, sendOTP, verifyOTP } from '../../utils/twilio.js';
 import { MatchModel } from '../TournamentMatch/match.model.js';
+import mongoose from 'mongoose';
 // ─── Normalisation helpers ────────────────────────────────────────────────────
 const normalizeMobile = (mobile) => {
     if (typeof mobile !== "string")
@@ -567,6 +568,9 @@ const playerProfile = async (id) => {
     const lobbyStats = calculatePlayerStats(completedLobbies, tournamentMatches, id);
     const media = collectLobbyMedia(allLobbies);
     const playerTeam = await TeamModel.findOne({ teamOwner: id });
+    const myJoinedTeam = await TeamModel.find({
+        players: { $in: [new mongoose.Types.ObjectId(id)] }
+    });
     return {
         result,
         stats: {
@@ -585,6 +589,7 @@ const playerProfile = async (id) => {
         allLobbies,
         tournamentMatches,
         playerTeam,
+        myJoinedTeam
     };
 };
 const deleteAccount = async (id) => {

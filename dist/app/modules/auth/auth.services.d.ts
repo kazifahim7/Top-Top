@@ -1,42 +1,43 @@
 import type { TCreateProfile } from './auth.interface.js';
+import mongoose from 'mongoose';
 export declare const resetPassword: (payload: {
     password: string;
     otp?: number;
-}) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-    _id: import("mongoose").Types.ObjectId;
+}) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+    _id: mongoose.Types.ObjectId;
 } & {
     __v: number;
 }>;
 export declare const changePassword: (payload: {
     oldPassword: string;
     newPassword: string;
-}, userId: string) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-    _id: import("mongoose").Types.ObjectId;
+}, userId: string) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+    _id: mongoose.Types.ObjectId;
 } & {
     __v: number;
 }>;
 export declare const authService: {
-    createUserIntoDB: (payload: TCreateProfile) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
+    createUserIntoDB: (payload: TCreateProfile) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     }>;
-    deleteAccount: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
+    deleteAccount: (id: string) => Promise<(mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     }) | null>;
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
-        role: "admin" | "player" | "organizer";
-        userid: import("mongoose").Types.ObjectId;
+        role: "player" | "admin" | "organizer";
+        userid: mongoose.Types.ObjectId;
         mobile: string | undefined;
         isMobileVerified: boolean;
         mobileVerifiedAt: Date | null;
     }>;
-    updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
+    updateStatusInDB: (id: string, payload: Record<string, unknown>) => Promise<(mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     }) | null>;
@@ -71,10 +72,10 @@ export declare const authService: {
         match: number;
         motm?: number;
         cleanSheet: number;
-        _id: import("mongoose").Types.ObjectId;
+        _id: mongoose.Types.ObjectId;
         __v: number;
     } | null>;
-    allStudentFromDB: (query: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, {
+    allStudentFromDB: (query: Record<string, unknown>) => Promise<(mongoose.Document<unknown, {}, {
         FullName?: any;
         email?: any;
         password?: any;
@@ -137,20 +138,20 @@ export declare const authService: {
         motm?: any;
         cleanSheet?: any;
     } & {
-        _id: import("mongoose").Types.ObjectId;
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     })[]>;
     getSingleUser: (email: string) => Promise<{
         isMobileVerified: boolean;
         mobileVerifiedAt: Date | null;
-        myJoinedTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
-            _id: import("mongoose").Types.ObjectId;
+        myJoinedTeam: (mongoose.Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: mongoose.Types.ObjectId;
         } & {
             __v: number;
         })[];
-        hasOwnTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
-            _id: import("mongoose").Types.ObjectId;
+        hasOwnTeam: (mongoose.Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: mongoose.Types.ObjectId;
         } & {
             __v: number;
         }) | null;
@@ -182,15 +183,15 @@ export declare const authService: {
         match: number;
         motm?: number;
         cleanSheet: number;
-        _id: import("mongoose").Types.ObjectId;
+        _id: mongoose.Types.ObjectId;
         __v: number;
     } | null>;
     resetRequest: (payload: Record<string, unknown>) => Promise<void>;
     resetPassword: (payload: {
         password: string;
         otp?: number;
-    }) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
+    }) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     }>;
@@ -202,21 +203,21 @@ export declare const authService: {
     }>;
     verifyPhoneOtp: (userId: string, payload: {
         code?: string | number;
-    }) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
+    }) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     }>;
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
-            id: import("mongoose").Types.ObjectId;
-            role: "admin" | "player" | "organizer";
+            id: mongoose.Types.ObjectId;
+            role: "player" | "admin" | "organizer";
             email: string;
             isMobileVerified: boolean;
             mobileVerifiedAt: Date | null;
         };
-        result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-            _id: import("mongoose").Types.ObjectId;
+        result: (mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+            _id: mongoose.Types.ObjectId;
         } & {
             __v: number;
         }) | null;
@@ -225,14 +226,14 @@ export declare const authService: {
     }>;
     appleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
-            id: import("mongoose").Types.ObjectId;
-            role: "admin" | "player" | "organizer";
+            id: mongoose.Types.ObjectId;
+            role: "player" | "admin" | "organizer";
             email: string;
             isMobileVerified: boolean;
             mobileVerifiedAt: Date | null;
         };
-        result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-            _id: import("mongoose").Types.ObjectId;
+        result: (mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+            _id: mongoose.Types.ObjectId;
         } & {
             __v: number;
         }) | null;
@@ -242,14 +243,14 @@ export declare const authService: {
     changePassword: (payload: {
         oldPassword: string;
         newPassword: string;
-    }, userId: string) => Promise<import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
+    }, userId: string) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     }>;
     playerProfile: (id: string) => Promise<{
-        result: (import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-            _id: import("mongoose").Types.ObjectId;
+        result: (mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+            _id: mongoose.Types.ObjectId;
         } & {
             __v: number;
         }) | null;
@@ -264,24 +265,29 @@ export declare const authService: {
             contributionpergame: number;
         };
         media: string[];
-        allLobbies: (import("mongoose").Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
+        allLobbies: (mongoose.Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
             _id: unknown;
         }> & {
             __v: number;
         })[];
-        tournamentMatches: (import("mongoose").Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, import("mongoose").DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
-            _id: import("mongoose").Types.ObjectId;
+        tournamentMatches: (mongoose.Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, mongoose.DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
+            _id: mongoose.Types.ObjectId;
         } & {
             __v: number;
         })[];
-        playerTeam: (import("mongoose").Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
-            _id: import("mongoose").Types.ObjectId;
+        playerTeam: (mongoose.Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: mongoose.Types.ObjectId;
         } & {
             __v: number;
         }) | null;
+        myJoinedTeam: (mongoose.Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: mongoose.Types.ObjectId;
+        } & {
+            __v: number;
+        })[];
     }>;
-    deletePlayerFromDB: (id: string) => Promise<(import("mongoose").Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
-        _id: import("mongoose").Types.ObjectId;
+    deletePlayerFromDB: (id: string) => Promise<(mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
     } & {
         __v: number;
     }) | null>;
