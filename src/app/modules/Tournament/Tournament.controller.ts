@@ -23,6 +23,11 @@ const allTournament = catchAsync(async (req, res) => {
      res.status(200).json({ success: true, message: "Tournament retrieved successfully", data: result });
 });
 
+const countryTournament = catchAsync(async (req, res) => {
+     const result = await TournamentService.countryTournament(req.params.countryCode!);
+     res.status(200).json({ success: true, message: "Country tournaments retrieved successfully", data: result });
+});
+
 const organizerTournament = catchAsync(async (req, res) => {
      const result = await TournamentService.organizerTournament(req.user.id);
      res.status(200).json({ success: true, message: "Tournament retrieved successfully", data: result });
@@ -88,4 +93,5 @@ export const TournamentController = {
      qualifyTeamsController,
      getTopPlayers,
      organizerTournament,
+     countryTournament,
 };

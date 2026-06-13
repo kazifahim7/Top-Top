@@ -1,25 +1,28 @@
-import { UAE_AREAS } from "../../data/Areas.js";
+import { CountryService, DEFAULT_COUNTRY_CODE } from "../Country/country.service.js";
 
 
-export const getAllAreas = () => {
-     return UAE_AREAS;
+export const getAllAreas = async (countryCode: unknown = DEFAULT_COUNTRY_CODE) => {
+     return CountryService.getAreasForCountry(countryCode);
 };
 
-export const getCities = () => {
-     return UAE_AREAS.map(({ id, city, slug }) => ({ id, city, slug }));
+export const getCities = async (countryCode: unknown = DEFAULT_COUNTRY_CODE) => {
+     const cities = await CountryService.getAreasForCountry(countryCode);
+     return cities.map(({ id, city, slug }) => ({ id, city, slug }));
 };
 
-export const getAreasByCity = (slug: string) => {
-     const found = UAE_AREAS.find((c) => c.slug === slug.toLowerCase());
+export const getAreasByCity = async (slug: string, countryCode: unknown = DEFAULT_COUNTRY_CODE) => {
+     const cities = await CountryService.getAreasForCountry(countryCode);
+     const found = cities.find((c) => c.slug === slug.toLowerCase());
      if (!found) return null;
      return found;
 };
 
-export const searchAreas = (query: string) => {
+export const searchAreas = async (query: string, countryCode: unknown = DEFAULT_COUNTRY_CODE) => {
      const q = query.toLowerCase();
      const results: { city: string; area: string }[] = [];
+     const cities = await CountryService.getAreasForCountry(countryCode);
 
-     UAE_AREAS.forEach(({ city, areas }) => {
+     cities.forEach(({ city, areas }) => {
           areas.forEach((area) => {
                if (area.toLowerCase().includes(q)) {
                     results.push({ city, area });

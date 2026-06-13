@@ -17,6 +17,19 @@ router.post("/create-player", upload.fields([
     }
     next();
 }, authController.createUser);
+router.post("/create-organizer", auth("admin"), upload.fields([
+    { name: "images", maxCount: 6 }
+]), (req, _res, next) => {
+    if (req.body.data) {
+        try {
+            req.body = { ...JSON.parse(req.body.data) };
+        }
+        catch (err) {
+            return next(new Error("Invalid JSON in 'data' field"));
+        }
+    }
+    next();
+}, authController.createOrganizer);
 //custom login 
 router.post("/login", authController.logInUser);
 router.post("/google-login", authController.googleLogin);
@@ -42,6 +55,8 @@ router.put("/update-profile", upload.fields([
     }
     next();
 }, auth("player", "admin", "organizer"), authController.updateProfile);
+router.put("/update-country", auth("player", "admin", "organizer"), authController.updateOwnCountry);
+router.put("/users/:id/country", auth("admin"), authController.updateUserCountryByAdmin);
 router.get("/user", auth("player", "admin", "organizer"), authController.singleUser);
 // single player 
 router.get('/player-profile/:id', authController.playerProfile);

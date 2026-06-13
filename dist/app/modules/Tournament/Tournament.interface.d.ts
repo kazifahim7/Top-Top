@@ -6,7 +6,10 @@ export interface ITournament {
     location: {
         lat: number;
         lng: number;
+        address?: string;
     };
+    countryCode?: string;
+    currencyCode?: string;
     startDate: Date;
     duration: number;
     fieldSize: 5 | 7 | 11 | 8 | 9 | 10;

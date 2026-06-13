@@ -28,6 +28,8 @@ export interface IMatch {
      teamAPlayers: PlayerStats[];
      media:string[],
      organizer: Types.ObjectId;
+     countryCode?: string;
+     currencyCode?: string;
      motm: Types.ObjectId;
      team1AvgMatchRatingBefore:number;
      team2AvgMatchRatingBefore:number;

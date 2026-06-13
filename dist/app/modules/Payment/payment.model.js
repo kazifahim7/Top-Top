@@ -6,6 +6,7 @@ const PaymentSchema = new Schema({
     ExtraPlayerId: { type: Schema.Types.ObjectId, ref: "Players" },
     teamId: { type: Schema.Types.ObjectId, ref: "Team" },
     price: { type: Number, required: true },
+    currencyCode: { type: String, trim: true, uppercase: true, default: "AED" },
     guest_player: { type: Boolean, default: false },
     matchPosition: {
         type: String,
@@ -49,5 +50,6 @@ const PaymentSchema = new Schema({
     //tournament part is here kaka
     tournamentId: { type: Schema.Types.ObjectId, ref: "Tournament" },
 }, { timestamps: true });
+PaymentSchema.index({ currencyCode: 1, createdAt: -1 });
 export const PaymentModel = model("Payment", PaymentSchema);
 //# sourceMappingURL=payment.model.js.map

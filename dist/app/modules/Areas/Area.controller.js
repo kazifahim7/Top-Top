@@ -1,27 +1,28 @@
 import { AreaService } from "./Area.service.js";
+import catchAsync from "../../utils/catcgAsync.js";
 // GET /api/areas
-export const getAllAreas = (req, res) => {
-    const data = AreaService.getAllAreas();
+export const getAllAreas = catchAsync(async (req, res) => {
+    const data = await AreaService.getAllAreas(req.query.countryCode);
     return res.status(200).json({
         success: true,
         total_cities: data.length,
         data,
     });
-};
+});
 // GET /api/areas/cities
-export const getCities = (req, res) => {
-    const data = AreaService.getCities();
+export const getCities = catchAsync(async (req, res) => {
+    const data = await AreaService.getCities(req.query.countryCode);
     return res.status(200).json({
         success: true,
         total: data.length,
         data,
     });
-};
+});
 // GET /api/areas/:slug
 // e.g. /api/areas/dubai  |  /api/areas/sharjah  |  /api/areas/abu-dhabi
-export const getAreasByCity = (req, res) => {
+export const getAreasByCity = catchAsync(async (req, res) => {
     const { slug } = req.params;
-    const data = AreaService.getAreasByCity(slug);
+    const data = await AreaService.getAreasByCity(slug, req.query.countryCode);
     if (!data) {
         return res.status(404).json({
             success: false,
@@ -32,9 +33,9 @@ export const getAreasByCity = (req, res) => {
         success: true,
         data,
     });
-};
+});
 // GET /api/areas/search?q=marina
-export const searchAreas = (req, res) => {
+export const searchAreas = catchAsync(async (req, res) => {
     const q = req.query.q;
     if (!q || q.trim() === "") {
         return res.status(400).json({
@@ -42,11 +43,11 @@ export const searchAreas = (req, res) => {
             message: "Query parameter 'q' is required",
         });
     }
-    const data = AreaService.searchAreas(q.trim());
+    const data = await AreaService.searchAreas(q.trim(), req.query.countryCode);
     return res.status(200).json({
         success: true,
         total: data.length,
         data,
     });
-};
+});
 //# sourceMappingURL=Area.controller.js.map

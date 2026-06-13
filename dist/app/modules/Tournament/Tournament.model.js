@@ -8,6 +8,8 @@ const tournamentSchema = new Schema({
         lng: { type: Number, required: true },
         address: { type: String, required: true },
     },
+    countryCode: { type: String, trim: true, uppercase: true, default: "AE" },
+    currencyCode: { type: String, trim: true, uppercase: true, default: "AED" },
     startDate: { type: Date, required: true },
     duration: { type: Number, required: true },
     fieldSize: { type: Number, enum: [5, 8, 7, 9, 10, 11], default: 5 },
@@ -22,5 +24,6 @@ const tournamentSchema = new Schema({
 }, {
     timestamps: true
 });
+tournamentSchema.index({ countryCode: 1, startDate: -1 });
 export const TournamentModel = model("Tournament", tournamentSchema);
 //# sourceMappingURL=Tournament.model.js.map

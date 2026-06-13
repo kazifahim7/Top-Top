@@ -23,6 +23,14 @@ const allMatch = catchAsync(async (req, res) => {
         data: result
     });
 });
+const countryMatch = catchAsync(async (req, res) => {
+    const result = await lobbyService.countryMatch(req.params.countryCode, req.query);
+    res.status(200).json({
+        success: true,
+        message: "Country lobbies retrieved successfully",
+        data: result
+    });
+});
 const organizerMatch = catchAsync(async (req, res) => {
     const query = req.query;
     const orgId = req?.user?.id;
@@ -145,6 +153,7 @@ export const lobbyController = {
     organizerLobby,
     assignLobby,
     assigntournament,
-    organizerMatch
+    organizerMatch,
+    countryMatch
 };
 //# sourceMappingURL=lobby.controller.js.map

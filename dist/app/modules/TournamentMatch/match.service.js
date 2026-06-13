@@ -7,14 +7,27 @@ import { TeamModel } from "../Team/team.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { MatchModel } from "./match.model.js";
 import { Types } from "mongoose";
+import { CountryService } from "../Country/country.service.js";
 const createMatch = async (payload, id) => {
+    const tournament = await TournamentModel.findById(payload.tournament).select("countryCode currencyCode");
+    if (!tournament)
+        throw new AppError(404, "Tournament not found");
     payload.organizer = new Types.ObjectId(id);
+    payload.countryCode = tournament.countryCode || CountryService.DEFAULT_COUNTRY_CODE;
+    payload.currencyCode = tournament.currencyCode || CountryService.DEFAULT_CURRENCY_CODE;
     const result = await MatchModel.create(payload);
     return result;
 };
 const allMatch = async (id) => {
     const result = await MatchModel.find({ tournament: id })
         .populate("winner teamB teamA tournament")
+        .sort({ date: -1 });
+    return result;
+};
+const countryMatch = async (countryCode) => {
+    await CountryService.assertActiveCountry(countryCode);
+    const result = await MatchModel.find(CountryService.buildLegacyCountryFilter(countryCode))
+        .populate("winner teamB teamA tournament organizer")
         .sort({ date: -1 });
     return result;
 };
@@ -419,6 +432,7 @@ export const tournamentMatchService = {
     singleMatch,
     deleteMatch,
     allMatch,
+    countryMatch,
     updateMatchAndStanding,
     addPlayers,
     removePlayerFromMatch,

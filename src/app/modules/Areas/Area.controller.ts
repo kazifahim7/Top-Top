@@ -1,33 +1,34 @@
 import type { Request, Response } from "express";
 import { AreaService } from "./Area.service.js";
+import catchAsync from "../../utils/catcgAsync.js";
 
 
 
 // GET /api/areas
-export const getAllAreas = (req: Request, res: Response) => {
-     const data = AreaService.getAllAreas();
+export const getAllAreas = catchAsync(async (req: Request, res: Response) => {
+     const data = await AreaService.getAllAreas(req.query.countryCode);
      return res.status(200).json({
           success: true,
           total_cities: data.length,
           data,
      });
-};
+});
 
 // GET /api/areas/cities
-export const getCities = (req: Request, res: Response) => {
-     const data = AreaService.getCities();
+export const getCities = catchAsync(async (req: Request, res: Response) => {
+     const data = await AreaService.getCities(req.query.countryCode);
      return res.status(200).json({
           success: true,
           total: data.length,
           data,
      });
-};
+});
 
 // GET /api/areas/:slug
 // e.g. /api/areas/dubai  |  /api/areas/sharjah  |  /api/areas/abu-dhabi
-export const getAreasByCity = (req: Request, res: Response) => {
+export const getAreasByCity = catchAsync(async (req: Request, res: Response) => {
      const { slug } = req.params;
-     const data = AreaService.getAreasByCity(slug!);
+     const data = await AreaService.getAreasByCity(slug!, req.query.countryCode);
 
      if (!data) {
           return res.status(404).json({
@@ -40,10 +41,10 @@ export const getAreasByCity = (req: Request, res: Response) => {
           success: true,
           data,
      });
-};
+});
 
 // GET /api/areas/search?q=marina
-export const searchAreas = (req: Request, res: Response) => {
+export const searchAreas = catchAsync(async (req: Request, res: Response) => {
      const q = req.query.q as string;
 
      if (!q || q.trim() === "") {
@@ -53,11 +54,11 @@ export const searchAreas = (req: Request, res: Response) => {
           });
      }
 
-     const data = AreaService.searchAreas(q.trim());
+     const data = await AreaService.searchAreas(q.trim(), req.query.countryCode);
 
      return res.status(200).json({
           success: true,
           total: data.length,
           data,
      });
-};
+});

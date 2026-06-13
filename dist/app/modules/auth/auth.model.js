@@ -10,6 +10,7 @@ const ProfileSchema = new Schema({
     isMobileVerified: { type: Boolean, default: false },
     mobileVerifiedAt: { type: Date, default: null },
     nationality: { type: String, default: "" },
+    countryCode: { type: String, trim: true, uppercase: true, default: "AE" },
     dominantFoot: { type: String, default: "" },
     gameMode: { type: String, default: "" },
     preferredAreas: { type: [String], default: [] },
@@ -35,5 +36,6 @@ const ProfileSchema = new Schema({
     timestamps: true,
 });
 ProfileSchema.index({ mobile: 1, isMobileVerified: 1 });
+ProfileSchema.index({ countryCode: 1 });
 export const userModel = model('Players', ProfileSchema);
 //# sourceMappingURL=auth.model.js.map

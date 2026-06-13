@@ -84,6 +84,7 @@ export declare const lobbyService: {
         __v: number;
     }) | null>;
     organizerMatch: (query: Record<string, unknown>, orgId: string) => Promise<any[]>;
+    countryMatch: (countryCode: string, query: Record<string, unknown>) => Promise<any[]>;
 };
 export {};
 //# sourceMappingURL=lobby.services.d.ts.map

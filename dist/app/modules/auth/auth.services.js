@@ -12,6 +12,7 @@ import { TeamModel } from '../Team/team.model.js';
 import { isValidPhone, sendOTP, verifyOTP } from '../../utils/twilio.js';
 import { MatchModel } from '../TournamentMatch/match.model.js';
 import mongoose from 'mongoose';
+import { CountryService } from '../Country/country.service.js';
 // ─── Normalisation helpers ────────────────────────────────────────────────────
 const normalizeMobile = (mobile) => {
     if (typeof mobile !== "string")
@@ -57,6 +58,7 @@ const PROFILE_UPDATE_ALLOWLIST = new Set([
     "position",
     "age",
     "matchPosition",
+    "countryCode",
 ]);
 const buildProfileUpdatePayload = (raw) => {
     const safe = {};
@@ -86,6 +88,7 @@ const createUserIntoDB = async (payload) => {
     }
     const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
     const position = normalizeStringArray(payload.position);
+    const country = await CountryService.assertActiveCountry(payload.countryCode);
     // F-01 FIX: role and isBlocked are hard-coded constants — never sourced from
     // the request payload, so a caller cannot self-assign admin / organizer.
     const sanitizedPayload = {
@@ -100,6 +103,7 @@ const createUserIntoDB = async (payload) => {
         isMobileVerified: false,
         mobileVerifiedAt: null,
         nationality: normalizeOptionalString(payload.nationality),
+        countryCode: country.countryCode,
         dominantFoot: normalizeOptionalString(payload.dominantFoot),
         gameMode: normalizeOptionalString(payload.gameMode),
         preferredAreas: normalizeStringArray(payload.preferredAreas),
@@ -111,6 +115,38 @@ const createUserIntoDB = async (payload) => {
     };
     const result = await userModel.create(sanitizedPayload);
     return result;
+};
+const createOrganizerIntoDB = async (payload) => {
+    const isUserAlreadyExist = await userModel.findOne({ email: payload?.email });
+    if (isUserAlreadyExist) {
+        throw new AppError(401, "This user Already exists");
+    }
+    const country = await CountryService.assertActiveCountry(payload.countryCode);
+    const hashedPassword = await bcrypt.hash(payload.password, Number(config.salt_round));
+    const imageUrl = normalizeOptionalString(payload.imageUrl) || "https://i.postimg.cc/X70KZzQw/logo.jpg";
+    const sanitizedPayload = {
+        FullName: payload.FullName,
+        userName: normalizeOptionalString(payload.userName),
+        email: payload.email,
+        password: hashedPassword,
+        mobile: normalizeMobile(payload.mobile),
+        imageUrl,
+        role: "organizer",
+        isBlocked: "active",
+        isMobileVerified: false,
+        mobileVerifiedAt: null,
+        nationality: normalizeOptionalString(payload.nationality),
+        countryCode: country.countryCode,
+        dominantFoot: normalizeOptionalString(payload.dominantFoot),
+        gameMode: normalizeOptionalString(payload.gameMode),
+        preferredAreas: normalizeStringArray(payload.preferredAreas),
+        socialProfile: normalizeStringArray(payload.socialProfile),
+        playingDays: normalizeStringArray(payload.playingDays),
+        position: normalizeStringArray(payload.position),
+        age: normalizeOptionalString(payload.age) || "18",
+        matchPosition: normalizeOptionalString(payload.matchPosition),
+    };
+    return userModel.create(sanitizedPayload);
 };
 const loginUser = async (payload) => {
     const isUserExist = await userModel.findOne({ email: payload.email });
@@ -137,6 +173,7 @@ const loginUser = async (payload) => {
         role: isUserExist?.role,
         userid: isUserExist._id,
         mobile: isUserExist?.mobile,
+        countryCode: isUserExist?.countryCode || CountryService.DEFAULT_COUNTRY_CODE,
         isMobileVerified: Boolean(isUserExist?.isMobileVerified),
         mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
     };
@@ -159,6 +196,7 @@ const googleLogin = async (payload) => {
             id: result?._id,
             role: result?.role,
             email: result?.email,
+            countryCode: result?.countryCode || CountryService.DEFAULT_COUNTRY_CODE,
             isMobileVerified: Boolean(result?.isMobileVerified),
             mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
         };
@@ -171,6 +209,7 @@ const googleLogin = async (payload) => {
             id: isUserExist?._id,
             role: isUserExist?.role,
             email: isUserExist?.email,
+            countryCode: isUserExist?.countryCode || CountryService.DEFAULT_COUNTRY_CODE,
             isMobileVerified: Boolean(isUserExist?.isMobileVerified),
             mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
         };
@@ -207,6 +246,7 @@ const appleLogin = async (payload) => {
             id: result?._id,
             role: result?.role,
             email: result?.email,
+            countryCode: result?.countryCode || CountryService.DEFAULT_COUNTRY_CODE,
             isMobileVerified: Boolean(result?.isMobileVerified),
             mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
         };
@@ -227,6 +267,7 @@ const appleLogin = async (payload) => {
             id: isUserExist?._id,
             role: isUserExist?.role,
             email: isUserExist?.email,
+            countryCode: isUserExist?.countryCode || CountryService.DEFAULT_COUNTRY_CODE,
             isMobileVerified: Boolean(isUserExist?.isMobileVerified),
             mobileVerifiedAt: isUserExist?.mobileVerifiedAt ?? null,
         };
@@ -281,6 +322,10 @@ const updateProfileInDB = async (email, payload) => {
             sanitizedPayload.mobileVerifiedAt = null;
         }
     }
+    if (Object.prototype.hasOwnProperty.call(sanitizedPayload, "countryCode")) {
+        const country = await CountryService.assertActiveCountry(sanitizedPayload.countryCode);
+        sanitizedPayload.countryCode = country.countryCode;
+    }
     const result = await userModel.findOneAndUpdate({ email: email }, sanitizedPayload, { new: true }).select("-password");
     if (!result)
         return result;
@@ -292,8 +337,25 @@ const updateProfileInDB = async (email, payload) => {
     };
 };
 const allStudentFromDB = async (query) => {
-    const playerQuery = new QueryBuilder(userModel.find().select("-password"), query).filter().search(["userName", "FullName"]).sort();
+    const countryFilter = query.countryCode !== undefined
+        ? CountryService.buildLegacyCountryFilter(query.countryCode)
+        : {};
+    const playerQuery = new QueryBuilder(userModel.find(countryFilter).select("-password"), query).filter().search(["userName", "FullName"]).sort();
     const result = await playerQuery.modelQuery;
+    return result;
+};
+const updateOwnCountry = async (userId, countryCode) => {
+    const country = await CountryService.assertActiveCountry(countryCode);
+    const result = await userModel.findByIdAndUpdate(userId, { countryCode: country.countryCode }, { new: true }).select("-password");
+    if (!result)
+        throw new AppError(404, "This user Not Found");
+    return result;
+};
+const updateUserCountryByAdmin = async (userId, countryCode) => {
+    const country = await CountryService.assertActiveCountry(countryCode);
+    const result = await userModel.findByIdAndUpdate(userId, { countryCode: country.countryCode }, { new: true }).select("-password");
+    if (!result)
+        throw new AppError(404, "This user Not Found");
     return result;
 };
 const getSingleUser = async (email) => {
@@ -602,11 +664,14 @@ const deleteAccount = async (id) => {
 };
 export const authService = {
     createUserIntoDB,
+    createOrganizerIntoDB,
     deleteAccount,
     loginUser,
     updateStatusInDB,
     updateProfileInDB,
     allStudentFromDB,
+    updateOwnCountry,
+    updateUserCountryByAdmin,
     getSingleUser,
     resetRequest,
     resetPassword,

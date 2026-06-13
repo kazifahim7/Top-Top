@@ -3,9 +3,29 @@ import AppError from "../../Error/AppError.js";
 import type { ITournament } from "./Tournament.interface.js";
 import { TournamentModel } from "./Tournament.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
+import { CountryService } from "../Country/country.service.js";
+import { userModel } from "../auth/auth.model.js";
+
+const resolveContentCountry = async (payloadCountryCode: unknown, organizerId?: unknown) => {
+     if (payloadCountryCode !== undefined && payloadCountryCode !== null && payloadCountryCode !== "") {
+          return CountryService.assertActiveCountry(payloadCountryCode);
+     }
+
+     if (organizerId) {
+          const organizer = await userModel.findById(organizerId.toString()).select("countryCode");
+          return CountryService.assertActiveCountry(organizer?.countryCode || CountryService.DEFAULT_COUNTRY_CODE);
+     }
+
+     return CountryService.assertActiveCountry(CountryService.DEFAULT_COUNTRY_CODE);
+};
 
 const createTournament = async (payload: ITournament) => {
-     const result = await TournamentModel.create(payload);
+     const country = await resolveContentCountry(payload.countryCode, payload.organizer);
+     const result = await TournamentModel.create({
+          ...payload,
+          countryCode: country.countryCode,
+          currencyCode: country.currencyCode,
+     });
      return result;
 };
 
@@ -45,6 +65,42 @@ const allTournament = async () => {
      }));
 
      return result;
+};
+
+const countryTournament = async (countryCode: string) => {
+     await CountryService.assertActiveCountry(countryCode);
+     const tournaments = await TournamentModel.find({
+          status: { $ne: "inactive" },
+          isDelete: { $ne: true },
+          ...CountryService.buildLegacyCountryFilter(countryCode),
+     })
+          .populate("winner")
+          .populate("qualifiedTeams")
+          .populate({
+               path: "teams",
+               populate: [
+                    { path: "players" },
+                    { path: "teamOwner" },
+               ],
+          })
+          .populate("organizer")
+          .sort({ createdAt: -1 })
+          .lean();
+
+     return tournaments.map((tournament) => ({
+          ...tournament,
+          teams: (tournament.teams as any[]).map((team: any) => ({
+               ...team,
+               rating: calculateTeamRating(team),
+          })),
+          qualifiedTeams: (tournament.qualifiedTeams as any[]).map((team: any) => ({
+               ...team,
+               rating: calculateTeamRating(team),
+          })),
+          winner: tournament.winner
+               ? { ...(tournament.winner as any), rating: calculateTeamRating(tournament.winner as any) }
+               : null,
+     }));
 };
 
 function calculateTeamRating(team: any): number {
@@ -93,6 +149,12 @@ const updateTournament = async (
 
      // F-05 FIX: organizer 
      assertTournamentAccess(tournament, callerId, callerRole);
+
+     if (Object.prototype.hasOwnProperty.call(payload, "countryCode")) {
+          const country = await CountryService.assertActiveCountry(payload.countryCode);
+          payload.countryCode = country.countryCode;
+          payload.currencyCode = country.currencyCode;
+     }
 
      const result = await TournamentModel.findByIdAndUpdate(id, payload, { new: true });
      return result;
@@ -202,4 +264,5 @@ export const TournamentService = {
      qualifyTeamsService,
      getTopPlayers,
      organizerTournament,
+     countryTournament,
 };

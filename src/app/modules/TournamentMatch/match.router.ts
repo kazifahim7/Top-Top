@@ -7,6 +7,7 @@ const router = express.Router()
 
 router.post('/create-tournamentMatch', auth("organizer"), tournamentMatchController.createMatch)
 router.get('/all-tournamentMatch/:id', tournamentMatchController.allMatch)
+router.get('/country/:countryCode', tournamentMatchController.countryMatch)
 router.get('/single-tournamentMatchDetails/:id', tournamentMatchController.singleMatch)
 router.delete('/delete-tournamentMatch/:id', auth("organizer", "admin"), tournamentMatchController.deleteMatch)
 

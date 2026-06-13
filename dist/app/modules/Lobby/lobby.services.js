@@ -7,8 +7,20 @@ import { TeamModel } from "../Team/team.model.js";
 import { PaymentModel } from "../Payment/payment.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { getPlayerOverallRating } from "../../utils/getRating.js";
+import { CountryService } from "../Country/country.service.js";
+const resolveContentCountry = async (payloadCountryCode, organizerId) => {
+    if (payloadCountryCode !== undefined && payloadCountryCode !== null && payloadCountryCode !== "") {
+        return CountryService.assertActiveCountry(payloadCountryCode);
+    }
+    if (organizerId) {
+        const organizer = await userModel.findById(organizerId).select("countryCode");
+        return CountryService.assertActiveCountry(organizer?.countryCode || CountryService.DEFAULT_COUNTRY_CODE);
+    }
+    return CountryService.assertActiveCountry(CountryService.DEFAULT_COUNTRY_CODE);
+};
 //lobby match
 const createMatch = async (payload, id, role) => {
+    const country = await resolveContentCountry(payload.countryCode, id);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -33,6 +45,8 @@ const createMatch = async (payload, id, role) => {
     // ✅ Step 5: Create new lobby
     const result = await LobbyModel.create({
         ...finalData,
+        countryCode: country.countryCode,
+        currencyCode: country.currencyCode,
         organizer: new Types.ObjectId(id),
     });
     if (result && payload.team1?.teamId && payload.team2?.teamId) {
@@ -51,11 +65,15 @@ const createMatch = async (payload, id, role) => {
 };
 const allMatch = async (query) => {
     const search = query.searchTerms || "";
+    const countryFilter = query.countryCode !== undefined
+        ? CountryService.buildLegacyCountryFilter(query.countryCode)
+        : {};
     const lobbies = await LobbyModel.aggregate([
         {
             $match: {
                 lobbyStatus: { $ne: "inactive" },
-                isDelete: { $ne: true }
+                isDelete: { $ne: true },
+                ...countryFilter,
             }
         },
         // ✅ সব team এর players এর playerId collect করো
@@ -408,10 +426,14 @@ const allMatch = async (query) => {
 };
 const organizerMatch = async (query, orgId) => {
     const search = query.searchTerms || "";
+    const countryFilter = query.countryCode !== undefined
+        ? CountryService.buildLegacyCountryFilter(query.countryCode)
+        : {};
     const lobbies = await LobbyModel.aggregate([
         {
             $match: {
-                lobbyStatus: "ongoing"
+                lobbyStatus: "ongoing",
+                ...countryFilter,
             }
         },
         {
@@ -517,6 +539,10 @@ const organizerMatch = async (query, orgId) => {
         }
     ]);
     return lobbies;
+};
+const countryMatch = async (countryCode, query) => {
+    await CountryService.assertActiveCountry(countryCode);
+    return allMatch({ ...query, countryCode });
 };
 const singlelobby = async (lobbyId) => {
     const lobbies = await LobbyModel.aggregate([
@@ -1288,6 +1314,11 @@ const updateLobbyInfo = async (id, payload) => {
     if (payload.motm && !isLobbyExist.motm) {
         await userModel.findByIdAndUpdate(payload.motm, { $inc: { motm: 1 } });
     }
+    if (Object.prototype.hasOwnProperty.call(payload, "countryCode")) {
+        const country = await CountryService.assertActiveCountry(payload.countryCode);
+        payload.countryCode = country.countryCode;
+        payload.currencyCode = country.currencyCode;
+    }
     const result = await LobbyModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
 };
@@ -1491,6 +1522,7 @@ export const lobbyService = {
     organizerLobby,
     assignLobby,
     assigntournament,
-    organizerMatch
+    organizerMatch,
+    countryMatch
 };
 //# sourceMappingURL=lobby.services.js.map

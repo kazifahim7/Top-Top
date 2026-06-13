@@ -22,6 +22,11 @@ export declare const authService: {
     } & {
         __v: number;
     }>;
+    createOrganizerIntoDB: (payload: TCreateProfile) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
+    } & {
+        __v: number;
+    }>;
     deleteAccount: (id: string) => Promise<(mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: mongoose.Types.ObjectId;
     } & {
@@ -30,9 +35,10 @@ export declare const authService: {
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
-        role: "player" | "admin" | "organizer";
+        role: "admin" | "player" | "organizer";
         userid: mongoose.Types.ObjectId;
         mobile: string | undefined;
+        countryCode: string;
         isMobileVerified: boolean;
         mobileVerifiedAt: Date | null;
     }>;
@@ -53,6 +59,7 @@ export declare const authService: {
         socialProfile: string[];
         imageUrl: string;
         nationality: string;
+        countryCode?: string;
         dominantFoot: string;
         playingDays: string[];
         gameMode: string;
@@ -87,6 +94,7 @@ export declare const authService: {
         socialProfile?: any;
         imageUrl?: any;
         nationality?: any;
+        countryCode?: any;
         dominantFoot?: any;
         playingDays?: any;
         gameMode?: any;
@@ -118,6 +126,7 @@ export declare const authService: {
         socialProfile?: any;
         imageUrl?: any;
         nationality?: any;
+        countryCode?: any;
         dominantFoot?: any;
         playingDays?: any;
         gameMode?: any;
@@ -142,6 +151,16 @@ export declare const authService: {
     } & {
         __v: number;
     })[]>;
+    updateOwnCountry: (userId: string, countryCode: unknown) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
+    } & {
+        __v: number;
+    }>;
+    updateUserCountryByAdmin: (userId: string, countryCode: unknown) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+        _id: mongoose.Types.ObjectId;
+    } & {
+        __v: number;
+    }>;
     getSingleUser: (email: string) => Promise<{
         isMobileVerified: boolean;
         mobileVerifiedAt: Date | null;
@@ -164,6 +183,7 @@ export declare const authService: {
         socialProfile: string[];
         imageUrl: string;
         nationality: string;
+        countryCode?: string;
         dominantFoot: string;
         playingDays: string[];
         gameMode: string;
@@ -211,8 +231,9 @@ export declare const authService: {
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: mongoose.Types.ObjectId;
-            role: "player" | "admin" | "organizer";
+            role: "admin" | "player" | "organizer";
             email: string;
+            countryCode: string;
             isMobileVerified: boolean;
             mobileVerifiedAt: Date | null;
         };
@@ -227,8 +248,9 @@ export declare const authService: {
     appleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: mongoose.Types.ObjectId;
-            role: "player" | "admin" | "organizer";
+            role: "admin" | "player" | "organizer";
             email: string;
+            countryCode: string;
             isMobileVerified: boolean;
             mobileVerifiedAt: Date | null;
         };

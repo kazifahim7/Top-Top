@@ -105,6 +105,8 @@ export declare const tournamentMatchService: {
         }>[];
         media: string[];
         organizer: Types.ObjectId;
+        countryCode?: string;
+        currencyCode?: string;
         motm: Types.ObjectId;
         team1AvgMatchRatingBefore: number;
         team2AvgMatchRatingBefore: number;
@@ -119,6 +121,11 @@ export declare const tournamentMatchService: {
         __v: number;
     }) | null>;
     allMatch: (id: string) => Promise<(import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    })[]>;
+    countryMatch: (countryCode: string) => Promise<(import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
         _id: Types.ObjectId;
     } & {
         __v: number;

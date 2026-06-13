@@ -18,8 +18,30 @@ const createUser = catchAsync(async (req, res) => {
             fullName: result?.FullName,
             email: result?.email,
             userName: result?.userName,
+            countryCode: result?.countryCode,
             isMobileVerified: Boolean(result?.isMobileVerified),
             mobileVerifiedAt: result?.mobileVerifiedAt ?? null,
+        }
+    });
+});
+const createOrganizer = catchAsync(async (req, res) => {
+    const data = req.body;
+    const imageFiles = req.files?.images || [];
+    for (const file of imageFiles) {
+        const url = await uploadToS3(file);
+        data.imageUrl = url;
+    }
+    const result = await authService.createOrganizerIntoDB(data);
+    res.status(200).json({
+        success: true,
+        message: "Organizer registered successfully",
+        data: {
+            _id: result?._id,
+            fullName: result?.FullName,
+            email: result?.email,
+            userName: result?.userName,
+            role: result?.role,
+            countryCode: result?.countryCode,
         }
     });
 });
@@ -109,6 +131,22 @@ const updateProfile = catchAsync(async (req, res) => {
         data: result
     });
 });
+const updateOwnCountry = catchAsync(async (req, res) => {
+    const result = await authService.updateOwnCountry(req.user.id, req.body.countryCode);
+    res.status(200).json({
+        success: true,
+        message: "Country updated successfully",
+        data: result,
+    });
+});
+const updateUserCountryByAdmin = catchAsync(async (req, res) => {
+    const result = await authService.updateUserCountryByAdmin(req.params.id, req.body.countryCode);
+    res.status(200).json({
+        success: true,
+        message: "User country updated successfully",
+        data: result,
+    });
+});
 const allUsers = catchAsync(async (req, res) => {
     const result = await authService.allStudentFromDB(req.query);
     res.status(200).json({
@@ -162,9 +200,12 @@ const deleteAccount = catchAsync(async (req, res) => {
 });
 export const authController = {
     createUser,
+    createOrganizer,
     logInUser,
     updateStatus,
     updateProfile,
+    updateOwnCountry,
+    updateUserCountryByAdmin,
     allUsers,
     singleUser,
     resetRequest,

@@ -41,6 +41,7 @@ declare const playerRanking: (options: RankingOptions) => Promise<{
     socialProfile: string[];
     imageUrl: string;
     nationality: string;
+    countryCode?: string;
     dominantFoot: string;
     playingDays: string[];
     gameMode: string;
@@ -96,6 +97,7 @@ export declare const playerRankingService: {
         socialProfile: string[];
         imageUrl: string;
         nationality: string;
+        countryCode?: string;
         dominantFoot: string;
         playingDays: string[];
         gameMode: string;

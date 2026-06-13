@@ -11,6 +11,7 @@ import { TournamentModel } from "../Tournament/Tournament.model.js";
 import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
+import { CountryService } from "../Country/country.service.js";
 
 const stripe = new Stripe(config.sk_key!, { apiVersion: "2024-06-20" as any });
 
@@ -268,6 +269,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                }
           }
           let price: number = 0;
+          let currencyCode = CountryService.DEFAULT_CURRENCY_CODE;
           let payment: any;
 
           // ─── Team Fee ─────────────────────────────────────────────────────────
@@ -275,6 +277,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                const lobby = await LobbyModel.findById(lobbyId);
                if (!lobby) return res.status(404).json({ message: "Lobby not found" });
                price = lobby.price;
+               currencyCode = CountryService.normalizeCurrencyCode(lobby.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
                if (lobby.matchType === "teams") {
                     const isTeamsExist = await TeamModel.findById(teamId);
                     if (!isTeamsExist) throw new AppError(404, "Team not found");
@@ -429,6 +432,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                const tournament = await TournamentModel.findById(tournamentId);
                if (!tournament) throw new AppError(404, "Tournament Not Found");
                price = tournament.price; 
+               currencyCode = CountryService.normalizeCurrencyCode(tournament.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
 
                const findTeam = await TeamModel.findOne({ teamOwner: playerId });
                if (!findTeam) throw new AppError(404, "Team not Found");
@@ -454,6 +458,12 @@ export const joinLobby = async (req: Request, res: Response) => {
                     paymentType,
                });
           }
+
+          if (!payment) {
+               throw new AppError(400, "Unable to create payment");
+          }
+
+          payment.currencyCode = currencyCode;
 
           // ─── Cash Payment ─────────────────────────────────────────────────────
           if (method === "cash") {
@@ -490,7 +500,7 @@ export const joinLobby = async (req: Request, res: Response) => {
           // ─── Stripe Payment ───────────────────────────────────────────────────
           const paymentIntent = await stripe.paymentIntents.create({
                amount: price * 100,
-               currency: "aed",
+               currency: currencyCode.toLowerCase(),
                automatic_payment_methods: {
                     enabled: true,  
                },
@@ -621,7 +631,8 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                if (intent.metadata.paymentId !== payment._id.toString()) {
                     return res.status(400).json({ message: "Payment metadata mismatch" });
                }
-               if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
+               const expectedCurrency = CountryService.normalizeCurrencyCode(payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE).toLowerCase();
+               if (intent.amount !== payment.price * 100 || intent.currency !== expectedCurrency) {
                     return res.status(400).json({ message: "Payment amount or currency mismatch" });
                }
 
@@ -1003,4 +1014,3 @@ export const makePaid = async (req: Request, res: Response) => {
           return res.status(500).json({ message: "Internal server error" });
      }
 };
-

@@ -10,6 +10,7 @@ const PaymentSchema = new Schema<Payment>(
           ExtraPlayerId: { type: Schema.Types.ObjectId, ref: "Players" },
           teamId: { type: Schema.Types.ObjectId, ref: "Team" },
           price: { type: Number, required: true },
+          currencyCode: { type: String, trim: true, uppercase: true, default: "AED" },
           guest_player:{type:Boolean,default:false},
           matchPosition: {
                type: String,
@@ -63,5 +64,7 @@ const PaymentSchema = new Schema<Payment>(
      },
      { timestamps: true }
 );
+
+PaymentSchema.index({ currencyCode: 1, createdAt: -1 });
 
 export const PaymentModel = model<Payment>("Payment", PaymentSchema);

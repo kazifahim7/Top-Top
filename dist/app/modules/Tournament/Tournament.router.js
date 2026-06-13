@@ -17,8 +17,23 @@ router.post("/create-tournament", upload.fields([{ name: "images", maxCount: 6 }
     }
     next();
 }, TournamentController.createTournament);
+router.post("/create-tournament-v2", upload.fields([{ name: "images", maxCount: 6 }]), auth("organizer", "admin"), (req, _res, next) => {
+    if (req.body.data) {
+        let parsedData;
+        try {
+            parsedData = JSON.parse(req.body.data);
+        }
+        catch (err) {
+            return next(new Error("Invalid JSON in 'data' field"));
+        }
+        parsedData.organizer = req.user.id;
+        req.body = parsedData;
+    }
+    next();
+}, TournamentController.createTournament);
 router.get('/single-tournament/:id', TournamentController.singleTournament);
 router.get('/all-tournament', TournamentController.allTournament);
+router.get('/country/:countryCode', TournamentController.countryTournament);
 router.get('/:tournamentId/top-players', TournamentController.getTopPlayers);
 router.get('/all-tournament-organizer', auth("organizer"), TournamentController.organizerTournament);
 // F-05 FIX: organizer ও admin 

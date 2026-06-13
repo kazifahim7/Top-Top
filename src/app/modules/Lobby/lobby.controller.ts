@@ -26,6 +26,14 @@ const allMatch = catchAsync(async (req: Request, res: Response) => {
           data: result
      })
 })
+const countryMatch = catchAsync(async (req: Request, res: Response) => {
+     const result = await lobbyService.countryMatch(req.params.countryCode!, req.query)
+     res.status(200).json({
+          success: true,
+          message: "Country lobbies retrieved successfully",
+          data: result
+     })
+})
 const organizerMatch = catchAsync(async (req: Request, res: Response) => {
 
      const query = req.query
@@ -182,5 +190,6 @@ export const lobbyController={
      organizerLobby,
      assignLobby,
      assigntournament,
-     organizerMatch
+     organizerMatch,
+     countryMatch
 }

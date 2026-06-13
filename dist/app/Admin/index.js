@@ -9,6 +9,7 @@ export const TAdmin = {
     "socialProfile": [],
     "imageUrl": "https://i.postimg.cc/X70KZzQw/logo.jpg",
     "nationality": "UAE",
+    "countryCode": "AE",
     "dominantFoot": "Right",
     "playingDays": [],
     "gameMode": "N/A",

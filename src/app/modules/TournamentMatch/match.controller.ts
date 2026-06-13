@@ -20,6 +20,15 @@ const allMatch = catchAsync(async (req, res) => {
      })
 })
 
+const countryMatch = catchAsync(async (req, res) => {
+     const result = await tournamentMatchService.countryMatch(req.params.countryCode!)
+     res.status(200).json({
+          success: true,
+          message: "Country tournament matches retrieved successfully",
+          data: result
+     })
+})
+
 const singleMatch = catchAsync(async (req, res) => {
      const result = await tournamentMatchService.singleMatch(req.params.id!)
      res.status(200).json({
@@ -109,6 +118,7 @@ export const tournamentMatchController = {
      createMatch,
      deleteMatch,
      allMatch,
+     countryMatch,
      singleMatch,
      updateMatch,
      updatePlayerState,
