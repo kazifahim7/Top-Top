@@ -40,6 +40,7 @@ router.post("/send-otp",otpLimiter, authController.resetRequest)
 router.post("/reset-password",otpLimiter,authController.resetPassword)
 router.post("/phone/send-otp", auth("player","admin","organizer"), otpLimiter, authController.sendPhoneOtp)
 router.post("/phone/verify-otp", auth("player","admin","organizer"), otpLimiter, authController.verifyPhoneOtp)
+router.get("/my-country-players", auth("player","admin","organizer"), authController.myCountryPlayers)
 router.get("/all-player", authController.allUsers)
 
 router.patch("/update-status/:id", auth("admin"), authController.updateStatus)
@@ -67,6 +68,7 @@ router.get("/user", auth("player","admin","organizer"), authController.singleUse
 
 // single player 
 
+router.get('/my-country-player-profile/:id', auth("player","admin","organizer"), authController.myCountryPlayerProfile)
 router.get('/player-profile/:id',authController.playerProfile)
 
 

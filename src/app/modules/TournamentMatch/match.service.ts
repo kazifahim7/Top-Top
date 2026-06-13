@@ -10,6 +10,7 @@ import type { IMatch } from "./match.interface.js";
 import { MatchModel } from "./match.model.js";
 import { Types } from "mongoose";
 import { CountryService } from "../Country/country.service.js";
+import { assertSameCountry, getUserCountryCode } from "../../utils/countryAccess.js";
 
 interface PlayerData {
      playerId: string;
@@ -47,6 +48,14 @@ const countryMatch = async (countryCode: string) => {
           .populate("winner teamB teamA tournament organizer")
           .sort({ date: -1 });
      return result;
+};
+
+const myCountryTournamentMatches = async (userId: string, tournamentId: string) => {
+     const countryCode = await getUserCountryCode(userId);
+     const tournament = await TournamentModel.findById(tournamentId).select("countryCode");
+     if (!tournament) throw new AppError(404, "Tournament not found");
+     assertSameCountry(tournament.countryCode, countryCode);
+     return allMatch(tournamentId);
 };
 
 const singleMatch = async (id: string) => {
@@ -96,6 +105,14 @@ const singleMatch = async (id: string) => {
           team1AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamAPlayers) : null,
           team2AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamBPlayers) : null,
      };
+};
+
+const myCountrySingleMatch = async (userId: string, matchId: string) => {
+     const countryCode = await getUserCountryCode(userId);
+     const match = await MatchModel.findById(matchId).select("countryCode");
+     if (!match) throw new AppError(404, "Match not found");
+     assertSameCountry(match.countryCode, countryCode);
+     return singleMatch(matchId);
 };
 
 const deleteMatch = async (id: string, requesterId: string) => {
@@ -580,6 +597,8 @@ export const tournamentMatchService = {
      deleteMatch,
      allMatch,
      countryMatch,
+     myCountryTournamentMatches,
+     myCountrySingleMatch,
      updateMatchAndStanding,
      addPlayers,
      removePlayerFromMatch,

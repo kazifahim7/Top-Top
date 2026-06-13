@@ -5,7 +5,9 @@ import { upload } from '../../utils/multer.js';
 const router = express.Router();
 router.post('/create-tournamentMatch', auth("organizer"), tournamentMatchController.createMatch);
 router.get('/all-tournamentMatch/:id', tournamentMatchController.allMatch);
+router.get('/my-country-tournament/:tournamentId', auth("player", "admin", "organizer"), tournamentMatchController.myCountryTournamentMatches);
 router.get('/country/:countryCode', tournamentMatchController.countryMatch);
+router.get('/my-country-tournamentMatchDetails/:id', auth("player", "admin", "organizer"), tournamentMatchController.myCountrySingleMatch);
 router.get('/single-tournamentMatchDetails/:id', tournamentMatchController.singleMatch);
 router.delete('/delete-tournamentMatch/:id', auth("organizer", "admin"), tournamentMatchController.deleteMatch);
 router.patch('/update-tournamentMatch/:id', auth("organizer", "admin"), upload.fields([

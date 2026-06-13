@@ -130,6 +130,73 @@ export declare const tournamentMatchService: {
     } & {
         __v: number;
     })[]>;
+    myCountryTournamentMatches: (userId: string, tournamentId: string) => Promise<(import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    })[]>;
+    myCountrySingleMatch: (userId: string, matchId: string) => Promise<{
+        team1AvgMatchRatingAfter: number | null;
+        team2AvgMatchRatingAfter: number | null;
+        tournament: Types.ObjectId;
+        stage: import("./match.interface.js").MatchStage;
+        group: import("./match.interface.js").MatchGroup;
+        teamA: Types.ObjectId;
+        teamB: Types.ObjectId;
+        scoreA: number;
+        scoreB: number;
+        status: "Pending" | "Completed" | "start";
+        time: string;
+        date: Date;
+        winner?: Types.ObjectId | null;
+        teamBPlayers: import("mongoose").FlattenMaps<{
+            playerId: Types.ObjectId;
+            matchPosition?: string;
+            redCard: number;
+            yellowCard: number;
+            contribution: number;
+            assists: number;
+            goal: number;
+            tackle: number;
+            save: number;
+            rating: number;
+            rawRating?: number;
+            goodMoment: number;
+            veryGoodMoment: number;
+            guest_player?: boolean;
+            mainRating?: number;
+            cleanSheet?: number;
+        }>[];
+        teamAPlayers: import("mongoose").FlattenMaps<{
+            playerId: Types.ObjectId;
+            matchPosition?: string;
+            redCard: number;
+            yellowCard: number;
+            contribution: number;
+            assists: number;
+            goal: number;
+            tackle: number;
+            save: number;
+            rating: number;
+            rawRating?: number;
+            goodMoment: number;
+            veryGoodMoment: number;
+            guest_player?: boolean;
+            mainRating?: number;
+            cleanSheet?: number;
+        }>[];
+        media: string[];
+        organizer: Types.ObjectId;
+        countryCode?: string;
+        currencyCode?: string;
+        motm: Types.ObjectId;
+        team1AvgMatchRatingBefore: number;
+        team2AvgMatchRatingBefore: number;
+        team1MatchFormat: string;
+        team2MatchFormat: string;
+        _id: Types.ObjectId;
+        __v: number;
+    } | null>;
     updateMatchAndStanding: (matchId: string, data: Partial<IMatch>, requesterId: string) => Promise<import("mongoose").Document<unknown, {}, IMatch, {}, import("mongoose").DefaultSchemaOptions> & IMatch & {
         _id: Types.ObjectId;
     } & {

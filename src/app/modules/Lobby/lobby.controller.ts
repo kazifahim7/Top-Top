@@ -34,6 +34,15 @@ const countryMatch = catchAsync(async (req: Request, res: Response) => {
           data: result
      })
 })
+
+const myCountryMatch = catchAsync(async (req: Request, res: Response) => {
+     const result = await lobbyService.myCountryMatch(req.user.id, req.query)
+     res.status(200).json({
+          success: true,
+          message: "My country lobbies retrieved successfully",
+          data: result
+     })
+})
 const organizerMatch = catchAsync(async (req: Request, res: Response) => {
 
      const query = req.query
@@ -53,6 +62,15 @@ const singlelobby = catchAsync(async (req: Request, res: Response) => {
      res.status(200).json({
           success: true,
           message: "single lobby successfully",
+          data: result
+     })
+})
+
+const myCountryLobby = catchAsync(async (req: Request, res: Response) => {
+     const result = await lobbyService.myCountryLobby(req.user.id, req.params.id!)
+     res.status(200).json({
+          success: true,
+          message: "My country lobby retrieved successfully",
           data: result
      })
 })
@@ -186,6 +204,8 @@ export const lobbyController={
      lobbyInFo,
      deleteLobby,
      singlelobby,
+     myCountryMatch,
+     myCountryLobby,
      myUpcomingLobby,
      organizerLobby,
      assignLobby,

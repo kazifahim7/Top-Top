@@ -6,6 +6,8 @@ import { upload } from '../../utils/multer.js';
 const  router = express.Router()
 
 router.get("/my-upcoming-match", auth("player", "admin","organizer"), lobbyController.myUpcomingLobby)
+router.get("/my-country-match", auth("player", "admin","organizer"), lobbyController.myCountryMatch)
+router.get("/my-country-match/:id", auth("player", "admin","organizer"), lobbyController.myCountryLobby)
 
 router.post("/create-match", auth("organizer","admin"),lobbyController.createMatch)
 router.post("/create-match-v2", auth("organizer","admin"),lobbyController.createMatch)

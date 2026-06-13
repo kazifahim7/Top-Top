@@ -17,6 +17,7 @@ import { isValidPhone, sendOTP, verifyOTP } from '../../utils/twilio.js';
 import { MatchModel } from '../TournamentMatch/match.model.js';
 import mongoose from 'mongoose';
 import { CountryService } from '../Country/country.service.js';
+import { assertSameCountry, getUserCountryCode } from '../../utils/countryAccess.js';
 
 
 // ─── Normalisation helpers ────────────────────────────────────────────────────
@@ -414,6 +415,19 @@ const allStudentFromDB = async (query: Record<string, unknown>) => {
      const result = await playerQuery.modelQuery
      return result;
 }
+
+const myCountryPlayers = async (userId: string, query: Record<string, unknown>) => {
+     const countryCode = await getUserCountryCode(userId);
+     return allStudentFromDB({ ...query, countryCode });
+};
+
+const myCountryPlayerProfile = async (userId: string, profileUserId: string) => {
+     const countryCode = await getUserCountryCode(userId);
+     const profileUser = await userModel.findById(profileUserId).select("countryCode");
+     if (!profileUser) throw new AppError(404, "This user Not Found");
+     assertSameCountry(profileUser.countryCode, countryCode);
+     return playerProfile(profileUserId);
+};
 
 const updateOwnCountry = async (userId: string, countryCode: unknown) => {
      const country = await CountryService.assertActiveCountry(countryCode);
@@ -813,6 +827,8 @@ export const authService = {
      updateStatusInDB,
      updateProfileInDB,
      allStudentFromDB,
+     myCountryPlayers,
+     myCountryPlayerProfile,
      updateOwnCountry,
      updateUserCountryByAdmin,
      getSingleUser,

@@ -47,6 +47,8 @@ router.post(
 
 router.get('/single-tournament/:id', TournamentController.singleTournament);
 router.get('/all-tournament', TournamentController.allTournament);
+router.get('/my-country-tournament', auth("player", "admin", "organizer"), TournamentController.myCountryTournament);
+router.get('/my-country-tournament/:id', auth("player", "admin", "organizer"), TournamentController.myCountrySingleTournament);
 router.get('/country/:countryCode', TournamentController.countryTournament);
 router.get('/:tournamentId/top-players', TournamentController.getTopPlayers);
 router.get('/all-tournament-organizer', auth("organizer"), TournamentController.organizerTournament);

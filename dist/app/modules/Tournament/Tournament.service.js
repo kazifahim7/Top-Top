@@ -4,6 +4,7 @@ import { TournamentModel } from "./Tournament.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
 import { CountryService } from "../Country/country.service.js";
 import { userModel } from "../auth/auth.model.js";
+import { assertSameCountry, getUserCountryCode } from "../../utils/countryAccess.js";
 const resolveContentCountry = async (payloadCountryCode, organizerId) => {
     if (payloadCountryCode !== undefined && payloadCountryCode !== null && payloadCountryCode !== "") {
         return CountryService.assertActiveCountry(payloadCountryCode);
@@ -90,6 +91,18 @@ const countryTournament = async (countryCode) => {
             ? { ...tournament.winner, rating: calculateTeamRating(tournament.winner) }
             : null,
     }));
+};
+const myCountryTournament = async (userId) => {
+    const countryCode = await getUserCountryCode(userId);
+    return countryTournament(countryCode);
+};
+const myCountrySingleTournament = async (userId, tournamentId) => {
+    const countryCode = await getUserCountryCode(userId);
+    const tournament = await TournamentModel.findById(tournamentId).select("countryCode");
+    if (!tournament)
+        throw new AppError(404, "Tournament not found");
+    assertSameCountry(tournament.countryCode, countryCode);
+    return singleTournament(tournamentId);
 };
 function calculateTeamRating(team) {
     if (!team)
@@ -225,5 +238,7 @@ export const TournamentService = {
     getTopPlayers,
     organizerTournament,
     countryTournament,
+    myCountryTournament,
+    myCountrySingleTournament,
 };
 //# sourceMappingURL=Tournament.service.js.map

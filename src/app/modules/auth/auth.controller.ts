@@ -236,6 +236,29 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 
 })
 
+const myCountryPlayers = catchAsync(async (req: Request, res: Response) => {
+
+     const result = await authService.myCountryPlayers(req.user.id, req.query)
+
+     res.status(200).json({
+          success: true,
+          message: "Country players retrieved successfully",
+          data: result
+     })
+
+
+})
+
+const myCountryPlayerProfile = catchAsync(async (req: Request, res: Response) => {
+     const result = await authService.myCountryPlayerProfile(req.user.id, req.params.id!)
+
+     res.status(200).json({
+          success: true,
+          message: "Country player profile retrieved successfully",
+          data: result
+     })
+})
+
 const playerProfile = catchAsync(async (req: Request, res: Response) => {
      const userId = req.params.id
      const result = await authService.playerProfile(userId!)
@@ -274,6 +297,8 @@ export const authController = {
      updateOwnCountry,
      updateUserCountryByAdmin,
      allUsers,
+     myCountryPlayers,
+     myCountryPlayerProfile,
      singleUser,
      resetRequest,
      resetPassword,

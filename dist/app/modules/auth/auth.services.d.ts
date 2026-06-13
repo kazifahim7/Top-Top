@@ -151,6 +151,113 @@ export declare const authService: {
     } & {
         __v: number;
     })[]>;
+    myCountryPlayers: (userId: string, query: Record<string, unknown>) => Promise<(mongoose.Document<unknown, {}, {
+        FullName?: any;
+        email?: any;
+        password?: any;
+        role?: any;
+        isBlocked?: any;
+        mobile?: any;
+        isMobileVerified?: any;
+        mobileVerifiedAt?: any;
+        socialProfile?: any;
+        imageUrl?: any;
+        nationality?: any;
+        countryCode?: any;
+        dominantFoot?: any;
+        playingDays?: any;
+        gameMode?: any;
+        preferredAreas?: any;
+        age?: any;
+        position?: any;
+        userName?: any;
+        matchPosition?: any;
+        redCard?: any;
+        yellowCard?: any;
+        contribution?: any;
+        assists?: any;
+        goal?: any;
+        tackle?: any;
+        save?: any;
+        rating?: any;
+        match?: any;
+        motm?: any;
+        cleanSheet?: any;
+    }, {}, {}> & {
+        FullName?: any;
+        email?: any;
+        password?: any;
+        role?: any;
+        isBlocked?: any;
+        mobile?: any;
+        isMobileVerified?: any;
+        mobileVerifiedAt?: any;
+        socialProfile?: any;
+        imageUrl?: any;
+        nationality?: any;
+        countryCode?: any;
+        dominantFoot?: any;
+        playingDays?: any;
+        gameMode?: any;
+        preferredAreas?: any;
+        age?: any;
+        position?: any;
+        userName?: any;
+        matchPosition?: any;
+        redCard?: any;
+        yellowCard?: any;
+        contribution?: any;
+        assists?: any;
+        goal?: any;
+        tackle?: any;
+        save?: any;
+        rating?: any;
+        match?: any;
+        motm?: any;
+        cleanSheet?: any;
+    } & {
+        _id: mongoose.Types.ObjectId;
+    } & {
+        __v: number;
+    })[]>;
+    myCountryPlayerProfile: (userId: string, profileUserId: string) => Promise<{
+        result: (mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
+            _id: mongoose.Types.ObjectId;
+        } & {
+            __v: number;
+        }) | null;
+        stats: {
+            matchesPlayed: number;
+            goalsPerGame: number;
+            assistsPerGame: number;
+            savesPerGame: number;
+            cleanSheets: number;
+            winRatio: number;
+            motm: number | undefined;
+            contributionpergame: number;
+        };
+        media: string[];
+        allLobbies: (mongoose.Document<unknown, {}, import("../Lobby/lobby.interface.js").LobbyDocument, {}, {}> & import("../Lobby/lobby.interface.js").LobbyDocument & Required<{
+            _id: unknown;
+        }> & {
+            __v: number;
+        })[];
+        tournamentMatches: (mongoose.Document<unknown, {}, import("../TournamentMatch/match.interface.js").IMatch, {}, mongoose.DefaultSchemaOptions> & import("../TournamentMatch/match.interface.js").IMatch & {
+            _id: mongoose.Types.ObjectId;
+        } & {
+            __v: number;
+        })[];
+        playerTeam: (mongoose.Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: mongoose.Types.ObjectId;
+        } & {
+            __v: number;
+        }) | null;
+        myJoinedTeam: (mongoose.Document<unknown, {}, import("../Team/team.interface.js").TTeam, {}, {}> & import("../Team/team.interface.js").TTeam & {
+            _id: mongoose.Types.ObjectId;
+        } & {
+            __v: number;
+        })[];
+    }>;
     updateOwnCountry: (userId: string, countryCode: unknown) => Promise<mongoose.Document<unknown, {}, TCreateProfile, {}, {}> & TCreateProfile & {
         _id: mongoose.Types.ObjectId;
     } & {

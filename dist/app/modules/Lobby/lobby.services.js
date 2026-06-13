@@ -8,6 +8,7 @@ import { PaymentModel } from "../Payment/payment.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { getPlayerOverallRating } from "../../utils/getRating.js";
 import { CountryService } from "../Country/country.service.js";
+import { assertSameCountry, getUserCountryCode } from "../../utils/countryAccess.js";
 const resolveContentCountry = async (payloadCountryCode, organizerId) => {
     if (payloadCountryCode !== undefined && payloadCountryCode !== null && payloadCountryCode !== "") {
         return CountryService.assertActiveCountry(payloadCountryCode);
@@ -542,6 +543,10 @@ const organizerMatch = async (query, orgId) => {
 };
 const countryMatch = async (countryCode, query) => {
     await CountryService.assertActiveCountry(countryCode);
+    return allMatch({ ...query, countryCode });
+};
+const myCountryMatch = async (userId, query) => {
+    const countryCode = await getUserCountryCode(userId);
     return allMatch({ ...query, countryCode });
 };
 const singlelobby = async (lobbyId) => {
@@ -1135,6 +1140,14 @@ const singlelobby = async (lobbyId) => {
     ]);
     return lobbies[0] || null;
 };
+const myCountryLobby = async (userId, lobbyId) => {
+    const countryCode = await getUserCountryCode(userId);
+    const lobby = await LobbyModel.findById(lobbyId).select("countryCode");
+    if (!lobby)
+        throw new AppError(404, "Lobby not found");
+    assertSameCountry(lobby.countryCode, countryCode);
+    return singlelobby(lobbyId);
+};
 export const updatePlayerStats = async (data) => {
     const lobby = await LobbyModel.findById(data.lobbyId);
     if (!lobby)
@@ -1519,6 +1532,8 @@ export const lobbyService = {
     deleteLobby,
     singlelobby,
     myUpcomingLobby,
+    myCountryMatch,
+    myCountryLobby,
     organizerLobby,
     assignLobby,
     assigntournament,

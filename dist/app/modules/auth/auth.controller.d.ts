@@ -8,6 +8,8 @@ export declare const authController: {
     updateOwnCountry: (req: Request, res: Response, next: import("express").NextFunction) => void;
     updateUserCountryByAdmin: (req: Request, res: Response, next: import("express").NextFunction) => void;
     allUsers: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    myCountryPlayers: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    myCountryPlayerProfile: (req: Request, res: Response, next: import("express").NextFunction) => void;
     singleUser: (req: Request, res: Response, next: import("express").NextFunction) => void;
     resetRequest: (req: Request, res: Response, next: import("express").NextFunction) => void;
     resetPassword: (req: Request, res: Response, next: import("express").NextFunction) => void;

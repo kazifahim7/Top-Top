@@ -8,6 +8,7 @@ import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { MatchModel } from "./match.model.js";
 import { Types } from "mongoose";
 import { CountryService } from "../Country/country.service.js";
+import { assertSameCountry, getUserCountryCode } from "../../utils/countryAccess.js";
 const createMatch = async (payload, id) => {
     const tournament = await TournamentModel.findById(payload.tournament).select("countryCode currencyCode");
     if (!tournament)
@@ -30,6 +31,14 @@ const countryMatch = async (countryCode) => {
         .populate("winner teamB teamA tournament organizer")
         .sort({ date: -1 });
     return result;
+};
+const myCountryTournamentMatches = async (userId, tournamentId) => {
+    const countryCode = await getUserCountryCode(userId);
+    const tournament = await TournamentModel.findById(tournamentId).select("countryCode");
+    if (!tournament)
+        throw new AppError(404, "Tournament not found");
+    assertSameCountry(tournament.countryCode, countryCode);
+    return allMatch(tournamentId);
 };
 const singleMatch = async (id) => {
     const result = await MatchModel.findById(id)
@@ -77,6 +86,14 @@ const singleMatch = async (id) => {
         team1AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamAPlayers) : null,
         team2AvgMatchRatingAfter: result.status === "Completed" ? calcAvg(result.teamBPlayers) : null,
     };
+};
+const myCountrySingleMatch = async (userId, matchId) => {
+    const countryCode = await getUserCountryCode(userId);
+    const match = await MatchModel.findById(matchId).select("countryCode");
+    if (!match)
+        throw new AppError(404, "Match not found");
+    assertSameCountry(match.countryCode, countryCode);
+    return singleMatch(matchId);
 };
 const deleteMatch = async (id, requesterId) => {
     const match = await MatchModel.findById(id);
@@ -433,6 +450,8 @@ export const tournamentMatchService = {
     deleteMatch,
     allMatch,
     countryMatch,
+    myCountryTournamentMatches,
+    myCountrySingleMatch,
     updateMatchAndStanding,
     addPlayers,
     removePlayerFromMatch,

@@ -3,7 +3,9 @@ export declare const tournamentMatchController: {
     deleteMatch: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     allMatch: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     countryMatch: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
+    myCountryTournamentMatches: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     singleMatch: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
+    myCountrySingleMatch: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     updateMatch: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     updatePlayerState: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     addPlayers: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;

@@ -5,6 +5,7 @@ import { TournamentModel } from "./Tournament.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
 import { CountryService } from "../Country/country.service.js";
 import { userModel } from "../auth/auth.model.js";
+import { assertSameCountry, getUserCountryCode } from "../../utils/countryAccess.js";
 
 const resolveContentCountry = async (payloadCountryCode: unknown, organizerId?: unknown) => {
      if (payloadCountryCode !== undefined && payloadCountryCode !== null && payloadCountryCode !== "") {
@@ -101,6 +102,19 @@ const countryTournament = async (countryCode: string) => {
                ? { ...(tournament.winner as any), rating: calculateTeamRating(tournament.winner as any) }
                : null,
      }));
+};
+
+const myCountryTournament = async (userId: string) => {
+     const countryCode = await getUserCountryCode(userId);
+     return countryTournament(countryCode);
+};
+
+const myCountrySingleTournament = async (userId: string, tournamentId: string) => {
+     const countryCode = await getUserCountryCode(userId);
+     const tournament = await TournamentModel.findById(tournamentId).select("countryCode");
+     if (!tournament) throw new AppError(404, "Tournament not found");
+     assertSameCountry(tournament.countryCode, countryCode);
+     return singleTournament(tournamentId);
 };
 
 function calculateTeamRating(team: any): number {
@@ -265,4 +279,6 @@ export const TournamentService = {
      getTopPlayers,
      organizerTournament,
      countryTournament,
+     myCountryTournament,
+     myCountrySingleTournament,
 };

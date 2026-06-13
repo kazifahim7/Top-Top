@@ -6,6 +6,8 @@ export declare const lobbyController: {
     lobbyInFo: (req: Request, res: Response, next: import("express").NextFunction) => void;
     deleteLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
     singlelobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    myCountryMatch: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    myCountryLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
     myUpcomingLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
     organizerLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;
     assignLobby: (req: Request, res: Response, next: import("express").NextFunction) => void;

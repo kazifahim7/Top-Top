@@ -12,6 +12,7 @@ import AppError from "../../Error/AppError.js";
 import { TeamModel } from "../Team/team.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 import { CountryService } from "../Country/country.service.js";
+import { stripeAmountFromPrice, stripeCurrencyCode } from "../../utils/stripeAmount.js";
 
 const stripe = new Stripe(config.sk_key!, { apiVersion: "2024-06-20" as any });
 
@@ -499,8 +500,8 @@ export const joinLobby = async (req: Request, res: Response) => {
 
           // ─── Stripe Payment ───────────────────────────────────────────────────
           const paymentIntent = await stripe.paymentIntents.create({
-               amount: price * 100,
-               currency: currencyCode.toLowerCase(),
+               amount: stripeAmountFromPrice(price, currencyCode),
+               currency: stripeCurrencyCode(currencyCode),
                automatic_payment_methods: {
                     enabled: true,  
                },
@@ -631,8 +632,9 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                if (intent.metadata.paymentId !== payment._id.toString()) {
                     return res.status(400).json({ message: "Payment metadata mismatch" });
                }
-               const expectedCurrency = CountryService.normalizeCurrencyCode(payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE).toLowerCase();
-               if (intent.amount !== payment.price * 100 || intent.currency !== expectedCurrency) {
+               const expectedCurrency = stripeCurrencyCode(payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+               const expectedAmount = stripeAmountFromPrice(payment.price, payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+               if (intent.amount !== expectedAmount || intent.currency !== expectedCurrency) {
                     return res.status(400).json({ message: "Payment amount or currency mismatch" });
                }
 

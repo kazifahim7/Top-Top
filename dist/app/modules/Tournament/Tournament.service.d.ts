@@ -83,5 +83,35 @@ export declare const TournamentService: {
         _id: Types.ObjectId;
         __v: number;
     }[]>;
+    myCountryTournament: (userId: string) => Promise<{
+        teams: any[];
+        qualifiedTeams: any[];
+        winner: any;
+        name: string;
+        type: "League" | "Knockout" | "Both";
+        price: number;
+        location: import("mongoose").FlattenMaps<{
+            lat: number;
+            lng: number;
+            address?: string;
+        }>;
+        countryCode?: string;
+        currencyCode?: string;
+        startDate: Date;
+        duration: number;
+        fieldSize: 5 | 7 | 11 | 8 | 9 | 10;
+        maxTeam: number;
+        imageUrl: string;
+        status: string;
+        organizer: Types.ObjectId;
+        isDelete: boolean;
+        _id: Types.ObjectId;
+        __v: number;
+    }[]>;
+    myCountrySingleTournament: (userId: string, tournamentId: string) => Promise<(import("mongoose").Document<unknown, {}, ITournament, {}, {}> & ITournament & {
+        _id: Types.ObjectId;
+    } & {
+        __v: number;
+    }) | null>;
 };
 //# sourceMappingURL=Tournament.service.d.ts.map
