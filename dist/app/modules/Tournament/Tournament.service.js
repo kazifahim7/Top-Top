@@ -2,8 +2,26 @@ import { Types } from "mongoose";
 import AppError from "../../Error/AppError.js";
 import { TournamentModel } from "./Tournament.model.js";
 import { MatchModel } from "../TournamentMatch/match.model.js";
+import { CountryService } from "../Country/country.service.js";
+import { userModel } from "../auth/auth.model.js";
+import { assertSameCountry, getUserCountryCode } from "../../utils/countryAccess.js";
+const resolveContentCountry = async (payloadCountryCode, organizerId) => {
+    if (payloadCountryCode !== undefined && payloadCountryCode !== null && payloadCountryCode !== "") {
+        return CountryService.assertActiveCountry(payloadCountryCode);
+    }
+    if (organizerId) {
+        const organizer = await userModel.findById(organizerId.toString()).select("countryCode");
+        return CountryService.assertActiveCountry(organizer?.countryCode || CountryService.DEFAULT_COUNTRY_CODE);
+    }
+    return CountryService.assertActiveCountry(CountryService.DEFAULT_COUNTRY_CODE);
+};
 const createTournament = async (payload) => {
-    const result = await TournamentModel.create(payload);
+    const country = await resolveContentCountry(payload.countryCode, payload.organizer);
+    const result = await TournamentModel.create({
+        ...payload,
+        countryCode: country.countryCode,
+        currencyCode: country.currencyCode,
+    });
     return result;
 };
 const singleTournament = async (id) => {
@@ -39,6 +57,52 @@ const allTournament = async () => {
             : null,
     }));
     return result;
+};
+const countryTournament = async (countryCode) => {
+    await CountryService.assertActiveCountry(countryCode);
+    const tournaments = await TournamentModel.find({
+        status: { $ne: "inactive" },
+        isDelete: { $ne: true },
+        ...CountryService.buildLegacyCountryFilter(countryCode),
+    })
+        .populate("winner")
+        .populate("qualifiedTeams")
+        .populate({
+        path: "teams",
+        populate: [
+            { path: "players" },
+            { path: "teamOwner" },
+        ],
+    })
+        .populate("organizer")
+        .sort({ createdAt: -1 })
+        .lean();
+    return tournaments.map((tournament) => ({
+        ...tournament,
+        teams: tournament.teams.map((team) => ({
+            ...team,
+            rating: calculateTeamRating(team),
+        })),
+        qualifiedTeams: tournament.qualifiedTeams.map((team) => ({
+            ...team,
+            rating: calculateTeamRating(team),
+        })),
+        winner: tournament.winner
+            ? { ...tournament.winner, rating: calculateTeamRating(tournament.winner) }
+            : null,
+    }));
+};
+const myCountryTournament = async (userId) => {
+    const countryCode = await getUserCountryCode(userId);
+    return countryTournament(countryCode);
+};
+const myCountrySingleTournament = async (userId, tournamentId) => {
+    const countryCode = await getUserCountryCode(userId);
+    const tournament = await TournamentModel.findById(tournamentId).select("countryCode");
+    if (!tournament)
+        throw new AppError(404, "Tournament not found");
+    assertSameCountry(tournament.countryCode, countryCode);
+    return singleTournament(tournamentId);
 };
 function calculateTeamRating(team) {
     if (!team)
@@ -80,6 +144,11 @@ const updateTournament = async (id, payload, callerId, callerRole) => {
         throw new AppError(404, "This tournament is not found");
     // F-05 FIX: organizer 
     assertTournamentAccess(tournament, callerId, callerRole);
+    if (Object.prototype.hasOwnProperty.call(payload, "countryCode")) {
+        const country = await CountryService.assertActiveCountry(payload.countryCode);
+        payload.countryCode = country.countryCode;
+        payload.currencyCode = country.currencyCode;
+    }
     const result = await TournamentModel.findByIdAndUpdate(id, payload, { new: true });
     return result;
 };
@@ -168,5 +237,8 @@ export const TournamentService = {
     qualifyTeamsService,
     getTopPlayers,
     organizerTournament,
+    countryTournament,
+    myCountryTournament,
+    myCountrySingleTournament,
 };
 //# sourceMappingURL=Tournament.service.js.map

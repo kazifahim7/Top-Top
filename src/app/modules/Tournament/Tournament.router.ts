@@ -25,8 +25,31 @@ router.post(
      TournamentController.createTournament
 );
 
+router.post(
+     "/create-tournament-v2",
+     upload.fields([{ name: "images", maxCount: 6 }]),
+     auth("organizer", "admin"),
+     (req, _res, next) => {
+          if (req.body.data) {
+               let parsedData;
+               try {
+                    parsedData = JSON.parse(req.body.data);
+               } catch (err) {
+                    return next(new Error("Invalid JSON in 'data' field"));
+               }
+               parsedData.organizer = req.user.id;
+               req.body = parsedData;
+          }
+          next();
+     },
+     TournamentController.createTournament
+);
+
 router.get('/single-tournament/:id', TournamentController.singleTournament);
 router.get('/all-tournament', TournamentController.allTournament);
+router.get('/my-country-tournament', auth("player", "admin", "organizer"), TournamentController.myCountryTournament);
+router.get('/my-country-tournament/:id', auth("player", "admin", "organizer"), TournamentController.myCountrySingleTournament);
+router.get('/country/:countryCode', TournamentController.countryTournament);
 router.get('/:tournamentId/top-players', TournamentController.getTopPlayers);
 router.get('/all-tournament-organizer', auth("organizer"), TournamentController.organizerTournament);
 

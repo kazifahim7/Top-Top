@@ -66,6 +66,8 @@ const matchSchema = new Schema<IMatch>({
      },
      motm: { type: Schema.Types.ObjectId, ref: "Players" },
      organizer: { type: Schema.Types.ObjectId, ref: "Players" },
+     countryCode: { type: String, trim: true, uppercase: true, default: "AE" },
+     currencyCode: { type: String, trim: true, uppercase: true, default: "AED" },
      media: { type: [String] },
      team1MatchFormat:{type:String},
      team2MatchFormat: { type: String },
@@ -76,5 +78,7 @@ const matchSchema = new Schema<IMatch>({
      timestamps: true
 }
 );
+
+matchSchema.index({ countryCode: 1, date: -1 });
 
 export const MatchModel = model("Match", matchSchema);

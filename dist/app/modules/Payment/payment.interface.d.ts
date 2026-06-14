@@ -5,6 +5,7 @@ export interface Payment {
     ExtraPlayerId?: Schema.Types.ObjectId;
     teamId?: Schema.Types.ObjectId;
     price: number;
+    currencyCode?: string;
     guest_player?: boolean;
     matchPosition?: string;
     status: "pending" | "success" | "failed" | "refund" | "paid";

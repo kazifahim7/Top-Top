@@ -8,6 +8,7 @@ export declare const TAdmin: {
     socialProfile: never[];
     imageUrl: string;
     nationality: string;
+    countryCode: string;
     dominantFoot: string;
     playingDays: never[];
     gameMode: string;

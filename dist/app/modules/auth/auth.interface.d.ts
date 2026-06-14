@@ -11,6 +11,7 @@ export type TCreateProfile = {
     socialProfile: string[];
     imageUrl: string;
     nationality: string;
+    countryCode?: string;
     dominantFoot: string;
     playingDays: string[];
     gameMode: string;

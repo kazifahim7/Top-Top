@@ -6,6 +6,8 @@ import { PaymentModel } from "./payment.model.js";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 import config from "../../config/index.js";
+import { CountryService } from "../Country/country.service.js";
+import { stripeAmountFromPrice, stripeCurrencyCode } from "../../utils/stripeAmount.js";
 const stripe = new Stripe(config.sk_key, {
     apiVersion: "2024-06-20",
 });
@@ -200,7 +202,9 @@ export const stripeWebhook = async (req, res) => {
                 return res.status(200).json({ received: true });
             }
             // Amount & currency validation
-            if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
+            const expectedCurrency = stripeCurrencyCode(payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+            const expectedAmount = stripeAmountFromPrice(payment.price, payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+            if (intent.amount !== expectedAmount || intent.currency !== expectedCurrency) {
                 payment.status = "failed";
                 await payment.save();
                 await stripe.refunds.create({ payment_intent: intent.id });
