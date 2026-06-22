@@ -13,6 +13,7 @@ import { tournamentMatch } from '../modules/TournamentMatch/match.router.js';
 import { areaRouter } from '../modules/Areas/Area.router.js';
 import { countryRouter } from '../modules/Country/country.router.js';
 import { transactionFeeRouter } from '../modules/TransactionFee/transactionFee.router.js';
+import { bookingGuidelinesRouter } from '../modules/BookingGuidelines/bookingGuidelines.router.js';
 const router = express.Router();
 const moduleRouter = [
     {
@@ -70,6 +71,10 @@ const moduleRouter = [
     {
         path: "/transaction-fees",
         route: transactionFeeRouter
+    },
+    {
+        path: "/booking-guidelines",
+        route: bookingGuidelinesRouter
     },
 ];
 moduleRouter.forEach((route) => router.use(route.path, route.route));
