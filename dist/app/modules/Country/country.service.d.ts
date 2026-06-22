@@ -6,6 +6,7 @@ export declare const CountryService: {
     DEFAULT_CURRENCY_CODE: string;
     normalizeCountryCode: (value: unknown) => string;
     normalizeCurrencyCode: (value: unknown) => string;
+    normalizeMoneyAmount: (value: unknown) => number;
     ensureDefaultCountry: () => Promise<void>;
     getCountries: (includeInactive?: boolean) => Promise<(import("mongoose").Document<unknown, {}, ICountry, {}, {}> & ICountry & {
         _id: import("mongoose").Types.ObjectId;

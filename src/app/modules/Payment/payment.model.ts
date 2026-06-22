@@ -1,8 +1,5 @@
 import { model, Schema } from "mongoose";
 import type { Payment } from "./payment.interface.js";
-import { boolean } from "zod";
-
-
 const PaymentSchema = new Schema<Payment>(
      {
           lobbyId: { type: Schema.Types.ObjectId, ref: "Lobby" },
@@ -11,6 +8,10 @@ const PaymentSchema = new Schema<Payment>(
           teamId: { type: Schema.Types.ObjectId, ref: "Team" },
           price: { type: Number, required: true },
           currencyCode: { type: String, trim: true, uppercase: true, default: "AED" },
+          transactionFee: { type: Number, default: 0, min: 0 },
+          totalPrice: { type: Number, min: 0 },
+          feePercentage: { type: Number, default: 0, min: 0 },
+          fixedTransactionFee: { type: Number, default: 0, min: 0 },
           guest_player:{type:Boolean,default:false},
           matchPosition: {
                type: String,

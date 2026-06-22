@@ -6,6 +6,10 @@ export interface Payment {
     teamId?: Schema.Types.ObjectId;
     price: number;
     currencyCode?: string;
+    transactionFee?: number;
+    totalPrice?: number;
+    feePercentage?: number;
+    fixedTransactionFee?: number;
     guest_player?: boolean;
     matchPosition?: string;
     status: "pending" | "success" | "failed" | "refund" | "paid";

@@ -13,7 +13,16 @@ import { TeamModel } from "../Team/team.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 import { CountryService } from "../Country/country.service.js";
 import { stripeAmountFromPrice, stripeCurrencyCode } from "../../utils/stripeAmount.js";
+import { TransactionFeeService } from "../TransactionFee/transactionFee.service.js";
 const stripe = new Stripe(config.sk_key, { apiVersion: "2024-06-20" });
+export const createOnlinePaymentWithFees = async (req, res) => {
+    req.body = {
+        ...req.body,
+        method: "online",
+        includeTransactionFees: true,
+    };
+    return joinLobby(req, res);
+};
 export const joinLobby = async (req, res) => {
     try {
         const { lobbyId, teamId, defaultTeam, matchPosition, matchFormat, method, tournamentId, paymentType, privateKey, ExtraPlayerId, guest_player, teamPlayerId, } = req.body;
@@ -197,6 +206,7 @@ export const joinLobby = async (req, res) => {
         let price = 0;
         let currencyCode = CountryService.DEFAULT_CURRENCY_CODE;
         let payment;
+        let feeQuote;
         // ─── Team Fee ─────────────────────────────────────────────────────────
         if (paymentType === "team fee") {
             const lobby = await LobbyModel.findById(lobbyId);
@@ -360,6 +370,17 @@ export const joinLobby = async (req, res) => {
             throw new AppError(400, "Unable to create payment");
         }
         payment.currencyCode = currencyCode;
+        if (req.body.includeTransactionFees === true && method !== "cash") {
+            feeQuote = await TransactionFeeService.buildQuote({
+                paymentType,
+                lobbyId,
+                tournamentId,
+            });
+            payment.transactionFee = feeQuote.transactionFee;
+            payment.totalPrice = feeQuote.totalPrice;
+            payment.feePercentage = feeQuote.feePercentage;
+            payment.fixedTransactionFee = feeQuote.fixedTransactionFee;
+        }
         // ─── Cash Payment ─────────────────────────────────────────────────────
         if (method === "cash") {
             const result = await payment.save();
@@ -388,8 +409,9 @@ export const joinLobby = async (req, res) => {
                 });
         }
         // ─── Stripe Payment ───────────────────────────────────────────────────
+        const amountToCharge = payment.totalPrice ?? price;
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: stripeAmountFromPrice(price, currencyCode),
+            amount: stripeAmountFromPrice(amountToCharge, currencyCode),
             currency: stripeCurrencyCode(currencyCode),
             automatic_payment_methods: {
                 enabled: true,
@@ -416,6 +438,10 @@ export const joinLobby = async (req, res) => {
             success: true,
             paymentId: payment._id,
             clientSecret: paymentIntent.client_secret,
+            data: {
+                payment,
+                quote: feeQuote,
+            },
         });
     }
     catch (err) {
@@ -504,7 +530,7 @@ export const paymentSuccess = async (req, res) => {
                 return res.status(400).json({ message: "Payment metadata mismatch" });
             }
             const expectedCurrency = stripeCurrencyCode(payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
-            const expectedAmount = stripeAmountFromPrice(payment.price, payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+            const expectedAmount = stripeAmountFromPrice(payment.totalPrice ?? payment.price, payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
             if (intent.amount !== expectedAmount || intent.currency !== expectedCurrency) {
                 return res.status(400).json({ message: "Payment amount or currency mismatch" });
             }

@@ -33,3 +33,14 @@ export const stripeAmountFromPrice = (price: unknown, currencyCode: unknown) => 
      const factor = ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency) ? 1 : 100;
      return Math.round(numericPrice * factor);
 };
+
+export const roundCurrencyAmount = (price: unknown, currencyCode: unknown) => {
+     const numericPrice = typeof price === "number" ? price : Number(price);
+     if (!Number.isFinite(numericPrice) || numericPrice < 0) {
+          throw new AppError(400, "Payment price must be a valid positive number");
+     }
+
+     const normalizedCurrency = CountryService.normalizeCurrencyCode(currencyCode);
+     const factor = ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency) ? 1 : 100;
+     return Math.round(numericPrice * factor) / factor;
+};

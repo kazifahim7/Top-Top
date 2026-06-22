@@ -10,6 +10,7 @@ export interface ICountry {
     dialCode: string;
     currencyCode: string;
     merchantCountryCode: string;
+    fixedTransactionFee: number;
     isActive: boolean;
     cities: CountryCity[];
 }

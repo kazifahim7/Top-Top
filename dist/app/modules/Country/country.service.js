@@ -9,6 +9,7 @@ const DEFAULT_COUNTRY = {
     dialCode: "+971",
     currencyCode: DEFAULT_CURRENCY_CODE,
     merchantCountryCode: DEFAULT_COUNTRY_CODE,
+    fixedTransactionFee: 0,
     isActive: true,
     cities: UAE_AREAS,
 };
@@ -31,6 +32,15 @@ const normalizeDialCode = (value) => {
     if (!normalized)
         return "";
     return normalized.startsWith("+") ? normalized : `+${normalized}`;
+};
+const normalizeMoneyAmount = (value) => {
+    if (value === undefined || value === null || value === "")
+        return 0;
+    const numericValue = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+        throw new AppError(400, "fixedTransactionFee must be a non-negative number");
+    }
+    return numericValue;
 };
 const normalizeCities = (value) => {
     if (!Array.isArray(value))
@@ -103,6 +113,7 @@ const buildCountryPayload = (payload) => {
         dialCode,
         currencyCode,
         merchantCountryCode,
+        fixedTransactionFee: normalizeMoneyAmount(payload.fixedTransactionFee),
         isActive: typeof payload.isActive === "boolean" ? payload.isActive : true,
         cities: normalizeCities(payload.cities),
     };
@@ -127,6 +138,8 @@ const updateCountry = async (countryCode, payload) => {
         update.currencyCode = normalizeCurrencyCode(payload.currencyCode);
     if (typeof payload.merchantCountryCode === "string")
         update.merchantCountryCode = normalizeCountryCode(payload.merchantCountryCode);
+    if (Object.prototype.hasOwnProperty.call(payload, "fixedTransactionFee"))
+        update.fixedTransactionFee = normalizeMoneyAmount(payload.fixedTransactionFee);
     if (typeof payload.isActive === "boolean")
         update.isActive = payload.isActive;
     if (Object.prototype.hasOwnProperty.call(payload, "cities"))
@@ -168,6 +181,7 @@ export const CountryService = {
     DEFAULT_CURRENCY_CODE,
     normalizeCountryCode,
     normalizeCurrencyCode,
+    normalizeMoneyAmount,
     ensureDefaultCountry,
     getCountries,
     getCountryByCode,

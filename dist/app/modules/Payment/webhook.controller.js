@@ -203,7 +203,7 @@ export const stripeWebhook = async (req, res) => {
             }
             // Amount & currency validation
             const expectedCurrency = stripeCurrencyCode(payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
-            const expectedAmount = stripeAmountFromPrice(payment.price, payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+            const expectedAmount = stripeAmountFromPrice(payment.totalPrice ?? payment.price, payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
             if (intent.amount !== expectedAmount || intent.currency !== expectedCurrency) {
                 payment.status = "failed";
                 await payment.save();

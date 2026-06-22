@@ -1,11 +1,12 @@
 import express from "express";
-import { joinLobby, paymentSuccess, paymentCancel, allPaymentHistory, allPaymentHistoryOrganizer, makePaid } from "../Payment/payment.controller.js";
+import { joinLobby, paymentSuccess, paymentCancel, allPaymentHistory, allPaymentHistoryOrganizer, makePaid, createOnlinePaymentWithFees } from "../Payment/payment.controller.js";
 import auth from "../../middleware/auth.js";
 import { stripeWebhook, verifyPayment } from "./webhook.controller.js";
 
 const router = express.Router();
 
 router.post("/join-lobby", auth("player","organizer","admin"), joinLobby);
+router.post("/create-online-with-fees", auth("player","organizer","admin"), createOnlinePaymentWithFees);
 router.get("/payment-success", auth("organizer", "admin","player"),paymentSuccess);
 router.get("/payment-cancel", auth("organizer", "admin"), paymentCancel);
 router.get("/all-payment" ,auth("admin"), allPaymentHistory)

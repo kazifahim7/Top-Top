@@ -11,6 +11,7 @@ const CountrySchema = new Schema({
     dialCode: { type: String, required: true, trim: true },
     currencyCode: { type: String, required: true, trim: true, uppercase: true },
     merchantCountryCode: { type: String, required: true, trim: true, uppercase: true },
+    fixedTransactionFee: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true },
     cities: { type: [CountryCitySchema], default: [] },
 }, { timestamps: true });
