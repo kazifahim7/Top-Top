@@ -2,6 +2,7 @@ import { model, Schema } from "mongoose";
 const refundSchema = new Schema({
     lobbyId: { type: Schema.Types.ObjectId, ref: "Lobby", required: true },
     playerId: { type: Schema.Types.ObjectId, ref: "Players", required: true },
+    teamId: { type: Schema.Types.ObjectId, ref: "Team" },
     price: { type: Number, required: true },
     status: {
         type: String,

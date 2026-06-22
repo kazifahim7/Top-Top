@@ -27,6 +27,17 @@ export declare const refundService: {
         paymentUpdate: mongoose.UpdateWriteOpResult;
         refundUpdate: mongoose.UpdateWriteOpResult;
     }>;
+    leave_lobby: (payload: {
+        lobbyId: string | Types.ObjectId;
+    }, playerId: string | Types.ObjectId) => Promise<{
+        success: boolean;
+        message: string;
+        refundRequestCreated: boolean;
+        refundRequestAlreadyPending: boolean;
+        refundEligible: boolean;
+        refundIneligibilityReason: string | null;
+        hoursUntilMatchStart: number;
+    }>;
     exit_lobby: (payload: {
         lobbyId: string | Types.ObjectId;
         currentUserId: string | Types.ObjectId;

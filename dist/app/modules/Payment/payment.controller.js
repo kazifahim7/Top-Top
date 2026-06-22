@@ -14,6 +14,7 @@ import { StandingModel } from "../PointTable/pointtable.model.js";
 import { CountryService } from "../Country/country.service.js";
 import { stripeAmountFromPrice, stripeCurrencyCode } from "../../utils/stripeAmount.js";
 import { TransactionFeeService } from "../TransactionFee/transactionFee.service.js";
+import { RefundModel } from "../Refund/refund.model.js";
 const stripe = new Stripe(config.sk_key, { apiVersion: "2024-06-20" });
 export const createOnlinePaymentWithFees = async (req, res) => {
     req.body = {
@@ -476,13 +477,20 @@ async function checkPositionAvailability(payment) {
         }
     }
     const positionTakenInLobby = targetTeamPlayers.some((p) => p.matchPosition === payment.matchPosition);
-    const positionTakenInPayment = await PaymentModel.findOne({
+    const positionPayments = await PaymentModel.find({
         lobbyId: payment.lobbyId,
         teamId: payment.teamId,
         matchPosition: payment.matchPosition,
         status: { $in: ["success", "paid"] },
         _id: { $ne: payment._id },
     });
+    const refundingPlayerIds = await RefundModel.distinct("playerId", {
+        lobbyId: payment.lobbyId,
+        playerId: { $in: positionPayments.map((positionPayment) => positionPayment.playerId) },
+        status: "pending",
+    });
+    const refundingPlayerIdSet = new Set(refundingPlayerIds.map((id) => id.toString()));
+    const positionTakenInPayment = positionPayments.some((positionPayment) => !refundingPlayerIdSet.has(positionPayment.playerId?.toString() || ""));
     if (positionTakenInLobby || positionTakenInPayment) {
         // ✅ same position এ সব pending payment failed করে দাও
         await PaymentModel.updateMany({
