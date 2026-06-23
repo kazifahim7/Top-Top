@@ -30,7 +30,7 @@ export declare const authService: {
     loginUser: (payload: Pick<TCreateProfile, "email" | "password">) => Promise<{
         accessToken: string;
         refreshToken: string;
-        role: "player" | "admin" | "organizer";
+        role: "admin" | "player" | "organizer";
         userid: mongoose.Types.ObjectId;
         mobile: string | undefined;
         isMobileVerified: boolean;
@@ -211,7 +211,7 @@ export declare const authService: {
     googleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: mongoose.Types.ObjectId;
-            role: "player" | "admin" | "organizer";
+            role: "admin" | "player" | "organizer";
             email: string;
             isMobileVerified: boolean;
             mobileVerifiedAt: Date | null;
@@ -227,7 +227,7 @@ export declare const authService: {
     appleLogin: (payload: Pick<TCreateProfile, "email" | "password" | "FullName" | "imageUrl">) => Promise<{
         user: {
             id: mongoose.Types.ObjectId;
-            role: "player" | "admin" | "organizer";
+            role: "admin" | "player" | "organizer";
             email: string;
             isMobileVerified: boolean;
             mobileVerifiedAt: Date | null;
