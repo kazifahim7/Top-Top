@@ -40,7 +40,7 @@ const PaymentSchema = new Schema<Payment>(
                     "Striker",
                     "Second Striker",
                     "Center Forward",
-                    "Second Center Forward",         // ✅
+                    "Second Center Forward",       
                     "Left Winger",
                     "Right Winger",
                ]

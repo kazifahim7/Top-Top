@@ -54,17 +54,17 @@ const playerRanking = async (options: RankingOptions) => {
           startDate.setDate(now.getDate() - 7);
           startDate.setHours(0, 0, 0, 0);
           minMatches = 2;
-          console.log(`📅 Filter: Weekly (last 7 days from ${startDate.toISOString().split('T')[0]})`);
+         
      } else if (filterBy === "monthly") {
           startDate = new Date();
           startDate.setMonth(now.getMonth() - 1);
           startDate.setHours(0, 0, 0, 0);
           minMatches = 4;
-          console.log(`📅 Filter: Monthly (last 30 days from ${startDate.toISOString().split('T')[0]})`);
+        
      } else {
           startDate = undefined;
           minMatches = 15;
-          console.log(`📅 Filter: All time (no date restriction)`);
+         
      }
 
      const dateFilter = startDate ? { $gte: startDate } : undefined;
@@ -73,7 +73,7 @@ const playerRanking = async (options: RankingOptions) => {
      const statsMap = new Map<string, PlayerAggStats>();
 
      // ─── 1. Process Completed Lobbies (Only within time window) ───────────────────
-     const lobbyMatchStage: any = { lobbyStatus: "completed" };
+     const lobbyMatchStage: any = { lobbyStatus: "completed", isDelete: { $ne: true } }; 
      if (dateFilter) lobbyMatchStage.date = dateFilter;
 
      const completedLobbies = await LobbyModel.find(lobbyMatchStage)
@@ -142,11 +142,22 @@ const playerRanking = async (options: RankingOptions) => {
      const tournamentMatchStage: any = { status: "Completed" };
      if (dateFilter) tournamentMatchStage.date = dateFilter;
 
-     const completedTournamentMatches = await MatchModel.find(tournamentMatchStage)
-          .select("_id date motm teamAPlayers teamBPlayers")
+     // ← FIX: select "tournament" field + populate with match filter to exclude deleted tournaments
+     const rawCompletedTournamentMatches = await MatchModel.find(tournamentMatchStage)
+          .select("_id date motm teamAPlayers teamBPlayers tournament")
+          .populate({
+               path: "tournament",
+               match: { isDelete: { $ne: true } },
+               select: "_id",
+          })
           .lean();
 
-     console.log(`📊 Processing ${completedTournamentMatches.length} completed tournament matches within the time window`);
+     // ← FIX: if tournament is null/undefined, its parent tournament was deleted — exclude
+     const completedTournamentMatches = rawCompletedTournamentMatches.filter(
+          (m: any) => m.tournament !== null && m.tournament !== undefined
+     );
+
+    
 
      for (const match of completedTournamentMatches) {
           const motmId = (match as any).motm?.toString() ?? "";
@@ -202,7 +213,7 @@ const playerRanking = async (options: RankingOptions) => {
           }
      }
 
-     console.log(`📊 Total unique players found in this window: ${statsMap.size}`);
+   
 
      // ─── 3. Filter by Minimum Match Threshold ─────────────────────────────────────
      const eligibleIds = [...statsMap.entries()]
@@ -210,11 +221,11 @@ const playerRanking = async (options: RankingOptions) => {
           .map(([id]) => new mongoose.Types.ObjectId(id));
 
      if (eligibleIds.length === 0) {
-          console.log(`⚠️ No players with minimum ${minMatches} matches in this window`);
+         
           return [];
      }
 
-     console.log(`✅ ${eligibleIds.length} players have minimum ${minMatches} matches in this window`);
+   
 
      // ─── 4. Fetch User Profiles with Filters ──────────────────────────────────────
      const userQuery: any = {
@@ -228,7 +239,7 @@ const playerRanking = async (options: RankingOptions) => {
 
      const users = await userModel.find(userQuery).select("-password").lean();
 
-     console.log(`📊 ${users.length} active users found matching filters`);
+     
 
      // ─── 5. Enrich with Window Stats (including per-game metrics) ─────────────────
      const enriched = users.map((user) => {
@@ -322,11 +333,10 @@ const playerRanking = async (options: RankingOptions) => {
           return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
      });
 
-     console.log(`🎯 Final ranking count for ${filterBy} window: ${enriched.length}`);
+   
 
      return enriched;
 };
-
 export default playerRanking;
 
 
@@ -383,10 +393,10 @@ const teamRanking = async (options: RankingOptions) => {
           }
      }
 
-     // ─── weekly/monthly এর জন্য createdAt দিয়ে filter ─────────────────────────
+ 
      if (filterBy !== "all") {
 
-          // ── Lobby থেকে calculate ──────────────────────────────────────────────
+         
           const lobbyFilter: any = {
                lobbyStatus: "completed",
                matchType: "teams",
@@ -396,7 +406,7 @@ const teamRanking = async (options: RankingOptions) => {
                ],
           };
 
-          // ✅ date এর বদলে createdAt ব্যবহার করা হচ্ছে
+         
           if (dateFilter) lobbyFilter.createdAt = dateFilter;
 
           const completedLobbies = await LobbyModel.find(lobbyFilter).lean();
@@ -426,10 +436,10 @@ const teamRanking = async (options: RankingOptions) => {
                else teamStatsMap[team2Id].loss += 1;
           }
 
-          // ── Match (Tournament) থেকে calculate ───────────────────────────────
+      
           const matchFilter: any = { status: "Completed" };
 
-          // ✅ date এর বদলে createdAt ব্যবহার করা হচ্ছে
+         
           if (dateFilter) matchFilter.createdAt = dateFilter;
 
           const completedMatches = await MatchModel.find(matchFilter).lean();
@@ -461,7 +471,7 @@ const teamRanking = async (options: RankingOptions) => {
      }
 
      // ─── Minimum match filter ─────────────────────────────────────────────────
-     const minMatches = filterBy === "weekly" ? 4 : filterBy === "monthly" ? 10 : 15; // TODO: production এ 4/10/15 করো
+     const minMatches = filterBy === "weekly" ? 4 : filterBy === "monthly" ? 10 : 15; 
 
      // ─── Team details + rating calculate ─────────────────────────────────────
      const results = [];
