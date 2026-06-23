@@ -9,6 +9,7 @@ import config from "../../config/index.js";
 import { CountryService } from "../Country/country.service.js";
 import { stripeAmountFromPrice, stripeCurrencyCode } from "../../utils/stripeAmount.js";
 import { RefundModel } from "../Refund/refund.model.js";
+import { countPlayersInPosition, getAllowedPositionCount, normalizeMatchPosition, } from "../../utils/lobbyFormation.js";
 const stripe = new Stripe(config.sk_key, {
     apiVersion: "2024-06-20",
 });
@@ -27,7 +28,7 @@ async function addPlayerToLobby(payment) {
         return { success: false, message: "Player not found" };
     const playerData = {
         playerId: new Types.ObjectId(payment.playerId.toString()),
-        matchPosition: payment.matchPosition || "",
+        matchPosition: normalizeMatchPosition(payment.matchPosition),
         redCard: 0,
         yellowCard: 0,
         substitution: 0,
@@ -35,7 +36,7 @@ async function addPlayerToLobby(payment) {
         goal: 0,
         tackle: 0,
         save: 0,
-        rating: 6.5,
+        rating: 7,
         mainRating: player.rating,
         guest_player: payment.guest_player ?? false,
         contribution: 0,
@@ -130,30 +131,37 @@ async function checkPositionAvailability(payment) {
     const lobby = await LobbyModel.findById(payment.lobbyId);
     if (!lobby)
         return "Lobby not found";
+    const requestedPosition = normalizeMatchPosition(payment.matchPosition);
+    let targetTeam;
     let targetTeamPlayers = [];
     if (lobby.matchType === "solo") {
         //@ts-ignore
         if (payment.teamId?.toString() === lobby.defaultTeam1?._id?.toString()) {
-            targetTeamPlayers = lobby.defaultTeam1?.players || [];
+            targetTeam = lobby.defaultTeam1;
+            targetTeamPlayers = targetTeam?.players || [];
             //@ts-ignore
         }
         else if (payment.teamId?.toString() === lobby.defaultTeam2?._id?.toString()) {
-            targetTeamPlayers = lobby.defaultTeam2?.players || [];
+            targetTeam = lobby.defaultTeam2;
+            targetTeamPlayers = targetTeam?.players || [];
         }
     }
     else {
         if (payment.teamId?.toString() === lobby.team1?.teamId?.toString()) {
-            targetTeamPlayers = lobby.team1?.players || [];
+            targetTeam = lobby.team1;
+            targetTeamPlayers = targetTeam?.players || [];
         }
         else if (payment.teamId?.toString() === lobby.team2?.teamId?.toString()) {
-            targetTeamPlayers = lobby.team2?.players || [];
+            targetTeam = lobby.team2;
+            targetTeamPlayers = targetTeam?.players || [];
         }
     }
-    const positionTakenInLobby = targetTeamPlayers.some((p) => p.matchPosition === payment.matchPosition);
+    const playersInPosition = countPlayersInPosition(targetTeamPlayers, requestedPosition);
+    const allowedCountForPosition = getAllowedPositionCount(targetTeam?.matchFormat || payment.matchFormat, requestedPosition);
     const positionPayments = await PaymentModel.find({
         lobbyId: payment.lobbyId,
         teamId: payment.teamId,
-        matchPosition: payment.matchPosition,
+        paymentType: "team fee",
         status: { $in: ["success", "paid"] },
         _id: { $ne: payment._id },
     });
@@ -163,15 +171,25 @@ async function checkPositionAvailability(payment) {
         status: "pending",
     });
     const refundingPlayerIdSet = new Set(refundingPlayerIds.map((id) => id.toString()));
-    const positionTakenInPayment = positionPayments.some((positionPayment) => !refundingPlayerIdSet.has(positionPayment.playerId?.toString() || ""));
-    if (positionTakenInLobby || positionTakenInPayment) {
-        await PaymentModel.updateMany({
+    const activePositionPaymentCount = positionPayments.filter((positionPayment) => {
+        if (refundingPlayerIdSet.has(positionPayment.playerId?.toString() || ""))
+            return false;
+        return normalizeMatchPosition(positionPayment.matchPosition) === requestedPosition;
+    }).length;
+    if (playersInPosition + activePositionPaymentCount >= allowedCountForPosition) {
+        const pendingPayments = await PaymentModel.find({
             lobbyId: payment.lobbyId,
             teamId: payment.teamId,
-            matchPosition: payment.matchPosition,
+            paymentType: "team fee",
             status: "pending",
             _id: { $ne: payment._id },
-        }, { $set: { status: "failed" } });
+        });
+        const pendingPaymentIds = pendingPayments
+            .filter((pendingPayment) => normalizeMatchPosition(pendingPayment.matchPosition) === requestedPosition)
+            .map((pendingPayment) => pendingPayment._id);
+        if (pendingPaymentIds.length > 0) {
+            await PaymentModel.updateMany({ _id: { $in: pendingPaymentIds } }, { $set: { status: "failed" } });
+        }
         return "This position is already taken. Payment has been cancelled.";
     }
     return null;

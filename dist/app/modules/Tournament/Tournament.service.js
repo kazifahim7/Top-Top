@@ -25,7 +25,9 @@ const createTournament = async (payload) => {
     return result;
 };
 const singleTournament = async (id) => {
-    const result = await TournamentModel.findById(id).populate("winner qualifiedTeams teams organizer");
+    const result = await TournamentModel
+        .findOne({ _id: id, isDelete: { $ne: true } })
+        .populate("winner qualifiedTeams teams organizer");
     return result;
 };
 const allTournament = async () => {
@@ -120,6 +122,7 @@ const organizerTournament = async (id) => {
     const result = await TournamentModel.find({
         organizer: id,
         status: { $in: ["active", "block"] },
+        isDelete: { $ne: true },
     })
         .populate("winner qualifiedTeams teams organizer")
         .sort({ status: 1, createdAt: -1 });
@@ -180,6 +183,16 @@ const qualifyTeamsService = async (tournamentId, teamIds, callerId, callerRole) 
 export const getTopPlayers = async (tournamentId) => {
     const topPlayers = await MatchModel.aggregate([
         { $match: { tournament: new Types.ObjectId(tournamentId), status: "Completed" } },
+        {
+            $lookup: {
+                from: "tournaments",
+                localField: "tournament",
+                foreignField: "_id",
+                as: "tournamentData"
+            }
+        },
+        { $unwind: "$tournamentData" },
+        { $match: { "tournamentData.isDelete": { $ne: true } } },
         { $project: { players: { $concatArrays: ["$teamAPlayers", "$teamBPlayers"] } } },
         { $unwind: "$players" },
         { $match: { "players.guest_player": false } },

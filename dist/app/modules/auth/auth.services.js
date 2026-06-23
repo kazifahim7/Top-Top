@@ -543,16 +543,13 @@ const calculatePlayerStats = (lobbies, tournamentMatches, playerId) => {
                 totalSaves += player.save || 0;
                 playerTeamGoal = myGoal;
                 opponentTeamGoal = oppGoal;
-                console.log(`Lobby ${lobby._id}: Player in ${teamType}, Position: ${player.matchPosition}, Opp Goal: ${oppGoal}, Saves: ${player.save}`);
             }
         });
         if (playerTeamGoal !== null && opponentTeamGoal !== null) {
             if (playerTeamGoal > opponentTeamGoal)
                 wins++;
-            if (opponentTeamGoal === 0) {
+            if (opponentTeamGoal === 0)
                 cleanSheets++;
-                console.log(`Clean sheet counted for lobby ${lobby._id} (Opponent: 0, Player played)`);
-            }
         }
     });
     tournamentMatches.forEach(match => {
@@ -565,7 +562,6 @@ const calculatePlayerStats = (lobbies, tournamentMatches, playerId) => {
             totalSaves += playerInTeamA.save || 0;
             playerTeamGoal = match.scoreA;
             opponentTeamGoal = match.scoreB;
-            console.log(`Tournament ${match._id}: Player in Team A, Score: ${match.scoreA}-${match.scoreB}, Saves: ${playerInTeamA.save}`);
         }
         const playerInTeamB = match.teamBPlayers?.find((p) => p.playerId?.toString() === playerId);
         if (playerInTeamB) {
@@ -576,28 +572,15 @@ const calculatePlayerStats = (lobbies, tournamentMatches, playerId) => {
             }
             playerTeamGoal = match.scoreB;
             opponentTeamGoal = match.scoreA;
-            console.log(`Tournament ${match._id}: Player in Team B, Score: ${match.scoreB}-${match.scoreA}, Saves: ${playerInTeamB.save}`);
         }
         if (playerTeamGoal !== null && opponentTeamGoal !== null) {
             if (playerTeamGoal > opponentTeamGoal)
                 wins++;
-            if (opponentTeamGoal === 0) {
+            if (opponentTeamGoal === 0)
                 cleanSheets++;
-                console.log(`Clean sheet counted for tournament match ${match._id} (Opponent: 0)`);
-            }
         }
     });
     const matchesPlayed = lobbies.length + tournamentMatches.length;
-    console.log(`\n========== PLAYER STATS SUMMARY ==========`);
-    console.log(`Matches Played: ${matchesPlayed}`);
-    console.log(`Total Goals: ${totalGoals}`);
-    console.log(`Total Assists: ${totalAssists}`);
-    console.log(`Total Saves: ${totalSaves}`);
-    console.log(`Clean Sheets: ${cleanSheets}`);
-    console.log(`Wins: ${wins}`);
-    console.log(`Win Ratio: ${matchesPlayed ? Math.round((wins / matchesPlayed) * 100) : 0}%`);
-    console.log(`Goals Per Game: ${matchesPlayed ? (totalGoals / matchesPlayed).toFixed(1) : 0}`);
-    console.log(`==========================================\n`);
     return {
         matchesPlayed,
         goalsPerGame: matchesPlayed ? +(totalGoals / matchesPlayed).toFixed(1) : 0,
@@ -619,7 +602,9 @@ const collectLobbyMedia = (lobbies) => {
 };
 const playerProfile = async (id) => {
     const result = await userModel.findById(id).select("-cleanSheet -password -__v -match");
+    // ── FIX: deleted lobby exclude ──────────────────────────────
     const allLobbies = await LobbyModel.find({
+        isDelete: { $ne: true },
         $or: [
             { "team1.players.playerId": id },
             { "team2.players.playerId": id },
@@ -631,15 +616,22 @@ const playerProfile = async (id) => {
         .populate("team2.teamId")
         .sort({ date: -1 });
     const completedLobbies = allLobbies.filter((lobby) => lobby.lobbyStatus === "completed");
-    const tournamentMatches = await MatchModel.find({
+    // ── FIX: parent tournament deleted hole match populate null hobe ──
+    const rawTournamentMatches = await MatchModel.find({
         $or: [
             { "teamAPlayers.playerId": id },
             { "teamBPlayers.playerId": id },
         ],
         status: "Completed",
     })
-        .populate("tournament teamA teamB")
+        .populate({
+        path: "tournament",
+        match: { isDelete: { $ne: true } },
+    })
+        .populate("teamA teamB")
         .sort({ date: -1 });
+    // tournament null mane oi tournament delete hoye geche
+    const tournamentMatches = rawTournamentMatches.filter((m) => m.tournament !== null);
     const lobbyStats = calculatePlayerStats(completedLobbies, tournamentMatches, id);
     const media = collectLobbyMedia(allLobbies);
     const playerTeam = await TeamModel.findOne({ teamOwner: id });
@@ -662,7 +654,7 @@ const playerProfile = async (id) => {
         },
         media,
         allLobbies,
-        tournamentMatches,
+        tournamentMatches, // ← ekhon filtered list return hocche
         playerTeam,
         myJoinedTeam
     };

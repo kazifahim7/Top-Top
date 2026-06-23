@@ -96,7 +96,7 @@ const singleMatch = async (id: string) => {
 
      const calcAvg = (players: PlayerStats[]) => {
           if (!players?.length) return 0;
-          const total = players.reduce((sum, p) => sum + (p.rating ?? 6.5), 0);
+          const total = players.reduce((sum, p) => sum + (p.rating ?? 7), 0);
           return parseFloat((total / players.length).toFixed(2));
      };
 
@@ -402,7 +402,7 @@ const addPlayers = async (
                save: 0,
                goodMoment: 0,
                veryGoodMoment: 0,
-               rating: 6.5
+               rating: 7
           });
      }
 
@@ -411,7 +411,7 @@ const addPlayers = async (
           const ids = arr.map(p => p.playerId);
           const profiles = await userModel.find({ _id: { $in: ids } }, { rating: 1 });
           if (!profiles.length) return 0;
-          const total = profiles.reduce((sum, p) => sum + (p.rating || 6.5), 0);
+          const total = profiles.reduce((sum, p) => sum + (p.rating || 7), 0);
           return Number((total / profiles.length).toFixed(2));
      };
 
@@ -469,7 +469,7 @@ export const removePlayerFromMatch = async (
           const ids = arr.map(p => p.playerId);
           const profiles = await userModel.find({ _id: { $in: ids } }, { rating: 1 });
           if (!profiles.length) return 0;
-          const total = profiles.reduce((sum, p) => sum + (p.rating || 6.5), 0);
+          const total = profiles.reduce((sum, p) => sum + (p.rating || 7), 0);
           return Number((total / profiles.length).toFixed(2));
      };
 
@@ -527,7 +527,7 @@ export const updatePlayerStats = async (data: UpdatePlayerStatsDTO) => {
 
           if (!player || !teamKey) throw new Error("Player not found in match");
 
-          let rawRating = player.rawRating ?? player.rating ?? 6.5;
+          let rawRating = player.rawRating ?? player.rating ?? 7;
 
           rawRating -= (data.redCard ?? 0) * 0.5;
           rawRating -= (data.yellowCard ?? 0) * 0.25;

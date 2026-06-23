@@ -15,6 +15,11 @@ import { CountryService } from "../Country/country.service.js";
 import { stripeAmountFromPrice, stripeCurrencyCode } from "../../utils/stripeAmount.js";
 import { TransactionFeeService } from "../TransactionFee/transactionFee.service.js";
 import { RefundModel } from "../Refund/refund.model.js";
+import {
+     countPlayersInPosition,
+     getAllowedPositionCount,
+     normalizeMatchPosition,
+} from "../../utils/lobbyFormation.js";
 
 const stripe = new Stripe(config.sk_key!, { apiVersion: "2024-06-20" as any });
 
@@ -45,6 +50,8 @@ export const joinLobby = async (req: Request, res: Response) => {
           } = req.body;
 
           let playerId = req.user.id;
+          const normalizedMatchPosition = normalizeMatchPosition(matchPosition);
+          let canonicalMatchFormat = matchFormat;
 
 
           
@@ -202,14 +209,18 @@ export const joinLobby = async (req: Request, res: Response) => {
                }
 
                // ─── Duplicate position check ─────────────────────────────────────
+               canonicalMatchFormat = currentTeam?.matchFormat || matchFormat;
               
-               const playersInSamePosition = currentTeam?.players?.filter(
-                    (p: any) => p.matchPosition === matchPosition
-               ) || [];
+               const playersInSamePosition = countPlayersInPosition(
+                    currentTeam?.players || [],
+                    normalizedMatchPosition
+               );
+               const allowedCountForPosition = getAllowedPositionCount(
+                    canonicalMatchFormat,
+                    normalizedMatchPosition
+               );
 
-               // const allowedCountForPosition = matchPosition === "Striker" ? 2 : 1;
-
-               if (playersInSamePosition.length >= 1) {
+               if (playersInSamePosition >= allowedCountForPosition) {
                     return res.status(400).json({ message: "This position is already taken in this team" });
                }
 
@@ -255,7 +266,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                lobbyId,
                playerId: checkPlayerForPending,
                teamId,
-               matchPosition,
+               matchPosition: normalizedMatchPosition,
                status: { $in: ["paid", "success"] },
           });
 
@@ -268,7 +279,7 @@ export const joinLobby = async (req: Request, res: Response) => {
                     lobbyId,
                     playerId: checkPlayerForPending,
                     teamId,
-                    matchPosition,
+                    matchPosition: normalizedMatchPosition,
                     status: "pending",
                     guest_player: isGuestPlayer,
                });
@@ -328,8 +339,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                               price,
                               status: "pending",
                               method,
-                              matchPosition,
-                              matchFormat,
+                              matchPosition: normalizedMatchPosition,
+                              matchFormat: canonicalMatchFormat,
                               paymentType,
                               guest_player: isGuestPlayer,
                          });
@@ -366,8 +377,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                               price,
                               status: "pending",
                               method,
-                              matchPosition,
-                              matchFormat,
+                              matchPosition: normalizedMatchPosition,
+                              matchFormat: canonicalMatchFormat,
                               paymentType,
                               guest_player: isGuestPlayer,
                          });
@@ -402,8 +413,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                               price,
                               status: "pending",
                               method,
-                              matchPosition,
-                              matchFormat,
+                              matchPosition: normalizedMatchPosition,
+                              matchFormat: canonicalMatchFormat,
                               paymentType,
                               guest_player: isGuestPlayer,
                          });
@@ -433,8 +444,8 @@ export const joinLobby = async (req: Request, res: Response) => {
                          price,
                          status: "pending",
                          method,
-                         matchPosition,
-                         matchFormat,
+                         matchPosition: normalizedMatchPosition,
+                         matchFormat: canonicalMatchFormat,
                          paymentType,
                          guest_player: isGuestPlayer,
                     });
@@ -537,9 +548,9 @@ export const joinLobby = async (req: Request, res: Response) => {
                     lobbyId: lobbyId?.toString() || "",
                     tournamentId: tournamentId?.toString() || "",
                     teamId: teamObjectId?.toString() || "",
-                    matchPosition: matchPosition || "",
+                    matchPosition: normalizedMatchPosition || "",
                     defaultTeam: defaultTeam || "",
-                    matchFormat: matchFormat || "",
+                    matchFormat: canonicalMatchFormat || "",
                     method,
                },
           });
@@ -577,32 +588,43 @@ async function checkPositionAvailability(payment: any): Promise<string | null> {
      const lobby = await LobbyModel.findById(payment.lobbyId);
      if (!lobby) return "Lobby not found";
 
+     const requestedPosition = normalizeMatchPosition(payment.matchPosition);
+     let targetTeam: any;
      let targetTeamPlayers: any[] = [];
 
      if (lobby.matchType === "solo") {
           //@ts-ignore
           if (payment.teamId?.toString() === lobby.defaultTeam1?._id?.toString()) {
-               targetTeamPlayers = lobby.defaultTeam1?.players || [];
+               targetTeam = lobby.defaultTeam1;
+               targetTeamPlayers = targetTeam?.players || [];
                //@ts-ignore
           } else if (payment.teamId?.toString() === lobby.defaultTeam2?._id?.toString()) {
-               targetTeamPlayers = lobby.defaultTeam2?.players || [];
+               targetTeam = lobby.defaultTeam2;
+               targetTeamPlayers = targetTeam?.players || [];
           }
      } else {
           if (payment.teamId?.toString() === lobby.team1?.teamId?.toString()) {
-               targetTeamPlayers = lobby.team1?.players || [];
+               targetTeam = lobby.team1;
+               targetTeamPlayers = targetTeam?.players || [];
           } else if (payment.teamId?.toString() === lobby.team2?.teamId?.toString()) {
-               targetTeamPlayers = lobby.team2?.players || [];
+               targetTeam = lobby.team2;
+               targetTeamPlayers = targetTeam?.players || [];
           }
      }
 
-     const positionTakenInLobby = targetTeamPlayers.some(
-          (p: any) => p.matchPosition === payment.matchPosition
+     const playersInPosition = countPlayersInPosition(
+          targetTeamPlayers,
+          requestedPosition
+     );
+     const allowedCountForPosition = getAllowedPositionCount(
+          targetTeam?.matchFormat || payment.matchFormat,
+          requestedPosition
      );
 
      const positionPayments = await PaymentModel.find({
           lobbyId: payment.lobbyId,
           teamId: payment.teamId,
-          matchPosition: payment.matchPosition,
+          paymentType: "team fee",
           status: { $in: ["success", "paid"] },
           _id: { $ne: payment._id },
      });
@@ -612,22 +634,29 @@ async function checkPositionAvailability(payment: any): Promise<string | null> {
           status: "pending",
      });
      const refundingPlayerIdSet = new Set(refundingPlayerIds.map((id) => id.toString()));
-     const positionTakenInPayment = positionPayments.some(
-          (positionPayment) => !refundingPlayerIdSet.has(positionPayment.playerId?.toString() || "")
-     );
+     const activePositionPaymentCount = positionPayments.filter((positionPayment) => {
+          if (refundingPlayerIdSet.has(positionPayment.playerId?.toString() || "")) return false;
+          return normalizeMatchPosition(positionPayment.matchPosition) === requestedPosition;
+     }).length;
 
-     if (positionTakenInLobby || positionTakenInPayment) {
-          // ✅ same position এ সব pending payment failed করে দাও
-          await PaymentModel.updateMany(
-               {
-                    lobbyId: payment.lobbyId,
-                    teamId: payment.teamId,
-                    matchPosition: payment.matchPosition,
-                    status: "pending",
-                    _id: { $ne: payment._id },
-               },
-               { $set: { status: "failed" } }
-          );
+     if (playersInPosition + activePositionPaymentCount >= allowedCountForPosition) {
+          const pendingPayments = await PaymentModel.find({
+               lobbyId: payment.lobbyId,
+               teamId: payment.teamId,
+               paymentType: "team fee",
+               status: "pending",
+               _id: { $ne: payment._id },
+          });
+          const pendingPaymentIds = pendingPayments
+               .filter((pendingPayment) => normalizeMatchPosition(pendingPayment.matchPosition) === requestedPosition)
+               .map((pendingPayment) => pendingPayment._id);
+
+          if (pendingPaymentIds.length > 0) {
+               await PaymentModel.updateMany(
+                    { _id: { $in: pendingPaymentIds } },
+                    { $set: { status: "failed" } }
+               );
+          }
 
           return "This position is already taken. Payment has been cancelled.";
      }
@@ -707,7 +736,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
 
                const playerData = {
                     playerId: new Types.ObjectId(payment.playerId.toString()),
-                    matchPosition: payment.matchPosition || "",
+                    matchPosition: normalizeMatchPosition(payment.matchPosition),
                     redCard: 0,
                     yellowCard: 0,
                     substitution: 0,
@@ -715,7 +744,7 @@ export const paymentSuccess = async (req: Request, res: Response) => {
                     goal: 0,
                     tackle: 0,
                     save: 0,
-                    rating: 6.5,
+                    rating: 7,
                     mainRating: player.rating,
                     guest_player: payment.guest_player ?? false,
                     contribution: 0,

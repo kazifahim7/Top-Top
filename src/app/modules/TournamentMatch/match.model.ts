@@ -15,8 +15,8 @@ const PlayerStatsSchema = new Schema<PlayerStats>({
      save: { type: Number, default: 0 },
      goodMoment: { type: Number, default: 0 },
      veryGoodMoment: { type: Number, default: 0 },
-     rating: { type: Number, default: 6.5 },
-     rawRating: { type: Number, default: 6.5 },
+     rating: { type: Number, default: 7 },
+     rawRating: { type: Number, default: 7 },
      matchPosition: { type: String },
      guest_player: { type: Boolean, default: false }
 });

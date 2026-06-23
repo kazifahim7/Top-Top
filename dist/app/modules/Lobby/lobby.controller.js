@@ -77,6 +77,17 @@ const updatePlayerState = catchAsync(async (req, res) => {
         data: result
     });
 });
+const updateFormation = catchAsync(async (req, res) => {
+    const result = await lobbyService.updateFormation(req.params.lobbyId, req.body, {
+        id: req.user?.id,
+        role: req.user?.role,
+    });
+    res.status(200).json({
+        success: true,
+        message: "Formation updated successfully",
+        data: result,
+    });
+});
 const lobbyInFo = catchAsync(async (req, res) => {
     const id = req.params?.lobbyId;
     const requesterId = req.user?.id;
@@ -162,6 +173,7 @@ export const lobbyController = {
     createMatch,
     allMatch,
     updatePlayerState,
+    updateFormation,
     lobbyInFo,
     deleteLobby,
     singlelobby,

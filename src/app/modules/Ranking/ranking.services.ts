@@ -247,7 +247,7 @@ const playerRanking = async (options: RankingOptions) => {
 
           const avgRating = stats.ratingCount > 0
                ? parseFloat((stats.ratingSum / stats.ratingCount).toFixed(2))
-               : 6.5;
+               : 7;
 
           const matchCount = stats.matchCount;
 

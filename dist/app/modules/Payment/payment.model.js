@@ -35,7 +35,7 @@ const PaymentSchema = new Schema({
             "Striker",
             "Second Striker",
             "Center Forward",
-            "Second Center Forward", // ✅
+            "Second Center Forward",
             "Left Winger",
             "Right Winger",
         ]

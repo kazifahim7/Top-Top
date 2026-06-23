@@ -17,6 +17,7 @@ router.get("/country/:countryCode", lobbyController.countryMatch)
 router.get("/:id", lobbyController.singlelobby)
 router.post("/all-organizer-match", auth("organizer"), lobbyController.organizerMatch)
 router.put("/:lobbyId/player",auth("organizer","admin") , lobbyController.updatePlayerState);
+router.patch("/:lobbyId/formation", auth("player", "organizer", "admin"), lobbyController.updateFormation);
 
 router.put(
      "/:lobbyId/lobby-info",

@@ -46,7 +46,7 @@ export const getPlayerOverallRating = async (playerId) => {
             }
         }
     });
-    const averageRating = matchCount ? totalRating / matchCount : 6.5;
+    const averageRating = matchCount ? totalRating / matchCount : 7;
     return {
         averageRating: Number(averageRating.toFixed(2)),
         matchCount,

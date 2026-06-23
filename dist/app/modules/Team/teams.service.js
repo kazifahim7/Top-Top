@@ -19,7 +19,7 @@ const updateTeam = async (payload, id, requesterId, requesterRole) => {
     if (!isTeamExist) {
         throw new AppError(404, "This team not found");
     }
-    // ✅ Owner অথবা Admin ছাড়া update করতে পারবে না
+    // ✅ Owner 
     const isOwner = isTeamExist.teamOwner.toString() === requesterId;
     const isAdmin = requesterRole === "admin";
     if (!isOwner && !isAdmin) {
@@ -31,36 +31,27 @@ const updateTeam = async (payload, id, requesterId, requesterRole) => {
 function calculateTeamRating(team) {
     if (!team)
         return 0;
-    const members = [
-        ...(team.players || []),
-        team.teamOwner,
-    ].filter(Boolean);
+    const members = [...(team.players || []), team.teamOwner].filter(Boolean);
     if (members.length === 0)
         return 0;
     const totalRating = members.reduce((sum, member) => {
         const rating = typeof member === "object" ? (member.rating || 0) : 0;
         return sum + rating;
     }, 0);
-    const avgRating = totalRating / members.length;
-    return parseFloat(avgRating.toFixed(2));
+    return parseFloat((totalRating / members.length).toFixed(2));
 }
 const allTeams = async () => {
     const result = await TeamModel.find()
         .populate("players")
         .populate("teamOwner")
         .populate("teamCaptain");
-    // Add rating to each team
     const teamsWithRatings = result.map(team => {
         const teamObj = team.toObject();
-        return {
-            ...teamObj,
-            rating: calculateTeamRating(team)
-        };
+        return { ...teamObj, rating: calculateTeamRating(team) };
     });
     return teamsWithRatings;
 };
 const myTeam = async (id) => {
-    // First get the team where this user is the owner
     const myTeam = await TeamModel.findOne({ teamOwner: new Types.ObjectId(id) })
         .populate("players")
         .populate("teamOwner")
@@ -73,16 +64,17 @@ const myTeam = async (id) => {
             upcomingMatchTournament: [],
             completeMatch: [],
             completeMatchTournament: [],
-            media: [] // Empty media array when no team found
+            media: []
         };
     }
     const teamId = myTeam._id;
     const rating = calculateTeamRating(myTeam);
-    // Helper function to get matches with proper population
+    // ── FIX: deleted lobby exclude in aggregate $match ──────────
     const getLobbyMatches = async (status) => {
         return await LobbyModel.aggregate([
             {
                 $match: {
+                    isDelete: { $ne: true },
                     $or: [
                         { "team1.teamId": teamId },
                         { "team2.teamId": teamId },
@@ -92,123 +84,75 @@ const myTeam = async (id) => {
             },
             {
                 $lookup: {
-                    from: "teams",
-                    localField: "team1.teamId",
-                    foreignField: "_id",
-                    as: "team1Data"
+                    from: "teams", localField: "team1.teamId", foreignField: "_id", as: "team1Data"
                 }
             },
             { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: "teams",
-                    localField: "team2.teamId",
-                    foreignField: "_id",
-                    as: "team2Data"
+                    from: "teams", localField: "team2.teamId", foreignField: "_id", as: "team2Data"
                 }
             },
             { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
-                    from: "players",
-                    localField: "team1Data.players",
-                    foreignField: "_id",
-                    as: "team1Players"
+                    from: "players", localField: "team1Data.players", foreignField: "_id", as: "team1Players"
                 }
             },
             {
                 $lookup: {
-                    from: "players",
-                    localField: "team2Data.players",
-                    foreignField: "_id",
-                    as: "team2Players"
+                    from: "players", localField: "team2Data.players", foreignField: "_id", as: "team2Players"
                 }
             },
             {
                 $lookup: {
-                    from: "players",
-                    localField: "organizer",
-                    foreignField: "_id",
-                    as: "organizerData"
+                    from: "players", localField: "organizer", foreignField: "_id", as: "organizerData"
                 }
             },
             { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
-            // For solo matches (default teams)
             {
                 $lookup: {
                     from: "players",
-                    let: {
-                        playerIds: {
-                            $ifNull: ["$defaultTeam1.players.playerId", []]
-                        }
-                    },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $in: ["$_id", "$$playerIds"]
-                                }
-                            }
-                        }
-                    ],
+                    let: { playerIds: { $ifNull: ["$defaultTeam1.players.playerId", []] } },
+                    pipeline: [{ $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }],
                     as: "defaultTeam1Players"
                 }
             },
             {
                 $lookup: {
                     from: "players",
-                    let: {
-                        playerIds: {
-                            $ifNull: ["$defaultTeam2.players.playerId", []]
-                        }
-                    },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $in: ["$_id", "$$playerIds"]
-                                }
-                            }
-                        }
-                    ],
+                    let: { playerIds: { $ifNull: ["$defaultTeam2.players.playerId", []] } },
+                    pipeline: [{ $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }],
                     as: "defaultTeam2Players"
                 }
             },
-            // Sort by date (newest first for completed, upcoming first for ongoing)
-            {
-                $sort: status === "ongoing" ?
-                    { date: 1 } :
-                    { date: -1 }
-            }
+            { $sort: status === "ongoing" ? { date: 1 } : { date: -1 } }
         ]);
     };
-    // Get upcoming matches (ongoing)
     const upcomingMatch = await getLobbyMatches("ongoing");
-    // Get completed matches
     const completeMatch = await getLobbyMatches("completed");
-    // Get tournament matches (using your existing MatchModel)
-    const upcomingMatchTournament = await MatchModel.find({
+    // ── FIX: deleted tournament-er match exclude ──────────────────
+    const rawUpcomingMatchTournament = await MatchModel.find({
         $or: [{ teamA: teamId }, { teamB: teamId }],
         status: "Pending"
     })
+        .populate({ path: "tournament", match: { isDelete: { $ne: true } } })
         .populate("teamA")
         .populate("teamB")
-        .populate("tournament").sort({ date: 1 });
-    ;
-    const completeMatchTournament = await MatchModel.find({
+        .sort({ date: 1 });
+    const upcomingMatchTournament = rawUpcomingMatchTournament.filter((m) => m.tournament !== null);
+    const rawCompleteMatchTournament = await MatchModel.find({
         $or: [{ teamA: teamId }, { teamB: teamId }],
         status: "Completed"
     })
+        .populate({ path: "tournament", match: { isDelete: { $ne: true } } })
         .populate("teamA")
         .populate("teamB")
-        .populate("tournament").sort({ date: -1 });
-    ;
-    // Extract all media from complete matches and complete tournament matches
+        .sort({ date: -1 });
+    const completeMatchTournament = rawCompleteMatchTournament.filter((m) => m.tournament !== null);
     const allMedia = [
-        // Get media from regular complete matches
-        ...completeMatch.flatMap(match => match.media || []),
-        // Get media from tournament complete matches
-        ...completeMatchTournament.flatMap(match => match.media || [])
+        ...completeMatch.flatMap((match) => match.media || []),
+        ...completeMatchTournament.flatMap((match) => match.media || [])
     ];
     return {
         myTeam,
@@ -217,11 +161,10 @@ const myTeam = async (id) => {
         upcomingMatchTournament,
         completeMatch,
         completeMatchTournament,
-        media: allMedia // Array containing all media URLs from completed matches
+        media: allMedia
     };
 };
 const singleTeam = async (id) => {
-    // First get the team where this user is the owner
     const myTeam = await TeamModel.findOne({ _id: new Types.ObjectId(id) })
         .populate("players")
         .populate("teamOwner")
@@ -234,16 +177,17 @@ const singleTeam = async (id) => {
             upcomingMatchTournament: [],
             completeMatch: [],
             completeMatchTournament: [],
-            media: [] // Empty media array when no team found
+            media: []
         };
     }
     const teamId = myTeam._id;
     const rating = calculateTeamRating(myTeam);
-    // Helper function to get matches with proper population
+    // ── FIX: deleted lobby exclude ──────────────────
     const getLobbyMatches = async (status) => {
         return await LobbyModel.aggregate([
             {
                 $match: {
+                    isDelete: { $ne: true },
                     $or: [
                         { "team1.teamId": teamId },
                         { "team2.teamId": teamId },
@@ -252,122 +196,64 @@ const singleTeam = async (id) => {
                 }
             },
             {
-                $lookup: {
-                    from: "teams",
-                    localField: "team1.teamId",
-                    foreignField: "_id",
-                    as: "team1Data"
-                }
+                $lookup: { from: "teams", localField: "team1.teamId", foreignField: "_id", as: "team1Data" }
             },
             { $unwind: { path: "$team1Data", preserveNullAndEmptyArrays: true } },
             {
-                $lookup: {
-                    from: "teams",
-                    localField: "team2.teamId",
-                    foreignField: "_id",
-                    as: "team2Data"
-                }
+                $lookup: { from: "teams", localField: "team2.teamId", foreignField: "_id", as: "team2Data" }
             },
             { $unwind: { path: "$team2Data", preserveNullAndEmptyArrays: true } },
             {
-                $lookup: {
-                    from: "players",
-                    localField: "team1Data.players",
-                    foreignField: "_id",
-                    as: "team1Players"
-                }
+                $lookup: { from: "players", localField: "team1Data.players", foreignField: "_id", as: "team1Players" }
             },
             {
-                $lookup: {
-                    from: "players",
-                    localField: "team2Data.players",
-                    foreignField: "_id",
-                    as: "team2Players"
-                }
+                $lookup: { from: "players", localField: "team2Data.players", foreignField: "_id", as: "team2Players" }
             },
             {
-                $lookup: {
-                    from: "players",
-                    localField: "organizer",
-                    foreignField: "_id",
-                    as: "organizerData"
-                }
+                $lookup: { from: "players", localField: "organizer", foreignField: "_id", as: "organizerData" }
             },
             { $unwind: { path: "$organizerData", preserveNullAndEmptyArrays: true } },
-            // For solo matches (default teams)
             {
                 $lookup: {
                     from: "players",
-                    let: {
-                        playerIds: {
-                            $ifNull: ["$defaultTeam1.players.playerId", []]
-                        }
-                    },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $in: ["$_id", "$$playerIds"]
-                                }
-                            }
-                        }
-                    ],
+                    let: { playerIds: { $ifNull: ["$defaultTeam1.players.playerId", []] } },
+                    pipeline: [{ $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }],
                     as: "defaultTeam1Players"
                 }
             },
             {
                 $lookup: {
                     from: "players",
-                    let: {
-                        playerIds: {
-                            $ifNull: ["$defaultTeam2.players.playerId", []]
-                        }
-                    },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $in: ["$_id", "$$playerIds"]
-                                }
-                            }
-                        }
-                    ],
+                    let: { playerIds: { $ifNull: ["$defaultTeam2.players.playerId", []] } },
+                    pipeline: [{ $match: { $expr: { $in: ["$_id", "$$playerIds"] } } }],
                     as: "defaultTeam2Players"
                 }
             },
-            // Sort by date (newest first for completed, upcoming first for ongoing)
-            {
-                $sort: status === "ongoing" ?
-                    { date: 1, time: 1 } : // For upcoming: sort by nearest date
-                    { date: -1, time: -1 } // For completed: sort by latest first
-            }
+            { $sort: status === "ongoing" ? { date: 1, time: 1 } : { date: -1, time: -1 } }
         ]);
     };
-    // Get upcoming matches (ongoing)
     const upcomingMatch = await getLobbyMatches("ongoing");
-    // Get completed matches
     const completeMatch = await getLobbyMatches("completed");
-    // Get tournament matches (using your existing MatchModel)
-    const upcomingMatchTournament = await MatchModel.find({
+    // ── FIX: deleted tournament-er match exclude ──────────────────
+    const rawUpcomingMatchTournament = await MatchModel.find({
         $or: [{ teamA: teamId }, { teamB: teamId }],
         status: "Pending"
     })
+        .populate({ path: "tournament", match: { isDelete: { $ne: true } } })
         .populate("teamA")
-        .populate("teamB")
-        .populate("tournament");
-    const completeMatchTournament = await MatchModel.find({
+        .populate("teamB");
+    const upcomingMatchTournament = rawUpcomingMatchTournament.filter((m) => m.tournament !== null);
+    const rawCompleteMatchTournament = await MatchModel.find({
         $or: [{ teamA: teamId }, { teamB: teamId }],
         status: "Completed"
     })
+        .populate({ path: "tournament", match: { isDelete: { $ne: true } } })
         .populate("teamA")
-        .populate("teamB")
-        .populate("tournament");
-    // Extract all media from complete matches and complete tournament matches
+        .populate("teamB");
+    const completeMatchTournament = rawCompleteMatchTournament.filter((m) => m.tournament !== null);
     const allMedia = [
-        // Get media from regular complete matches
-        ...completeMatch.flatMap(match => match.media || []),
-        // Get media from tournament complete matches
-        ...completeMatchTournament.flatMap(match => match.media || [])
+        ...completeMatch.flatMap((match) => match.media || []),
+        ...completeMatchTournament.flatMap((match) => match.media || [])
     ];
     return {
         myTeam,
@@ -376,7 +262,7 @@ const singleTeam = async (id) => {
         upcomingMatchTournament,
         completeMatch,
         completeMatchTournament,
-        media: allMedia // Array containing all media URLs from completed matches
+        media: allMedia
     };
 };
 const assignCaptain = async (ownerId, teamId, captainId, userRole) => {

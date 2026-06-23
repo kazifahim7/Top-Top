@@ -28,7 +28,7 @@ const ProfileSchema = new Schema({
     tackle: { type: Number, default: 0 },
     save: { type: Number, default: 0 },
     match: { type: Number, default: 0 },
-    rating: { type: Number, default: 6.5 },
+    rating: { type: Number, default: 7 },
     motm: { type: Number, default: 0 },
     cleanSheet: { type: Number, default: 0 },
     matchPosition: { type: String },

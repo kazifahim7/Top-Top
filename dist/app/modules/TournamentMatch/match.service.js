@@ -78,7 +78,7 @@ const singleMatch = async (id) => {
     const calcAvg = (players) => {
         if (!players?.length)
             return 0;
-        const total = players.reduce((sum, p) => sum + (p.rating ?? 6.5), 0);
+        const total = players.reduce((sum, p) => sum + (p.rating ?? 7), 0);
         return parseFloat((total / players.length).toFixed(2));
     };
     return {
@@ -309,7 +309,7 @@ const addPlayers = async (matchId, data, userId) => {
             save: 0,
             goodMoment: 0,
             veryGoodMoment: 0,
-            rating: 6.5
+            rating: 7
         });
     }
     const calculateAvg = async (arr) => {
@@ -319,7 +319,7 @@ const addPlayers = async (matchId, data, userId) => {
         const profiles = await userModel.find({ _id: { $in: ids } }, { rating: 1 });
         if (!profiles.length)
             return 0;
-        const total = profiles.reduce((sum, p) => sum + (p.rating || 6.5), 0);
+        const total = profiles.reduce((sum, p) => sum + (p.rating || 7), 0);
         return Number((total / profiles.length).toFixed(2));
     };
     match.team1AvgMatchRatingBefore = await calculateAvg(match.teamAPlayers);
@@ -358,7 +358,7 @@ export const removePlayerFromMatch = async (matchId, data, userId) => {
         const profiles = await userModel.find({ _id: { $in: ids } }, { rating: 1 });
         if (!profiles.length)
             return 0;
-        const total = profiles.reduce((sum, p) => sum + (p.rating || 6.5), 0);
+        const total = profiles.reduce((sum, p) => sum + (p.rating || 7), 0);
         return Number((total / profiles.length).toFixed(2));
     };
     match.team1AvgMatchRatingBefore = await calculateAvg(match.teamAPlayers);
@@ -394,7 +394,7 @@ export const updatePlayerStats = async (data) => {
         }
         if (!player || !teamKey)
             throw new Error("Player not found in match");
-        let rawRating = player.rawRating ?? player.rating ?? 6.5;
+        let rawRating = player.rawRating ?? player.rating ?? 7;
         rawRating -= (data.redCard ?? 0) * 0.5;
         rawRating -= (data.yellowCard ?? 0) * 0.25;
         rawRating += (data.goal ?? 0) * 0.5;

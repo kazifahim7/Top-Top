@@ -9,6 +9,13 @@ import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { getPlayerOverallRating } from "../../utils/getRating.js";
 import { CountryService } from "../Country/country.service.js";
 import { assertSameCountry, getUserCountryCode } from "../../utils/countryAccess.js";
+import { calculateAverageMainRating, isKnownFormation, remapPlayersToFormation, } from "../../utils/lobbyFormation.js";
+const getPlayerIdString = (player) => {
+    const playerId = player?.playerId;
+    if (!playerId)
+        return "";
+    return playerId?._id?.toString?.() || playerId.toString();
+};
 const resolveContentCountry = async (payloadCountryCode, organizerId) => {
     if (payloadCountryCode !== undefined && payloadCountryCode !== null && payloadCountryCode !== "") {
         return CountryService.assertActiveCountry(payloadCountryCode);
@@ -1188,7 +1195,7 @@ export const updatePlayerStats = async (data) => {
         if (!player || !teamKey)
             throw new Error("Player not found in any team");
         // -------- Rating calculation ----------
-        let rawRating = player.rawRating ?? player.rating ?? 6.5;
+        let rawRating = player.rawRating ?? player.rating ?? 7;
         rawRating -= (data.redCard || 0) * 0.5;
         rawRating -= (data.yellowCard || 0) * 0.25;
         rawRating += (data.goal || 0) * 0.5;
@@ -1235,6 +1242,77 @@ export const updatePlayerStats = async (data) => {
         return { lobbyPlayer: player };
     }
     throw new Error("Either playerId or ownGoal with teamId is required");
+};
+const updateFormation = async (id, payload, requester) => {
+    const teamKey = payload.teamKey?.toString();
+    const matchFormat = payload.matchFormat?.toString();
+    const validTeamKeys = ["team1", "team2", "defaultTeam1", "defaultTeam2"];
+    if (!teamKey || !validTeamKeys.includes(teamKey)) {
+        throw new AppError(400, "teamKey must be team1, team2, defaultTeam1, or defaultTeam2");
+    }
+    if (!matchFormat || !isKnownFormation(matchFormat)) {
+        throw new AppError(400, "Invalid matchFormat");
+    }
+    const lobby = await LobbyModel.findById(id);
+    if (!lobby) {
+        throw new AppError(404, "Lobby not found");
+    }
+    const requesterId = requester.id?.toString();
+    if (!requesterId) {
+        throw new AppError(401, "Unauthorized");
+    }
+    const isAdmin = requester.role === "admin";
+    const isLobbyOrganizer = lobby.organizer?.toString() === requesterId;
+    const isDefaultTeam = teamKey === "defaultTeam1" || teamKey === "defaultTeam2";
+    const isTeamMatchTeam = teamKey === "team1" || teamKey === "team2";
+    if (lobby.matchType === "solo" && !isDefaultTeam) {
+        throw new AppError(400, "Solo lobbies can only update default teams");
+    }
+    if (lobby.matchType === "teams" && !isTeamMatchTeam) {
+        throw new AppError(400, "Team lobbies can only update team1 or team2");
+    }
+    const targetTeam = lobby[teamKey];
+    if (!targetTeam) {
+        throw new AppError(404, "Team not found in lobby");
+    }
+    if (!isAdmin && !isLobbyOrganizer) {
+        if (isDefaultTeam) {
+            const firstPlayerId = getPlayerIdString(targetTeam.players?.[0]);
+            if (!firstPlayerId) {
+                throw new AppError(403, "Only the organizer, admin, or first joined player can update this formation");
+            }
+            if (firstPlayerId !== requesterId) {
+                throw new AppError(403, "Only the organizer, admin, or first joined player can update this formation");
+            }
+        }
+        else {
+            const teamId = targetTeam.teamId;
+            if (!teamId) {
+                throw new AppError(404, "Team not found");
+            }
+            const team = await TeamModel.findById(teamId);
+            if (!team) {
+                throw new AppError(404, "Team not found");
+            }
+            const isTeamOwner = team.teamOwner?.toString() === requesterId;
+            const isTeamCaptain = team.teamCaptain?.some((captain) => captain.toString() === requesterId);
+            if (!isTeamOwner && !isTeamCaptain) {
+                throw new AppError(403, "Only the organizer, team owner, or team captain can update this formation");
+            }
+        }
+    }
+    targetTeam.matchFormat = matchFormat;
+    targetTeam.players = remapPlayersToFormation(targetTeam.players || [], matchFormat);
+    lobby.markModified(`${teamKey}.matchFormat`);
+    lobby.markModified(`${teamKey}.players`);
+    if (teamKey === "team1" || teamKey === "defaultTeam1") {
+        lobby.team1AvgMatchRatingBefore = calculateAverageMainRating(targetTeam.players || []);
+    }
+    else {
+        lobby.team2AvgMatchRatingBefore = calculateAverageMainRating(targetTeam.players || []);
+    }
+    await lobby.save();
+    return lobby;
 };
 const updateLobbyInfo = async (id, payload) => {
     const isLobbyExist = await LobbyModel.findById(id)
@@ -1528,6 +1606,7 @@ export const lobbyService = {
     createMatch,
     allMatch,
     updatePlayerStats,
+    updateFormation,
     updateLobbyInfo,
     deleteLobby,
     singlelobby,

@@ -39,6 +39,14 @@ export declare const lobbyService: {
         goalTeam1?: never;
         goalTeam2?: never;
     }>;
+    updateFormation: (id: string, payload: Record<string, unknown>, requester: {
+        id?: string;
+        role?: string;
+    }) => Promise<mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
+        _id: unknown;
+    }> & {
+        __v: number;
+    }>;
     updateLobbyInfo: (id: string, payload: Record<string, unknown>) => Promise<(mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
         _id: unknown;
     }> & {
