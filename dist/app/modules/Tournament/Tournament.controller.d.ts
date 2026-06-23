@@ -7,5 +7,8 @@ export declare const TournamentController: {
     qualifyTeamsController: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     getTopPlayers: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
     organizerTournament: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
+    countryTournament: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
+    myCountryTournament: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
+    myCountrySingleTournament: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=Tournament.controller.d.ts.map

@@ -8,6 +8,9 @@ import type { Request, Response } from "express";
 import { TournamentModel } from "../Tournament/Tournament.model.js";
 import { StandingModel } from "../PointTable/pointtable.model.js";
 import config from "../../config/index.js";
+import { CountryService } from "../Country/country.service.js";
+import { stripeAmountFromPrice, stripeCurrencyCode } from "../../utils/stripeAmount.js";
+import { RefundModel } from "../Refund/refund.model.js";
 
 
 const stripe = new Stripe(config.sk_key!, {
@@ -167,13 +170,22 @@ async function checkPositionAvailability(payment: any): Promise<string | null> {
           (p: any) => p.matchPosition === payment.matchPosition
      );
 
-     const positionTakenInPayment = await PaymentModel.findOne({
+     const positionPayments = await PaymentModel.find({
           lobbyId: payment.lobbyId,
           teamId: payment.teamId,
           matchPosition: payment.matchPosition,
           status: { $in: ["success", "paid"] },
           _id: { $ne: payment._id },
      });
+     const refundingPlayerIds = await RefundModel.distinct("playerId", {
+          lobbyId: payment.lobbyId,
+          playerId: { $in: positionPayments.map((positionPayment) => positionPayment.playerId) },
+          status: "pending",
+     });
+     const refundingPlayerIdSet = new Set(refundingPlayerIds.map((id) => id.toString()));
+     const positionTakenInPayment = positionPayments.some(
+          (positionPayment) => !refundingPlayerIdSet.has(positionPayment.playerId?.toString() || "")
+     );
 
      if (positionTakenInLobby || positionTakenInPayment) {
           await PaymentModel.updateMany(
@@ -234,7 +246,9 @@ export const stripeWebhook = async (req: Request, res: Response) => {
                }
 
                // Amount & currency validation
-               if (intent.amount !== payment.price * 100 || intent.currency !== "aed") {
+               const expectedCurrency = stripeCurrencyCode(payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+               const expectedAmount = stripeAmountFromPrice(payment.totalPrice ?? payment.price, payment.currencyCode || CountryService.DEFAULT_CURRENCY_CODE);
+               if (intent.amount !== expectedAmount || intent.currency !== expectedCurrency) {
                     payment.status = "failed";
                     await payment.save();
                     await stripe.refunds.create({ payment_intent: intent.id });

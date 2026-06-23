@@ -36,6 +36,15 @@ const exit_lobby = catchAsync(async (req, res) => {
         data: result
     });
 });
+const leave_lobby = catchAsync(async (req, res) => {
+    const id = req?.user?.id;
+    const result = await refundService.leave_lobby(req.body, id);
+    res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result
+    });
+});
 const exit_lobby_organizer = catchAsync(async (req, res) => {
     const id = req?.user?.id;
     const result = await refundService.exit_lobby_organizer(req.body, id);
@@ -49,6 +58,7 @@ export const refundController = {
     sendRefundRequest,
     allRefundRequest,
     acceptRefundRequest,
+    leave_lobby,
     exit_lobby,
     exit_lobby_organizer
 };

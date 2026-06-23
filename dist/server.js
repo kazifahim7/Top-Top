@@ -5,11 +5,13 @@ import app from "./app.js";
 import { userModel } from "./app/modules/auth/auth.model.js";
 import { TAdmin } from "./app/Admin/index.js";
 import bcrypt from 'bcrypt';
+import { CountryService } from "./app/modules/Country/country.service.js";
 let server;
 const port = Number(config.port) || 5001;
 async function run() {
     try {
         await connect(config.dataBase_url);
+        await CountryService.ensureDefaultCountry();
         server = app.listen(port, () => {
             console.log(`app is listening on port ${port}`);
         });

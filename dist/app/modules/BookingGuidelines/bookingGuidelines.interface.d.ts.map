@@ -1,0 +1,1 @@
+{"version":3,"file":"bookingGuidelines.interface.d.ts","sourceRoot":"","sources":["../../../../src/app/modules/BookingGuidelines/bookingGuidelines.interface.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,kBAAkB;IAC9B,GAAG,EAAE,QAAQ,CAAC;IACd,OAAO,EAAE,MAAM,CAAC;IAChB,SAAS,EAAE,IAAI,CAAC;IAChB,SAAS,EAAE,IAAI,CAAC;CACpB"}

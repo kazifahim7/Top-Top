@@ -1,45 +1,25 @@
-export declare const getAllAreas: () => {
+export declare const getAllAreas: (countryCode?: unknown) => Promise<import("../Country/country.interface.js").CountryCity[]>;
+export declare const getCities: (countryCode?: unknown) => Promise<{
     id: number;
     city: string;
     slug: string;
-    areas: string[];
-}[];
-export declare const getCities: () => {
-    id: number;
-    city: string;
-    slug: string;
-}[];
-export declare const getAreasByCity: (slug: string) => {
-    id: number;
-    city: string;
-    slug: string;
-    areas: string[];
-} | null;
-export declare const searchAreas: (query: string) => {
+}[]>;
+export declare const getAreasByCity: (slug: string, countryCode?: unknown) => Promise<import("../Country/country.interface.js").CountryCity | null>;
+export declare const searchAreas: (query: string, countryCode?: unknown) => Promise<{
     city: string;
     area: string;
-}[];
+}[]>;
 export declare const AreaService: {
-    getCities: () => {
+    getCities: (countryCode?: unknown) => Promise<{
         id: number;
         city: string;
         slug: string;
-    }[];
-    getAreasByCity: (slug: string) => {
-        id: number;
-        city: string;
-        slug: string;
-        areas: string[];
-    } | null;
-    searchAreas: (query: string) => {
+    }[]>;
+    getAreasByCity: (slug: string, countryCode?: unknown) => Promise<import("../Country/country.interface.js").CountryCity | null>;
+    searchAreas: (query: string, countryCode?: unknown) => Promise<{
         city: string;
         area: string;
-    }[];
-    getAllAreas: () => {
-        id: number;
-        city: string;
-        slug: string;
-        areas: string[];
-    }[];
+    }[]>;
+    getAllAreas: (countryCode?: unknown) => Promise<import("../Country/country.interface.js").CountryCity[]>;
 };
 //# sourceMappingURL=Area.service.d.ts.map

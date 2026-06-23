@@ -20,11 +20,38 @@ const allMatch = catchAsync(async (req, res) => {
      })
 })
 
+const countryMatch = catchAsync(async (req, res) => {
+     const result = await tournamentMatchService.countryMatch(req.params.countryCode!)
+     res.status(200).json({
+          success: true,
+          message: "Country tournament matches retrieved successfully",
+          data: result
+     })
+})
+
+const myCountryTournamentMatches = catchAsync(async (req, res) => {
+     const result = await tournamentMatchService.myCountryTournamentMatches(req.user.id, req.params.tournamentId!)
+     res.status(200).json({
+          success: true,
+          message: "My country tournament matches retrieved successfully",
+          data: result
+     })
+})
+
 const singleMatch = catchAsync(async (req, res) => {
      const result = await tournamentMatchService.singleMatch(req.params.id!)
      res.status(200).json({
           success: true,
           message: "Tournament match retrieved successfully",
+          data: result
+     })
+})
+
+const myCountrySingleMatch = catchAsync(async (req, res) => {
+     const result = await tournamentMatchService.myCountrySingleMatch(req.user.id, req.params.id!)
+     res.status(200).json({
+          success: true,
+          message: "My country tournament match retrieved successfully",
           data: result
      })
 })
@@ -109,7 +136,10 @@ export const tournamentMatchController = {
      createMatch,
      deleteMatch,
      allMatch,
+     countryMatch,
+     myCountryTournamentMatches,
      singleMatch,
+     myCountrySingleMatch,
      updateMatch,
      updatePlayerState,
      addPlayers,

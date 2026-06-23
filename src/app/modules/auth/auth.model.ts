@@ -12,6 +12,7 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
      isMobileVerified: { type: Boolean, default: false },
      mobileVerifiedAt: { type: Date, default: null },
      nationality: { type: String , default: "" },
+     countryCode: { type: String, trim: true, uppercase: true, default: "AE" },
      dominantFoot: { type: String, default: "" },
      gameMode: { type: String, default: "" },
      preferredAreas: { type: [String], default: [] }, 
@@ -38,5 +39,6 @@ const ProfileSchema: Schema = new Schema<TCreateProfile>({
 });
 
 ProfileSchema.index({ mobile: 1, isMobileVerified: 1 });
+ProfileSchema.index({ countryCode: 1 });
 
 export const userModel = model<TCreateProfile>('Players', ProfileSchema);

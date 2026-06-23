@@ -13,6 +13,7 @@ import helmet from 'helmet';
 import { placesLimiter } from './app/RateLimiting/placeLimiter.js';
 import auth from './app/middleware/auth.js';
 import { stripeWebhook } from './app/modules/Payment/webhook.controller.js';
+import { CountryService } from './app/modules/Country/country.service.js';
 const app = express();
 const uploadsPath = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsPath)) {
@@ -70,9 +71,16 @@ cron.schedule("* * * * *", async () => {
 // location 
 app.get("/api/autocomplete", placesLimiter, auth("player", "admin", "organizer"), async (req, res) => {
     try {
-        const { input } = req.query;
+        const { input, countryCode } = req.query;
+        const normalizedCountryCode = countryCode
+            ? CountryService.normalizeCountryCode(countryCode)
+            : undefined;
         const response = await axios.get(`https://maps.googleapis.com/maps/api/place/autocomplete/json`, {
-            params: { input, key: config.google_api_key },
+            params: {
+                input,
+                key: config.google_api_key,
+                ...(normalizedCountryCode && { components: `country:${normalizedCountryCode.toLowerCase()}` }),
+            },
         });
         res.json(response.data);
     }

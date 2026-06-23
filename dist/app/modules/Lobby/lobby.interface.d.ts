@@ -42,6 +42,8 @@ export interface LobbyDocument extends Document {
     defaultTeam2?: DefaultTeam;
     matchTime: string;
     location: GeoLocation;
+    countryCode?: string;
+    currencyCode?: string;
     price: number;
     teamSize: number;
     goalkeeper: boolean;

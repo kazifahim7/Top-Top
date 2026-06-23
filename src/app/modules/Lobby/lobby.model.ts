@@ -50,6 +50,8 @@ const LobbySchema = new Schema<LobbyDocument>(
           defaultTeam2: { type: DefaultTeamSchema },
           matchTime: { type: String, required: true },
           location: { type: LocationSchema, required: true },
+          countryCode: { type: String, trim: true, uppercase: true, default: "AE" },
+          currencyCode: { type: String, trim: true, uppercase: true, default: "AED" },
           price: { type: Number, default: 0 },
           teamSize: { type: Number, required: true },
           goalkeeper: { type: Boolean, default: false },
@@ -77,5 +79,7 @@ const LobbySchema = new Schema<LobbyDocument>(
      },
      { timestamps: true }
 );
+
+LobbySchema.index({ countryCode: 1, date: -1 });
 
 export const LobbyModel = model<LobbyDocument>("Lobby", LobbySchema);

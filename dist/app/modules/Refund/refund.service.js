@@ -2,6 +2,82 @@ import mongoose, { Types } from "mongoose";
 import { PaymentModel } from "../Payment/payment.model.js";
 import { RefundModel } from "./refund.model.js";
 import { LobbyModel } from "../Lobby/lobby.model.js";
+const REFUND_WINDOW_HOURS = 12;
+const parseMatchStartDate = (date, time) => {
+    const matchDate = new Date(date);
+    if (!time)
+        return matchDate;
+    const timeMatch = time.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if (!timeMatch)
+        return matchDate;
+    let hours = Number(timeMatch[1]);
+    const minutes = Number(timeMatch[2] || 0);
+    const period = timeMatch[3]?.toUpperCase();
+    if (period === "PM" && hours < 12)
+        hours += 12;
+    if (period === "AM" && hours === 12)
+        hours = 0;
+    if (hours > 23 || minutes > 59)
+        return matchDate;
+    return new Date(Date.UTC(matchDate.getUTCFullYear(), matchDate.getUTCMonth(), matchDate.getUTCDate(), hours, minutes, 0, 0));
+};
+const getHoursUntilMatchStart = (date, time) => {
+    const matchStart = parseMatchStartDate(date, time);
+    return (matchStart.getTime() - Date.now()) / (1000 * 60 * 60);
+};
+const playerExistsInLobby = (lobby, playerObjectId) => {
+    const playerId = playerObjectId.toString();
+    return [
+        ...(lobby.team1?.players || []),
+        ...(lobby.team2?.players || []),
+        ...(lobby.defaultTeam1?.players || []),
+        ...(lobby.defaultTeam2?.players || []),
+    ].some((player) => player.playerId?.toString() === playerId);
+};
+const getPlayerTeamIdFromLobby = (lobby, playerObjectId) => {
+    const playerId = playerObjectId.toString();
+    if (lobby.team1?.players?.some((player) => player.playerId?.toString() === playerId)) {
+        return lobby.team1.teamId;
+    }
+    if (lobby.team2?.players?.some((player) => player.playerId?.toString() === playerId)) {
+        return lobby.team2.teamId;
+    }
+    if (lobby.defaultTeam1?.players?.some((player) => player.playerId?.toString() === playerId)) {
+        return lobby.defaultTeam1._id;
+    }
+    if (lobby.defaultTeam2?.players?.some((player) => player.playerId?.toString() === playerId)) {
+        return lobby.defaultTeam2._id;
+    }
+    return undefined;
+};
+const removePlayerFromLobby = async (lobbyObjectId, playerObjectId, session) => {
+    return LobbyModel.updateOne({ _id: lobbyObjectId }, {
+        $pull: {
+            "team1.players": { playerId: playerObjectId },
+            "team2.players": { playerId: playerObjectId },
+            "defaultTeam1.players": { playerId: playerObjectId },
+            "defaultTeam2.players": { playerId: playerObjectId },
+        },
+    }, { session });
+};
+const resetEmptyMatchFormats = async (lobbyObjectId, session) => {
+    const lobby = await LobbyModel.findById(lobbyObjectId).session(session);
+    if (!lobby) {
+        throw new Error("Lobby not found");
+    }
+    const updateData = {};
+    if (lobby.team1?.players?.length === 0)
+        updateData["team1.matchFormat"] = "";
+    if (lobby.team2?.players?.length === 0)
+        updateData["team2.matchFormat"] = "";
+    if (lobby.defaultTeam1?.players?.length === 0)
+        updateData["defaultTeam1.matchFormat"] = "";
+    if (lobby.defaultTeam2?.players?.length === 0)
+        updateData["defaultTeam2.matchFormat"] = "";
+    if (Object.keys(updateData).length > 0) {
+        await LobbyModel.updateOne({ _id: lobbyObjectId }, { $set: updateData }, { session });
+    }
+};
 export const sendRefundRequest = async (payload) => {
     const { lobbyId, playerId, price } = payload;
     console.log(payload);
@@ -64,7 +140,7 @@ const acceptRefundRequest = async (payload) => {
             lobbyId: lobbyObjectId,
             playerId: playerObjectId,
             ...(teamObjectId ? { teamId: teamObjectId } : {}),
-            status: "success"
+            status: { $in: ["success", "paid"] }
         }, { $set: { status: "refund" } }, { session });
         console.log('Payment update result:', paymentUpdate);
         if (paymentUpdate.matchedCount === 0) {
@@ -97,6 +173,107 @@ const acceptRefundRequest = async (payload) => {
         await session.abortTransaction();
         session.endSession();
         console.error("Accept refund error:", error);
+        throw error;
+    }
+};
+const leave_lobby = async (payload, playerId) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const lobbyObjectId = new Types.ObjectId(payload.lobbyId);
+        const playerObjectId = new Types.ObjectId(playerId);
+        const lobby = await LobbyModel.findById(lobbyObjectId).session(session);
+        if (!lobby) {
+            throw new Error("Lobby not found");
+        }
+        const isPlayerJoined = playerExistsInLobby(lobby, playerObjectId);
+        const teamId = getPlayerTeamIdFromLobby(lobby, playerObjectId);
+        const activePayment = await PaymentModel.findOne({
+            lobbyId: lobbyObjectId,
+            playerId: playerObjectId,
+            status: { $in: ["success", "paid"] },
+        }).sort({ createdAt: -1 }).session(session);
+        const existingPendingRefund = await RefundModel.findOne({
+            lobbyId: lobbyObjectId,
+            playerId: playerObjectId,
+            status: "pending",
+        }).session(session);
+        if (!isPlayerJoined) {
+            await session.commitTransaction();
+            session.endSession();
+            return {
+                success: true,
+                message: existingPendingRefund
+                    ? "You have already left this lobby and your refund request is pending."
+                    : "You have already left this lobby.",
+                refundRequestCreated: false,
+                refundRequestAlreadyPending: Boolean(existingPendingRefund),
+                refundEligible: Boolean(existingPendingRefund),
+                refundIneligibilityReason: existingPendingRefund ? null : "already_left",
+                hoursUntilMatchStart: getHoursUntilMatchStart(lobby.date, lobby.time),
+            };
+        }
+        const hoursUntilMatchStart = getHoursUntilMatchStart(lobby.date, lobby.time);
+        const isCashPayment = activePayment?.method === "cash";
+        const isOutsideRefundWindow = hoursUntilMatchStart > REFUND_WINDOW_HOURS;
+        const refundEligible = Boolean(activePayment && !isCashPayment && isOutsideRefundWindow);
+        await removePlayerFromLobby(lobbyObjectId, playerObjectId, session);
+        let refundRequestCreated = false;
+        let refundIneligibilityReason = null;
+        if (refundEligible) {
+            if (!existingPendingRefund) {
+                await RefundModel.create([{
+                        lobbyId: lobbyObjectId,
+                        playerId: playerObjectId,
+                        ...(teamId ? { teamId } : {}),
+                        price: activePayment.price,
+                        status: "pending",
+                    }], { session });
+                refundRequestCreated = true;
+            }
+        }
+        else {
+            if (!activePayment) {
+                refundIneligibilityReason = "no_successful_payment";
+            }
+            else if (isCashPayment) {
+                refundIneligibilityReason = "cash";
+            }
+            else {
+                refundIneligibilityReason = "within_12_hours";
+            }
+            await PaymentModel.updateMany({
+                lobbyId: lobbyObjectId,
+                playerId: playerObjectId,
+                status: { $in: ["pending", "paid", "success"] },
+            }, { $set: { status: "manual_exit" } }, { session });
+        }
+        await resetEmptyMatchFormats(lobbyObjectId, session);
+        await session.commitTransaction();
+        session.endSession();
+        const message = refundEligible
+            ? existingPendingRefund
+                ? "You left the lobby. Your refund request is already pending."
+                : "You left the lobby and your refund request was created."
+            : refundIneligibilityReason === "cash"
+                ? "You left the lobby. No refund request was created because this was a cash payment."
+                : refundIneligibilityReason === "within_12_hours"
+                    ? "You left the lobby. No refund request was created because the match starts within 12 hours."
+                    : "You left the lobby. No refund request was created because no successful payment was found.";
+        return {
+            success: true,
+            message,
+            refundRequestCreated,
+            refundRequestAlreadyPending: Boolean(existingPendingRefund),
+            refundEligible,
+            refundIneligibilityReason,
+            hoursUntilMatchStart,
+        };
+    }
+    catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Leave lobby error:", error);
         throw error;
     }
 };
@@ -217,6 +394,7 @@ export const refundService = {
     sendRefundRequest,
     allRefundRequest,
     acceptRefundRequest,
+    leave_lobby,
     exit_lobby,
     exit_lobby_organizer
 };

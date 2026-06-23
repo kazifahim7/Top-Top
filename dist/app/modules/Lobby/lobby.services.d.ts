@@ -51,6 +51,8 @@ export declare const lobbyService: {
     }) | null>;
     singlelobby: (lobbyId: string) => Promise<any>;
     myUpcomingLobby: (id: string) => Promise<any[]>;
+    myCountryMatch: (userId: string, query: Record<string, unknown>) => Promise<any[]>;
+    myCountryLobby: (userId: string, lobbyId: string) => Promise<any>;
     organizerLobby: (id: string) => Promise<{
         upcomingLobby: (mongoose.Document<unknown, {}, LobbyDocument, {}, {}> & LobbyDocument & Required<{
             _id: unknown;
@@ -84,6 +86,7 @@ export declare const lobbyService: {
         __v: number;
     }) | null>;
     organizerMatch: (query: Record<string, unknown>, orgId: string) => Promise<any[]>;
+    countryMatch: (countryCode: string, query: Record<string, unknown>) => Promise<any[]>;
 };
 export {};
 //# sourceMappingURL=lobby.services.d.ts.map
